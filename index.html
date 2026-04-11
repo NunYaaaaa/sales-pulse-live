@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sales Pulse Live — Real-Time Etsy Analytics</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --border: #1e1e2e;
+      --accent: #00e5a0;
+      --accent2: #00b8ff;
+      --text: #e8e8f0;
+      --muted: #666680;
+      --card: #13131f;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,160,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,160,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Glow blobs */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.18;
+    }
+    .blob-1 { width: 600px; height: 600px; background: var(--accent); top: -200px; right: -150px; }
+    .blob-2 { width: 500px; height: 500px; background: var(--accent2); bottom: -150px; left: -100px; }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 2.5rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(12px);
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo-dot {
+      width: 8px; height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    .nav-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--accent);
+      border: 1px solid rgba(0,229,160,0.3);
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      letter-spacing: 0.05em;
+    }
+
+    /* HERO */
+    .hero {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8rem 2rem 4rem;
+    }
+
+    .hero-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards 0.2s;
+    }
+
+    .hero h1 {
+      font-size: clamp(3rem, 8vw, 6.5rem);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards 0.4s;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: var(--muted);
+      max-width: 520px;
+      line-height: 1.7;
+      margin-bottom: 3rem;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards 0.6s;
+    }
+
+    /* Live ticker */
+    .ticker {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.75rem 1.25rem;
+      margin-bottom: 3rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards 0.8s;
+    }
+
+    .ticker-dot {
+      width: 7px; height: 7px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+      flex-shrink: 0;
+    }
+
+    .ticker-text { color: var(--muted); }
+    .ticker-val { color: var(--accent); font-weight: 500; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* SECTION */
+    section {
+      position: relative;
+      z-index: 1;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 5rem 2rem;
+    }
+
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+      line-height: 1.1;
+    }
+
+    .section-desc {
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.75;
+      max-width: 560px;
+      margin-bottom: 3rem;
+    }
+
+    /* HOW IT WORKS */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .step {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+
+    .step:hover {
+      border-color: rgba(0,229,160,0.3);
+      transform: translateY(-4px);
+    }
+
+    .step::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .step:hover::before { opacity: 1; }
+
+    .step-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+      margin-bottom: 1rem;
+    }
+
+    .step h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .step p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.65;
+    }
+
+    /* WHO IT'S FOR */
+    .for-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .for-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: border-color 0.3s;
+    }
+
+    .for-card:hover { border-color: rgba(0,184,255,0.3); }
+
+    .for-icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .for-card h4 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+
+    .for-card p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* PRIVACY */
+    .privacy-box {
+      background: var(--card);
+      border: 1px solid rgba(0,229,160,0.2);
+      border-radius: 20px;
+      padding: 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .privacy-box::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at top left, rgba(0,229,160,0.06), transparent 60%);
+      pointer-events: none;
+    }
+
+    .privacy-items {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .privacy-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .privacy-check {
+      width: 20px; height: 20px;
+      background: rgba(0,229,160,0.15);
+      border: 1px solid rgba(0,229,160,0.4);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+      font-size: 0.7rem;
+      color: var(--accent);
+    }
+
+    .privacy-item p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .privacy-item strong { color: var(--text); }
+
+    /* DIVIDER */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0 2rem;
+    }
+
+    /* FOOTER */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 2.5rem 2rem;
+      text-align: center;
+    }
+
+    .footer-disclaimer {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      line-height: 1.8;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .footer-disclaimer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+
+  <!-- NAV -->
+  <nav>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      Sales Pulse Live
+    </div>
+    <div class="nav-badge">LIVE DATA</div>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-tag">Real-Time Shop Analytics</div>
+    <h1>Your sales data.<br><span>Instantly.</span></h1>
+    <p class="hero-sub">
+      Sales Pulse Live connects to your shop via the Etsy API so you can export and monitor your sales, orders, and revenue in real time — no manual downloads required.
+    </p>
+    <div class="ticker">
+      <div class="ticker-dot"></div>
+      <span class="ticker-text">Syncing order data —</span>
+      <span class="ticker-val">read-only &amp; secure</span>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section>
+    <div class="section-label">How It Works</div>
+    <h2 class="section-title">Three steps to<br>real-time clarity.</h2>
+    <p class="section-desc">
+      Sales Pulse Live reads your order and transaction data and exports it in structured formats so you can analyze your shop performance anywhere.
+    </p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">STEP 01</div>
+        <h3>Connect Your Shop</h3>
+        <p>Authenticate securely using Etsy's official OAuth login. We never see or store your password.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">STEP 02</div>
+        <h3>Sync Your Data</h3>
+        <p>Sales Pulse Live reads your sales, orders, and receipt data in real time directly from the Etsy API.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">STEP 03</div>
+        <h3>Export &amp; Analyze</h3>
+        <p>Download your data as CSV or JSON and plug it into any spreadsheet, dashboard, or analytics tool you prefer.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- WHO IT'S FOR -->
+  <section>
+    <div class="section-label">Who It's For</div>
+    <h2 class="section-title">Built for sellers who<br>mean business.</h2>
+    <p class="section-desc">
+      Whether you run one shop or manage multiple, Sales Pulse Live gives you faster, cleaner access to your own data.
+    </p>
+    <div class="for-grid">
+      <div class="for-card">
+        <div class="for-icon">📊</div>
+        <h4>Spreadsheet Sellers</h4>
+        <p>Export directly to CSV and drop it into your existing Google Sheets or Excel workflow.</p>
+      </div>
+      <div class="for-card">
+        <div class="for-icon">📈</div>
+        <h4>Dashboard Builders</h4>
+        <p>Feed clean JSON data into Notion, Airtable, or any custom dashboard you've built.</p>
+      </div>
+      <div class="for-card">
+        <div class="for-icon">🔍</div>
+        <h4>Trend Trackers</h4>
+        <p>Spot seasonal patterns, top products, and revenue trends without digging through Etsy's native reports.</p>
+      </div>
+      <div class="for-card">
+        <div class="for-icon">⚡</div>
+        <h4>Real-Time Monitors</h4>
+        <p>Watch your sales as they happen — no more refreshing your dashboard and waiting for data to update.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- PRIVACY -->
+  <section>
+    <div class="privacy-box">
+      <div class="section-label">Privacy &amp; Data</div>
+      <h2 class="section-title">Read-only.<br>Always.</h2>
+      <p class="section-desc" style="margin-bottom:0">
+        Sales Pulse Live never modifies, deletes, or posts anything to your shop. Your data stays yours.
+      </p>
+      <div class="privacy-items">
+        <div class="privacy-item">
+          <div class="privacy-check">✓</div>
+          <p><strong>Read-only access</strong> — we never write, edit, or delete any shop data</p>
+        </div>
+        <div class="privacy-item">
+          <div class="privacy-check">✓</div>
+          <p><strong>OAuth secured</strong> — login handled entirely by Etsy's official auth system</p>
+        </div>
+        <div class="privacy-item">
+          <div class="privacy-check">✓</div>
+          <p><strong>No data storage</strong> — we do not store your personal or shop data on our servers</p>
+        </div>
+        <div class="privacy-item">
+          <div class="privacy-check">✓</div>
+          <p><strong>API compliant</strong> — fully built on Etsy's Open API v3 within all usage policies</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p class="footer-disclaimer">
+      The term "Etsy" is a trademark of Etsy, Inc. Sales Pulse Live uses the Etsy API but is not endorsed or certified by Etsy, Inc.<br>
+      &copy; 2026 Sales Pulse Live. All rights reserved.
+    </p>
+  </footer>
+
+</body>
+</html>
