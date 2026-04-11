@@ -4,19 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Sales Pulse Live — Real-Time Etsy Analytics</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0a0a0f;
-      --surface: #111118;
-      --border: #1e1e2e;
+      --bg: #07080f;
+      --surface: #0d0e1a;
+      --border: #1a1b2e;
+      --border-light: #252640;
       --accent: #00e5a0;
-      --accent2: #00b8ff;
-      --text: #e8e8f0;
-      --muted: #666680;
-      --card: #13131f;
+      --accent2: #5b8def;
+      --text: #eeeef5;
+      --muted: #5a5b7a;
+      --muted2: #8889aa;
+      --card: #0f1020;
+      --card2: #111225;
     }
 
     html { scroll-behavior: smooth; }
@@ -24,501 +27,731 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Syne', sans-serif;
+      font-family: 'Outfit', sans-serif;
       min-height: 100vh;
       overflow-x: hidden;
     }
 
-    /* Grid background */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+      opacity: 0.025;
+      pointer-events: none;
+      z-index: 999;
+    }
+
     body::before {
       content: '';
       position: fixed;
       inset: 0;
       background-image:
-        linear-gradient(rgba(0,229,160,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,229,160,0.04) 1px, transparent 1px);
-      background-size: 48px 48px;
+        linear-gradient(rgba(91,141,239,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(91,141,239,0.035) 1px, transparent 1px);
+      background-size: 36px 36px;
       pointer-events: none;
       z-index: 0;
     }
 
-    /* Glow blobs */
-    .blob {
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(120px);
-      pointer-events: none;
-      z-index: 0;
-      opacity: 0.18;
-    }
-    .blob-1 { width: 600px; height: 600px; background: var(--accent); top: -200px; right: -150px; }
-    .blob-2 { width: 500px; height: 500px; background: var(--accent2); bottom: -150px; left: -100px; }
+    .blob { position: fixed; border-radius: 50%; filter: blur(140px); pointer-events: none; z-index: 0; }
+    .blob-1 { width: 700px; height: 700px; background: rgba(0,229,160,0.12); top: -300px; right: -200px; }
+    .blob-2 { width: 600px; height: 600px; background: rgba(91,141,239,0.1); bottom: -200px; left: -150px; }
+    .blob-3 { width: 400px; height: 400px; background: rgba(0,229,160,0.06); top: 40%; left: 30%; }
 
     /* NAV */
     nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1.25rem 2.5rem;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2.5rem;
       border-bottom: 1px solid var(--border);
-      background: rgba(10,10,15,0.85);
-      backdrop-filter: blur(12px);
+      background: rgba(7,8,15,0.8);
+      backdrop-filter: blur(20px);
     }
 
     .logo {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: 1.1rem;
-      letter-spacing: -0.02em;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+      font-weight: 700; font-size: 1rem; letter-spacing: -0.02em;
+      display: flex; align-items: center; gap: 0.6rem;
     }
 
-    .logo-dot {
-      width: 8px; height: 8px;
-      background: var(--accent);
-      border-radius: 50%;
-      animation: pulse 2s infinite;
+    .logo-icon {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px; display: flex; align-items: center;
+      justify-content: center; font-size: 0.8rem; flex-shrink: 0;
     }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.7); }
+    .nav-pill {
+      font-family: 'DM Mono', monospace; font-size: 0.65rem;
+      letter-spacing: 0.08em; color: var(--accent);
+      background: rgba(0,229,160,0.08); border: 1px solid rgba(0,229,160,0.2);
+      padding: 0.3rem 0.75rem; border-radius: 999px;
+      display: flex; align-items: center; gap: 0.4rem;
     }
 
-    .nav-badge {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--accent);
-      border: 1px solid rgba(0,229,160,0.3);
-      padding: 0.2rem 0.6rem;
-      border-radius: 999px;
-      letter-spacing: 0.05em;
+    .live-dot {
+      width: 6px; height: 6px; background: var(--accent);
+      border-radius: 50%; animation: blink 1.4s infinite;
     }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
     /* HERO */
     .hero {
-      position: relative;
-      z-index: 1;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 8rem 2rem 4rem;
+      position: relative; z-index: 1; min-height: 100vh;
+      display: grid; grid-template-columns: 1fr 1fr;
+      align-items: center; gap: 4rem;
+      max-width: 1100px; margin: 0 auto;
+      padding: 7rem 2rem 4rem;
     }
 
-    .hero-tag {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.72rem;
-      letter-spacing: 0.15em;
-      color: var(--accent);
-      text-transform: uppercase;
-      margin-bottom: 1.5rem;
-      opacity: 0;
-      animation: fadeUp 0.6s ease forwards 0.2s;
+    @media (max-width: 768px) {
+      .hero { grid-template-columns: 1fr; padding-top: 6rem; }
+      .hero-visual { display: none; }
     }
+
+    .hero-left { display: flex; flex-direction: column; }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      font-family: 'DM Mono', monospace; font-size: 0.68rem;
+      letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase;
+      margin-bottom: 1.75rem; opacity: 0;
+      animation: fadeUp 0.7s ease forwards 0.1s;
+    }
+
+    .hero-badge-line { width: 24px; height: 1px; background: var(--accent); opacity: 0.5; }
 
     .hero h1 {
-      font-size: clamp(3rem, 8vw, 6.5rem);
-      font-weight: 800;
-      line-height: 1;
-      letter-spacing: -0.04em;
-      margin-bottom: 1.5rem;
-      opacity: 0;
-      animation: fadeUp 0.6s ease forwards 0.4s;
+      font-size: clamp(2.8rem, 5vw, 4.5rem); font-weight: 800;
+      line-height: 1.05; letter-spacing: -0.04em; margin-bottom: 1.5rem;
+      opacity: 0; animation: fadeUp 0.7s ease forwards 0.25s;
     }
 
-    .hero h1 span {
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .hero h1 .grad {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
+
+    .hero h1 .soft { color: var(--muted2); font-weight: 300; }
 
     .hero-sub {
-      font-size: clamp(1rem, 2vw, 1.25rem);
-      color: var(--muted);
-      max-width: 520px;
-      line-height: 1.7;
-      margin-bottom: 3rem;
-      opacity: 0;
-      animation: fadeUp 0.6s ease forwards 0.6s;
+      font-size: 1.05rem; font-weight: 300; color: var(--muted2);
+      line-height: 1.8; margin-bottom: 2.5rem; max-width: 440px;
+      opacity: 0; animation: fadeUp 0.7s ease forwards 0.4s;
     }
 
-    /* Live ticker */
-    .ticker {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 0.75rem 1.25rem;
-      margin-bottom: 3rem;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.8rem;
-      opacity: 0;
-      animation: fadeUp 0.6s ease forwards 0.8s;
+    .hero-stats {
+      display: flex; gap: 2rem;
+      opacity: 0; animation: fadeUp 0.7s ease forwards 0.55s;
     }
 
-    .ticker-dot {
-      width: 7px; height: 7px;
-      background: var(--accent);
-      border-radius: 50%;
-      animation: pulse 1.5s infinite;
-      flex-shrink: 0;
+    .hero-stat { display: flex; flex-direction: column; gap: 0.2rem; }
+
+    .hero-stat-val {
+      font-size: 1.5rem; font-weight: 700; letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
 
-    .ticker-text { color: var(--muted); }
-    .ticker-val { color: var(--accent); font-weight: 500; }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+    .hero-stat-label {
+      font-family: 'DM Mono', monospace; font-size: 0.6rem;
+      color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase;
     }
 
-    /* SECTION */
-    section {
+    .stat-div { width: 1px; background: var(--border-light); align-self: stretch; }
+
+    /* HERO VISUAL */
+    .hero-visual {
       position: relative;
-      z-index: 1;
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: 5rem 2rem;
+      opacity: 0; animation: fadeIn 1s ease forwards 0.7s;
     }
 
-    .section-label {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.7rem;
-      letter-spacing: 0.15em;
-      color: var(--accent);
-      text-transform: uppercase;
-      margin-bottom: 1rem;
+    @keyframes fadeIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+    .dashboard-card {
+      background: var(--card);
+      border: 1px solid var(--border-light);
+      border-radius: 20px; padding: 1.5rem; position: relative; overflow: hidden;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
     }
 
-    .section-title {
-      font-size: clamp(1.8rem, 4vw, 2.8rem);
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      margin-bottom: 1rem;
-      line-height: 1.1;
+    .dashboard-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0,229,160,0.4), transparent);
     }
 
-    .section-desc {
-      color: var(--muted);
-      font-size: 1.05rem;
-      line-height: 1.75;
-      max-width: 560px;
-      margin-bottom: 3rem;
+    .dash-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;
+    }
+
+    .dash-title { font-size: 0.8rem; font-weight: 600; color: var(--muted2); }
+
+    .dash-badge {
+      font-family: 'DM Mono', monospace; font-size: 0.6rem;
+      color: var(--accent); background: rgba(0,229,160,0.1);
+      border: 1px solid rgba(0,229,160,0.2); padding: 0.2rem 0.5rem;
+      border-radius: 6px; display: flex; align-items: center; gap: 0.3rem;
+    }
+
+    .dash-metric { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.25rem; }
+
+    .dash-metric-sub {
+      font-family: 'DM Mono', monospace; font-size: 0.65rem;
+      color: var(--accent); margin-bottom: 1.25rem;
+    }
+
+    .chart-bars {
+      display: flex; align-items: flex-end; gap: 4px;
+      height: 60px; margin-bottom: 1.25rem;
+    }
+
+    .bar { flex: 1; border-radius: 3px 3px 0 0; background: var(--border-light); }
+    .bar.active { background: linear-gradient(to top, var(--accent2), var(--accent)); }
+    .bar.highlight { background: var(--accent); }
+
+    .order-rows { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .order-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.6rem 0.75rem; background: var(--card2);
+      border: 1px solid var(--border); border-radius: 10px; font-size: 0.75rem;
+    }
+
+    .order-left { display: flex; align-items: center; gap: 0.6rem; }
+    .order-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .order-name { font-weight: 500; color: var(--text); }
+    .order-time { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--muted); }
+    .order-amount { font-weight: 600; font-size: 0.8rem; color: var(--accent); }
+
+    .float-card {
+      position: absolute; bottom: -16px; right: -16px;
+      background: var(--card2); border: 1px solid var(--border-light);
+      border-radius: 14px; padding: 0.9rem 1.1rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      display: flex; align-items: center; gap: 0.75rem; min-width: 160px;
+    }
+
+    .float-icon {
+      width: 32px; height: 32px; background: rgba(0,229,160,0.12);
+      border-radius: 10px; display: flex; align-items: center;
+      justify-content: center; font-size: 0.9rem; flex-shrink: 0;
+    }
+
+    .float-label { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--muted); margin-bottom: 0.2rem; }
+    .float-val { font-size: 1rem; font-weight: 700; letter-spacing: -0.02em; color: var(--accent); }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+
+    /* MARQUEE */
+    .marquee-wrap {
+      position: relative; z-index: 1;
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      background: var(--surface); overflow: hidden; padding: 0.75rem 0;
+    }
+
+    .marquee-track {
+      display: flex; gap: 3rem; width: max-content;
+      animation: marquee 28s linear infinite;
+    }
+
+    .marquee-item {
+      font-family: 'DM Mono', monospace; font-size: 0.68rem;
+      color: var(--muted); letter-spacing: 0.08em; white-space: nowrap;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+
+    .marquee-item .dot { color: var(--accent); }
+    @keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+    /* SECTIONS */
+    .section-wrap {
+      position: relative; z-index: 1;
+      max-width: 1100px; margin: 0 auto; padding: 6rem 2rem;
+    }
+
+    .section-eyebrow {
+      display: flex; align-items: center; gap: 0.75rem;
+      font-family: 'DM Mono', monospace; font-size: 0.65rem;
+      letter-spacing: 0.12em; color: var(--accent); text-transform: uppercase;
+      margin-bottom: 1.25rem;
+    }
+
+    .eyebrow-line { width: 20px; height: 1px; background: var(--accent); opacity: 0.4; }
+
+    .section-heading {
+      font-size: clamp(2rem, 4vw, 3rem); font-weight: 800;
+      letter-spacing: -0.04em; line-height: 1.1; margin-bottom: 1rem;
+    }
+
+    .section-heading .soft { color: var(--muted2); font-weight: 300; font-style: normal; }
+
+    .section-body {
+      font-size: 1rem; font-weight: 300; color: var(--muted2);
+      line-height: 1.85; max-width: 480px; margin-bottom: 3rem;
     }
 
     /* HOW IT WORKS */
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 1.5rem;
+    .steps-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 1.5px; background: var(--border); border-radius: 20px; overflow: hidden;
     }
 
-    .step {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem;
-      position: relative;
-      overflow: hidden;
-      transition: border-color 0.3s, transform 0.3s;
+    @media (max-width: 640px) { .steps-grid { grid-template-columns: 1fr; } }
+
+    .step-cell {
+      background: var(--card); padding: 2.5rem 2rem; position: relative;
+      transition: background 0.3s;
     }
 
-    .step:hover {
-      border-color: rgba(0,229,160,0.3);
-      transform: translateY(-4px);
+    .step-cell:hover { background: var(--card2); }
+
+    .step-number {
+      font-family: 'DM Mono', monospace; font-size: 0.6rem;
+      letter-spacing: 0.15em; color: var(--muted); margin-bottom: 2rem;
+      display: flex; align-items: center; gap: 0.5rem;
     }
 
-    .step::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-      opacity: 0;
-      transition: opacity 0.3s;
+    .step-number::after { content: ''; flex: 1; height: 1px; background: var(--border-light); }
+
+    .step-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; margin-bottom: 1.25rem;
     }
 
-    .step:hover::before { opacity: 1; }
+    .step-icon.green { background: rgba(0,229,160,0.1); border: 1px solid rgba(0,229,160,0.2); }
+    .step-icon.blue { background: rgba(91,141,239,0.1); border: 1px solid rgba(91,141,239,0.2); }
+    .step-icon.mixed { background: linear-gradient(135deg,rgba(0,229,160,0.1),rgba(91,141,239,0.1)); border: 1px solid rgba(91,141,239,0.2); }
 
-    .step-num {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--accent);
-      letter-spacing: 0.1em;
-      margin-bottom: 1rem;
-    }
-
-    .step h3 {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-
-    .step p {
-      color: var(--muted);
-      font-size: 0.9rem;
-      line-height: 1.65;
-    }
+    .step-cell h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.6rem; letter-spacing: -0.02em; }
+    .step-cell p { font-size: 0.875rem; color: var(--muted2); line-height: 1.75; font-weight: 300; }
 
     /* WHO IT'S FOR */
-    .for-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1rem;
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+    @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; gap: 2rem; } }
+
+    .for-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .for-item {
+      display: flex; align-items: flex-start; gap: 1.25rem;
+      padding: 1.25rem 1.5rem; background: var(--card);
+      border: 1px solid transparent; border-radius: 16px;
+      transition: border-color 0.3s, background 0.3s;
     }
 
-    .for-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.5rem;
-      transition: border-color 0.3s;
+    .for-item:hover { border-color: var(--border-light); background: var(--card2); }
+
+    .for-item-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; flex-shrink: 0;
+      background: var(--card2); border: 1px solid var(--border-light);
     }
 
-    .for-card:hover { border-color: rgba(0,184,255,0.3); }
+    .for-item-text h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.3rem; letter-spacing: -0.01em; }
+    .for-item-text p { font-size: 0.82rem; color: var(--muted2); line-height: 1.7; font-weight: 300; }
 
-    .for-icon {
-      font-size: 1.5rem;
-      margin-bottom: 0.75rem;
+    .for-visual {
+      background: var(--card); border: 1px solid var(--border-light);
+      border-radius: 20px; padding: 2rem;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.3);
     }
 
-    .for-card h4 {
-      font-size: 0.95rem;
-      font-weight: 600;
-      margin-bottom: 0.4rem;
+    .for-visual-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;
     }
 
-    .for-card p {
-      font-size: 0.82rem;
-      color: var(--muted);
-      line-height: 1.6;
+    .for-visual-title { font-size: 0.8rem; font-weight: 600; color: var(--muted2); font-family: 'DM Mono', monospace; }
+
+    .export-btn {
+      font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.06em;
+      background: rgba(0,229,160,0.1); border: 1px solid rgba(0,229,160,0.25);
+      color: var(--accent); padding: 0.3rem 0.65rem; border-radius: 8px;
     }
+
+    .data-rows { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .data-row {
+      display: grid; grid-template-columns: 1fr 1fr 80px; gap: 0.5rem;
+      font-family: 'DM Mono', monospace; font-size: 0.62rem;
+      padding: 0.6rem 0.75rem; background: var(--card2);
+      border-radius: 8px; border: 1px solid var(--border);
+    }
+
+    .data-row.header { color: var(--muted); }
+    .data-row:not(.header) { color: var(--text); }
+    .data-row .pos { color: var(--accent); }
 
     /* PRIVACY */
-    .privacy-box {
-      background: var(--card);
-      border: 1px solid rgba(0,229,160,0.2);
-      border-radius: 20px;
-      padding: 3rem;
-      position: relative;
-      overflow: hidden;
+    .privacy-section {
+      position: relative; z-index: 1;
+      background: var(--surface);
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
     }
 
-    .privacy-box::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(ellipse at top left, rgba(0,229,160,0.06), transparent 60%);
-      pointer-events: none;
+    .privacy-inner {
+      max-width: 1100px; margin: 0 auto; padding: 6rem 2rem;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center;
     }
 
-    .privacy-items {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1.5rem;
-      margin-top: 2rem;
+    @media (max-width: 768px) { .privacy-inner { grid-template-columns: 1fr; gap: 3rem; } }
+
+    .privacy-checks { display: flex; flex-direction: column; gap: 1rem; }
+
+    .privacy-check-item {
+      display: flex; align-items: flex-start; gap: 1rem;
+      padding: 1.25rem; background: var(--card);
+      border: 1px solid var(--border); border-radius: 14px; transition: border-color 0.3s;
     }
 
-    .privacy-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.75rem;
+    .privacy-check-item:hover { border-color: rgba(0,229,160,0.25); }
+
+    .check-icon {
+      width: 24px; height: 24px;
+      background: rgba(0,229,160,0.12); border: 1px solid rgba(0,229,160,0.3);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 0.7rem; color: var(--accent); margin-top: 1px;
     }
 
-    .privacy-check {
-      width: 20px; height: 20px;
-      background: rgba(0,229,160,0.15);
-      border: 1px solid rgba(0,229,160,0.4);
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      margin-top: 2px;
-      font-size: 0.7rem;
-      color: var(--accent);
-    }
+    .check-text strong { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.2rem; }
+    .check-text p { font-size: 0.8rem; color: var(--muted2); line-height: 1.6; font-weight: 300; }
 
-    .privacy-item p {
-      font-size: 0.88rem;
-      color: var(--muted);
-      line-height: 1.6;
-    }
+    .big-text { font-size: clamp(3rem, 7vw, 5.5rem); font-weight: 800; letter-spacing: -0.05em; line-height: 1; }
+    .big-text .outline { -webkit-text-stroke: 1px var(--border-light); color: transparent; }
+    .big-text .filled { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
-    .privacy-item strong { color: var(--text); }
-
-    /* DIVIDER */
-    .divider {
-      border: none;
-      border-top: 1px solid var(--border);
-      margin: 0 2rem;
+    .api-tag {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--accent2);
+      background: rgba(91,141,239,0.08); border: 1px solid rgba(91,141,239,0.2);
+      padding: 0.4rem 0.85rem; border-radius: 8px; margin-top: 1.5rem;
     }
 
     /* FOOTER */
-    footer {
-      position: relative;
-      z-index: 1;
-      border-top: 1px solid var(--border);
-      padding: 2.5rem 2rem;
-      text-align: center;
+    footer { position: relative; z-index: 1; border-top: 1px solid var(--border); padding: 3rem 2rem; }
+
+    .footer-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between; gap: 2rem; flex-wrap: wrap;
+    }
+
+    .footer-logo {
+      font-weight: 700; font-size: 0.9rem; letter-spacing: -0.02em;
+      display: flex; align-items: center; gap: 0.5rem; color: var(--muted2);
     }
 
     .footer-disclaimer {
-      font-family: 'DM Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--muted);
-      line-height: 1.8;
-      max-width: 600px;
-      margin: 0 auto;
+      font-family: 'DM Mono', monospace; font-size: 0.62rem;
+      color: var(--muted); line-height: 1.9; text-align: right; max-width: 520px;
     }
 
-    .footer-disclaimer a {
-      color: var(--accent);
-      text-decoration: none;
-    }
+    @media (max-width: 640px) { .footer-inner { flex-direction: column; align-items: flex-start; } .footer-disclaimer { text-align: left; } }
 
-    /* Scrollbar */
-    ::-webkit-scrollbar { width: 6px; }
+    /* SCROLL REVEAL */
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
   </style>
 </head>
 <body>
 
   <div class="blob blob-1"></div>
   <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
 
   <!-- NAV -->
   <nav>
     <div class="logo">
-      <div class="logo-dot"></div>
+      <div class="logo-icon">⚡</div>
       Sales Pulse Live
     </div>
-    <div class="nav-badge">LIVE DATA</div>
+    <div class="nav-pill">
+      <div class="live-dot"></div>
+      LIVE DATA
+    </div>
   </nav>
 
   <!-- HERO -->
   <div class="hero">
-    <div class="hero-tag">Real-Time Shop Analytics</div>
-    <h1>Your sales data.<br><span>Instantly.</span></h1>
-    <p class="hero-sub">
-      Sales Pulse Live connects to your shop via the Etsy API so you can export and monitor your sales, orders, and revenue in real time — no manual downloads required.
-    </p>
-    <div class="ticker">
-      <div class="ticker-dot"></div>
-      <span class="ticker-text">Syncing order data —</span>
-      <span class="ticker-val">read-only &amp; secure</span>
+    <div class="hero-left">
+      <div class="hero-badge">
+        <div class="hero-badge-line"></div>
+        Real-Time Shop Analytics
+      </div>
+      <h1>Your Etsy sales.<br><span class="soft">On your terms.</span><br><span class="grad">Instantly.</span></h1>
+      <p class="hero-sub">
+        Sales Pulse Live connects to your shop via the Etsy API so you can export and monitor your sales, orders, and revenue in real time — no manual downloads required.
+      </p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-val">CSV</div>
+          <div class="hero-stat-label">Export Format</div>
+        </div>
+        <div class="stat-div"></div>
+        <div class="hero-stat">
+          <div class="hero-stat-val">JSON</div>
+          <div class="hero-stat-label">Export Format</div>
+        </div>
+        <div class="stat-div"></div>
+        <div class="hero-stat">
+          <div class="hero-stat-val" style="font-size:1rem;padding-top:6px;">Read‑Only</div>
+          <div class="hero-stat-label">Always Secure</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mock Dashboard -->
+    <div class="hero-visual">
+      <div class="dashboard-card">
+        <div class="dash-header">
+          <div class="dash-title">Revenue Overview</div>
+          <div class="dash-badge"><div class="live-dot"></div> SYNCING</div>
+        </div>
+        <div class="dash-metric">$4,829.40</div>
+        <div class="dash-metric-sub">↑ 18.4% vs last month</div>
+        <div class="chart-bars">
+          <div class="bar" style="height:35%"></div>
+          <div class="bar" style="height:50%"></div>
+          <div class="bar" style="height:40%"></div>
+          <div class="bar active" style="height:65%"></div>
+          <div class="bar active" style="height:55%"></div>
+          <div class="bar active" style="height:80%"></div>
+          <div class="bar active" style="height:70%"></div>
+          <div class="bar highlight" style="height:100%"></div>
+          <div class="bar active" style="height:88%"></div>
+          <div class="bar active" style="height:75%"></div>
+          <div class="bar" style="height:30%"></div>
+          <div class="bar" style="height:20%"></div>
+        </div>
+        <div class="order-rows">
+          <div class="order-row">
+            <div class="order-left">
+              <div class="order-dot" style="background:#00e5a0"></div>
+              <div>
+                <div class="order-name">Custom Ring Order</div>
+                <div class="order-time">2 min ago</div>
+              </div>
+            </div>
+            <div class="order-amount">+$128.00</div>
+          </div>
+          <div class="order-row">
+            <div class="order-left">
+              <div class="order-dot" style="background:var(--accent2)"></div>
+              <div>
+                <div class="order-name">Print Set — Botanical</div>
+                <div class="order-time">14 min ago</div>
+              </div>
+            </div>
+            <div class="order-amount">+$54.00</div>
+          </div>
+          <div class="order-row">
+            <div class="order-left">
+              <div class="order-dot" style="background:#a78bfa"></div>
+              <div>
+                <div class="order-name">Ceramic Mug — Set of 4</div>
+                <div class="order-time">31 min ago</div>
+              </div>
+            </div>
+            <div class="order-amount">+$89.50</div>
+          </div>
+        </div>
+      </div>
+      <div class="float-card">
+        <div class="float-icon">📦</div>
+        <div>
+          <div class="float-label">ORDERS TODAY</div>
+          <div class="float-val">47</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARQUEE -->
+  <div class="marquee-wrap">
+    <div class="marquee-track">
+      <div class="marquee-item"><span class="dot">◆</span> READ-ONLY ACCESS</div>
+      <div class="marquee-item"><span class="dot">◆</span> ETSY OPEN API V3</div>
+      <div class="marquee-item"><span class="dot">◆</span> OAUTH 2.0 SECURED</div>
+      <div class="marquee-item"><span class="dot">◆</span> CSV EXPORT</div>
+      <div class="marquee-item"><span class="dot">◆</span> JSON EXPORT</div>
+      <div class="marquee-item"><span class="dot">◆</span> REAL-TIME SYNC</div>
+      <div class="marquee-item"><span class="dot">◆</span> NO DATA STORED</div>
+      <div class="marquee-item"><span class="dot">◆</span> REVENUE TRACKING</div>
+      <div class="marquee-item"><span class="dot">◆</span> ORDER HISTORY</div>
+      <div class="marquee-item"><span class="dot">◆</span> TREND ANALYSIS</div>
+      <div class="marquee-item"><span class="dot">◆</span> READ-ONLY ACCESS</div>
+      <div class="marquee-item"><span class="dot">◆</span> ETSY OPEN API V3</div>
+      <div class="marquee-item"><span class="dot">◆</span> OAUTH 2.0 SECURED</div>
+      <div class="marquee-item"><span class="dot">◆</span> CSV EXPORT</div>
+      <div class="marquee-item"><span class="dot">◆</span> JSON EXPORT</div>
+      <div class="marquee-item"><span class="dot">◆</span> REAL-TIME SYNC</div>
+      <div class="marquee-item"><span class="dot">◆</span> NO DATA STORED</div>
+      <div class="marquee-item"><span class="dot">◆</span> REVENUE TRACKING</div>
+      <div class="marquee-item"><span class="dot">◆</span> ORDER HISTORY</div>
+      <div class="marquee-item"><span class="dot">◆</span> TREND ANALYSIS</div>
     </div>
   </div>
 
   <!-- HOW IT WORKS -->
-  <section>
-    <div class="section-label">How It Works</div>
-    <h2 class="section-title">Three steps to<br>real-time clarity.</h2>
-    <p class="section-desc">
-      Sales Pulse Live reads your order and transaction data and exports it in structured formats so you can analyze your shop performance anywhere.
-    </p>
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">STEP 01</div>
+  <div class="section-wrap">
+    <div class="section-eyebrow reveal"><div class="eyebrow-line"></div> How It Works</div>
+    <h2 class="section-heading reveal">Three steps to <span class="soft">real-time clarity.</span></h2>
+    <p class="section-body reveal">Sales Pulse Live reads your order and transaction data and exports it in structured formats so you can analyze your shop performance anywhere.</p>
+    <div class="steps-grid reveal">
+      <div class="step-cell">
+        <div class="step-number">01</div>
+        <div class="step-icon green">🔐</div>
         <h3>Connect Your Shop</h3>
-        <p>Authenticate securely using Etsy's official OAuth login. We never see or store your password.</p>
+        <p>Authenticate securely using Etsy's official OAuth 2.0 login. We never see or store your password.</p>
       </div>
-      <div class="step">
-        <div class="step-num">STEP 02</div>
+      <div class="step-cell">
+        <div class="step-number">02</div>
+        <div class="step-icon blue">⚡</div>
         <h3>Sync Your Data</h3>
-        <p>Sales Pulse Live reads your sales, orders, and receipt data in real time directly from the Etsy API.</p>
+        <p>Sales Pulse Live reads your sales, orders, and receipt data in real time directly from the Etsy Open API v3.</p>
       </div>
-      <div class="step">
-        <div class="step-num">STEP 03</div>
+      <div class="step-cell">
+        <div class="step-number">03</div>
+        <div class="step-icon mixed">📤</div>
         <h3>Export &amp; Analyze</h3>
         <p>Download your data as CSV or JSON and plug it into any spreadsheet, dashboard, or analytics tool you prefer.</p>
       </div>
     </div>
-  </section>
-
-  <hr class="divider" />
+  </div>
 
   <!-- WHO IT'S FOR -->
-  <section>
-    <div class="section-label">Who It's For</div>
-    <h2 class="section-title">Built for sellers who<br>mean business.</h2>
-    <p class="section-desc">
-      Whether you run one shop or manage multiple, Sales Pulse Live gives you faster, cleaner access to your own data.
-    </p>
-    <div class="for-grid">
-      <div class="for-card">
-        <div class="for-icon">📊</div>
-        <h4>Spreadsheet Sellers</h4>
-        <p>Export directly to CSV and drop it into your existing Google Sheets or Excel workflow.</p>
+  <div class="section-wrap" style="padding-top:0">
+    <div class="two-col">
+      <div>
+        <div class="section-eyebrow reveal"><div class="eyebrow-line"></div> Who It's For</div>
+        <h2 class="section-heading reveal">Built for sellers <span class="soft">who mean business.</span></h2>
+        <p class="section-body reveal">Whether you run one shop or manage multiple, Sales Pulse Live gives you faster, cleaner access to your own data.</p>
+        <div class="for-list">
+          <div class="for-item reveal">
+            <div class="for-item-icon">📊</div>
+            <div class="for-item-text">
+              <h4>Spreadsheet Sellers</h4>
+              <p>Export directly to CSV and drop it into your existing Google Sheets or Excel workflow.</p>
+            </div>
+          </div>
+          <div class="for-item reveal">
+            <div class="for-item-icon">📈</div>
+            <div class="for-item-text">
+              <h4>Dashboard Builders</h4>
+              <p>Feed clean JSON data into Notion, Airtable, or any custom dashboard you've built.</p>
+            </div>
+          </div>
+          <div class="for-item reveal">
+            <div class="for-item-icon">🔍</div>
+            <div class="for-item-text">
+              <h4>Trend Trackers</h4>
+              <p>Spot seasonal patterns, top products, and revenue trends without digging through Etsy's native reports.</p>
+            </div>
+          </div>
+          <div class="for-item reveal">
+            <div class="for-item-icon">⚡</div>
+            <div class="for-item-text">
+              <h4>Real-Time Monitors</h4>
+              <p>Watch your sales as they happen — no more refreshing and waiting for data to update.</p>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="for-card">
-        <div class="for-icon">📈</div>
-        <h4>Dashboard Builders</h4>
-        <p>Feed clean JSON data into Notion, Airtable, or any custom dashboard you've built.</p>
-      </div>
-      <div class="for-card">
-        <div class="for-icon">🔍</div>
-        <h4>Trend Trackers</h4>
-        <p>Spot seasonal patterns, top products, and revenue trends without digging through Etsy's native reports.</p>
-      </div>
-      <div class="for-card">
-        <div class="for-icon">⚡</div>
-        <h4>Real-Time Monitors</h4>
-        <p>Watch your sales as they happen — no more refreshing your dashboard and waiting for data to update.</p>
+      <div class="for-visual reveal">
+        <div class="for-visual-header">
+          <div class="for-visual-title">orders_export_2026.csv</div>
+          <div class="export-btn">↓ DOWNLOAD</div>
+        </div>
+        <div class="data-rows">
+          <div class="data-row header">
+            <span>ORDER ID</span><span>ITEM</span><span>AMOUNT</span>
+          </div>
+          <div class="data-row"><span>#10842</span><span>Custom Ring</span><span class="pos">$128.00</span></div>
+          <div class="data-row"><span>#10841</span><span>Print Set</span><span class="pos">$54.00</span></div>
+          <div class="data-row"><span>#10840</span><span>Ceramic Mug</span><span class="pos">$89.50</span></div>
+          <div class="data-row"><span>#10839</span><span>Candle Bundle</span><span class="pos">$42.00</span></div>
+          <div class="data-row"><span>#10838</span><span>Linen Tote</span><span class="pos">$36.00</span></div>
+          <div class="data-row"><span>#10837</span><span>Wall Art Print</span><span class="pos">$68.00</span></div>
+        </div>
       </div>
     </div>
-  </section>
-
-  <hr class="divider" />
+  </div>
 
   <!-- PRIVACY -->
-  <section>
-    <div class="privacy-box">
-      <div class="section-label">Privacy &amp; Data</div>
-      <h2 class="section-title">Read-only.<br>Always.</h2>
-      <p class="section-desc" style="margin-bottom:0">
-        Sales Pulse Live never modifies, deletes, or posts anything to your shop. Your data stays yours.
-      </p>
-      <div class="privacy-items">
-        <div class="privacy-item">
-          <div class="privacy-check">✓</div>
-          <p><strong>Read-only access</strong> — we never write, edit, or delete any shop data</p>
+  <div class="privacy-section">
+    <div class="privacy-inner">
+      <div>
+        <div class="section-eyebrow reveal"><div class="eyebrow-line"></div> Privacy &amp; Data</div>
+        <div class="big-text reveal">
+          <div class="outline">READ</div>
+          <div class="filled">ONLY.</div>
+          <div class="outline">ALWAYS.</div>
         </div>
-        <div class="privacy-item">
-          <div class="privacy-check">✓</div>
-          <p><strong>OAuth secured</strong> — login handled entirely by Etsy's official auth system</p>
+        <div class="api-tag reveal">✓ &nbsp;Etsy Open API v3 Compliant</div>
+      </div>
+      <div class="privacy-checks">
+        <div class="privacy-check-item reveal">
+          <div class="check-icon">✓</div>
+          <div class="check-text">
+            <strong>Read-only access</strong>
+            <p>We never write, edit, or delete any listings, orders, or account data in your shop.</p>
+          </div>
         </div>
-        <div class="privacy-item">
-          <div class="privacy-check">✓</div>
-          <p><strong>No data storage</strong> — we do not store your personal or shop data on our servers</p>
+        <div class="privacy-check-item reveal">
+          <div class="check-icon">✓</div>
+          <div class="check-text">
+            <strong>OAuth 2.0 secured</strong>
+            <p>Login is handled entirely by Etsy's official authentication system — your credentials never touch our servers.</p>
+          </div>
         </div>
-        <div class="privacy-item">
-          <div class="privacy-check">✓</div>
-          <p><strong>API compliant</strong> — fully built on Etsy's Open API v3 within all usage policies</p>
+        <div class="privacy-check-item reveal">
+          <div class="check-icon">✓</div>
+          <div class="check-text">
+            <strong>No data storage</strong>
+            <p>We do not store your personal data, shop data, or order history on our servers.</p>
+          </div>
+        </div>
+        <div class="privacy-check-item reveal">
+          <div class="check-icon">✓</div>
+          <div class="check-text">
+            <strong>API compliant</strong>
+            <p>Fully built on Etsy's Open API v3, within all usage policies and rate limits.</p>
+          </div>
         </div>
       </div>
     </div>
-  </section>
+  </div>
 
   <!-- FOOTER -->
   <footer>
-    <p class="footer-disclaimer">
-      The term "Etsy" is a trademark of Etsy, Inc. Sales Pulse Live uses the Etsy API but is not endorsed or certified by Etsy, Inc.<br>
-      &copy; 2026 Sales Pulse Live. All rights reserved.
-    </p>
+    <div class="footer-inner">
+      <div class="footer-logo">
+        <div class="logo-icon" style="width:22px;height:22px;font-size:0.65rem;">⚡</div>
+        Sales Pulse Live
+      </div>
+      <p class="footer-disclaimer">
+        The term "Etsy" is a trademark of Etsy, Inc. Sales Pulse Live uses the Etsy API but is not endorsed or certified by Etsy, Inc.<br>
+        &copy; 2026 Sales Pulse Live. All rights reserved.
+      </p>
+    </div>
   </footer>
+
+  <script>
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => entry.target.classList.add('visible'), i * 60);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    reveals.forEach(el => observer.observe(el));
+  </script>
 
 </body>
 </html>
