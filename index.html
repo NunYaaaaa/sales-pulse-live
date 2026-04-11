@@ -4,722 +4,583 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Sales Pulse Live — Real-Time Etsy Analytics</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,800;1,9..144,300;1,9..144,700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #07080f;
-      --surface: #0d0e1a;
-      --border: #1a1b2e;
-      --border-light: #252640;
-      --accent: #00e5a0;
-      --accent2: #5b8def;
-      --text: #eeeef5;
-      --muted: #5a5b7a;
-      --muted2: #8889aa;
-      --card: #0f1020;
-      --card2: #111225;
+      --cream:    #fdf6ee;
+      --offwhite: #f7f2eb;
+      --paper:    #f0ebe2;
+      --border:   #e2ddd4;
+      --border2:  #d4cec5;
+      --ink:      #1a1108;
+      --ink2:     #3d3022;
+      --muted:    #7a6a58;
+      --muted2:   #a89e90;
+      --orange:   #d4622a;
+      --green:    #3a7d4c;
+      --purple:   #5a3d9e;
+      --gold:     #b8860b;
+      --orange-bg: #fde8d8; --orange-bd: #f5c5a8;
+      --green-bg:  #d8eddf; --green-bd:  #a8d4b5;
+      --purple-bg: #e8e0f5; --purple-bd: #c8b8ee;
+      --gold-bg:   #fef3d8; --gold-bd:   #f0d898;
     }
 
     html { scroll-behavior: smooth; }
 
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Outfit', sans-serif;
+      background: var(--cream);
+      color: var(--ink);
+      font-family: 'DM Sans', sans-serif;
       min-height: 100vh;
       overflow-x: hidden;
     }
 
     body::after {
       content: '';
-      position: fixed;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
-      opacity: 0.025;
-      pointer-events: none;
-      z-index: 999;
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: 0.03; pointer-events: none; z-index: 999;
     }
-
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(91,141,239,0.035) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(91,141,239,0.035) 1px, transparent 1px);
-      background-size: 36px 36px;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .blob { position: fixed; border-radius: 50%; filter: blur(140px); pointer-events: none; z-index: 0; }
-    .blob-1 { width: 700px; height: 700px; background: rgba(0,229,160,0.12); top: -300px; right: -200px; }
-    .blob-2 { width: 600px; height: 600px; background: rgba(91,141,239,0.1); bottom: -200px; left: -150px; }
-    .blob-3 { width: 400px; height: 400px; background: rgba(0,229,160,0.06); top: 40%; left: 30%; }
 
     /* NAV */
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 1rem 2.5rem;
+      padding: 1.1rem 2.5rem;
+      background: rgba(253,246,238,0.9);
+      backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border);
-      background: rgba(7,8,15,0.8);
-      backdrop-filter: blur(20px);
     }
 
     .logo {
-      font-weight: 700; font-size: 1rem; letter-spacing: -0.02em;
-      display: flex; align-items: center; gap: 0.6rem;
+      font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.1rem;
+      letter-spacing: -0.02em; color: var(--ink);
+      display: flex; align-items: center; gap: 0.5rem;
     }
 
-    .logo-icon {
-      width: 28px; height: 28px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      border-radius: 8px; display: flex; align-items: center;
-      justify-content: center; font-size: 0.8rem; flex-shrink: 0;
+    .logo-mark {
+      width: 26px; height: 26px; border-radius: 8px; background: var(--ink);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
+
+    .logo-mark svg { width: 14px; height: 14px; fill: var(--cream); }
+
+    .nav-pills { display: flex; align-items: center; gap: 8px; }
 
     .nav-pill {
       font-family: 'DM Mono', monospace; font-size: 0.65rem;
-      letter-spacing: 0.08em; color: var(--accent);
-      background: rgba(0,229,160,0.08); border: 1px solid rgba(0,229,160,0.2);
-      padding: 0.3rem 0.75rem; border-radius: 999px;
-      display: flex; align-items: center; gap: 0.4rem;
+      letter-spacing: 0.07em; padding: 0.3rem 0.75rem;
+      border-radius: 999px; border: 1px solid;
     }
 
-    .live-dot {
-      width: 6px; height: 6px; background: var(--accent);
-      border-radius: 50%; animation: blink 1.4s infinite;
-    }
+    .pill-live { color: var(--orange); background: var(--orange-bg); border-color: var(--orange-bd); display: flex; align-items: center; gap: 5px; }
+    .pill-api  { color: var(--purple); background: var(--purple-bg); border-color: var(--purple-bd); }
 
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+    .live-dot { width: 5px; height: 5px; background: var(--orange); border-radius: 50%; animation: blink 1.4s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
 
     /* HERO */
     .hero {
-      position: relative; z-index: 1; min-height: 100vh;
-      display: grid; grid-template-columns: 1fr 1fr;
-      align-items: center; gap: 4rem;
-      max-width: 1100px; margin: 0 auto;
-      padding: 7rem 2rem 4rem;
+      position: relative; z-index: 1;
+      background: var(--cream);
+      padding: 9rem 2rem 6rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
     }
 
-    @media (max-width: 768px) {
-      .hero { grid-template-columns: 1fr; padding-top: 6rem; }
-      .hero-visual { display: none; }
+    .hero-chips {
+      display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 2.25rem; opacity: 0; animation: fadeUp 0.7s ease forwards 0.1s;
     }
 
-    .hero-left { display: flex; flex-direction: column; }
-
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      font-family: 'DM Mono', monospace; font-size: 0.68rem;
-      letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase;
-      margin-bottom: 1.75rem; opacity: 0;
-      animation: fadeUp 0.7s ease forwards 0.1s;
-    }
-
-    .hero-badge-line { width: 24px; height: 1px; background: var(--accent); opacity: 0.5; }
+    .chip { font-size: 0.75rem; font-weight: 500; padding: 5px 14px; border-radius: 999px; border: 1px solid; }
+    .chip-o { background: var(--orange-bg); color: var(--orange); border-color: var(--orange-bd); }
+    .chip-g { background: var(--green-bg);  color: var(--green);  border-color: var(--green-bd); }
+    .chip-p { background: var(--purple-bg); color: var(--purple); border-color: var(--purple-bd); }
+    .chip-gold { background: var(--gold-bg); color: var(--gold); border-color: var(--gold-bd); }
 
     .hero h1 {
-      font-size: clamp(2.8rem, 5vw, 4.5rem); font-weight: 800;
-      line-height: 1.05; letter-spacing: -0.04em; margin-bottom: 1.5rem;
-      opacity: 0; animation: fadeUp 0.7s ease forwards 0.25s;
+      font-family: 'Fraunces', serif;
+      font-size: clamp(3rem, 7vw, 5.5rem); font-weight: 800;
+      line-height: 1.05; letter-spacing: -0.03em; color: var(--ink);
+      margin-bottom: 1.25rem; opacity: 0; animation: fadeUp 0.7s ease forwards 0.25s;
     }
 
-    .hero h1 .grad {
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    .hero h1 .ul {
+      text-decoration: underline; text-decoration-color: var(--orange);
+      text-underline-offset: 6px; text-decoration-thickness: 3px;
     }
 
-    .hero h1 .soft { color: var(--muted2); font-weight: 300; }
+    .hero h1 .gr { color: var(--green); font-style: italic; }
 
     .hero-sub {
-      font-size: 1.05rem; font-weight: 300; color: var(--muted2);
-      line-height: 1.8; margin-bottom: 2.5rem; max-width: 440px;
+      font-size: 1.1rem; font-weight: 300; color: var(--muted);
+      line-height: 1.8; max-width: 520px; margin: 0 auto 3rem;
       opacity: 0; animation: fadeUp 0.7s ease forwards 0.4s;
     }
 
     .hero-stats {
-      display: flex; gap: 2rem;
+      display: flex; justify-content: center;
+      max-width: 560px; margin: 0 auto;
+      border: 1px solid var(--border); border-radius: 14px;
+      overflow: hidden; background: var(--offwhite);
       opacity: 0; animation: fadeUp 0.7s ease forwards 0.55s;
     }
 
-    .hero-stat { display: flex; flex-direction: column; gap: 0.2rem; }
-
-    .hero-stat-val {
-      font-size: 1.5rem; font-weight: 700; letter-spacing: -0.03em;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    }
-
-    .hero-stat-label {
-      font-family: 'DM Mono', monospace; font-size: 0.6rem;
-      color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase;
-    }
-
-    .stat-div { width: 1px; background: var(--border-light); align-self: stretch; }
-
-    /* HERO VISUAL */
-    .hero-visual {
-      position: relative;
-      opacity: 0; animation: fadeIn 1s ease forwards 0.7s;
-    }
-
-    @keyframes fadeIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
-
-    .dashboard-card {
-      background: var(--card);
-      border: 1px solid var(--border-light);
-      border-radius: 20px; padding: 1.5rem; position: relative; overflow: hidden;
-      box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
-    }
-
-    .dashboard-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(0,229,160,0.4), transparent);
-    }
-
-    .dash-header {
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;
-    }
-
-    .dash-title { font-size: 0.8rem; font-weight: 600; color: var(--muted2); }
-
-    .dash-badge {
-      font-family: 'DM Mono', monospace; font-size: 0.6rem;
-      color: var(--accent); background: rgba(0,229,160,0.1);
-      border: 1px solid rgba(0,229,160,0.2); padding: 0.2rem 0.5rem;
-      border-radius: 6px; display: flex; align-items: center; gap: 0.3rem;
-    }
-
-    .dash-metric { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.25rem; }
-
-    .dash-metric-sub {
-      font-family: 'DM Mono', monospace; font-size: 0.65rem;
-      color: var(--accent); margin-bottom: 1.25rem;
-    }
-
-    .chart-bars {
-      display: flex; align-items: flex-end; gap: 4px;
-      height: 60px; margin-bottom: 1.25rem;
-    }
-
-    .bar { flex: 1; border-radius: 3px 3px 0 0; background: var(--border-light); }
-    .bar.active { background: linear-gradient(to top, var(--accent2), var(--accent)); }
-    .bar.highlight { background: var(--accent); }
-
-    .order-rows { display: flex; flex-direction: column; gap: 0.5rem; }
-
-    .order-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0.6rem 0.75rem; background: var(--card2);
-      border: 1px solid var(--border); border-radius: 10px; font-size: 0.75rem;
-    }
-
-    .order-left { display: flex; align-items: center; gap: 0.6rem; }
-    .order-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .order-name { font-weight: 500; color: var(--text); }
-    .order-time { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--muted); }
-    .order-amount { font-weight: 600; font-size: 0.8rem; color: var(--accent); }
-
-    .float-card {
-      position: absolute; bottom: -16px; right: -16px;
-      background: var(--card2); border: 1px solid var(--border-light);
-      border-radius: 14px; padding: 0.9rem 1.1rem;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-      display: flex; align-items: center; gap: 0.75rem; min-width: 160px;
-    }
-
-    .float-icon {
-      width: 32px; height: 32px; background: rgba(0,229,160,0.12);
-      border-radius: 10px; display: flex; align-items: center;
-      justify-content: center; font-size: 0.9rem; flex-shrink: 0;
-    }
-
-    .float-label { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--muted); margin-bottom: 0.2rem; }
-    .float-val { font-size: 1rem; font-weight: 700; letter-spacing: -0.02em; color: var(--accent); }
+    .h-stat { flex: 1; padding: 1.25rem 1rem; text-align: center; border-right: 1px solid var(--border); }
+    .h-stat:last-child { border-right: none; }
+    .h-stat-val { font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); }
+    .h-stat-lbl { font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.08em; color: var(--muted2); text-transform: uppercase; margin-top: 3px; }
 
     @keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
 
-    /* MARQUEE */
-    .marquee-wrap {
-      position: relative; z-index: 1;
-      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-      background: var(--surface); overflow: hidden; padding: 0.75rem 0;
-    }
-
-    .marquee-track {
-      display: flex; gap: 3rem; width: max-content;
-      animation: marquee 28s linear infinite;
-    }
-
-    .marquee-item {
-      font-family: 'DM Mono', monospace; font-size: 0.68rem;
-      color: var(--muted); letter-spacing: 0.08em; white-space: nowrap;
-      display: flex; align-items: center; gap: 0.5rem;
-    }
-
-    .marquee-item .dot { color: var(--accent); }
-    @keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
-
-    /* SECTIONS */
-    .section-wrap {
-      position: relative; z-index: 1;
-      max-width: 1100px; margin: 0 auto; padding: 6rem 2rem;
-    }
+    /* SECTION */
+    .section { padding: 6rem 2rem; border-bottom: 1px solid var(--border); }
+    .section.off   { background: var(--offwhite); }
+    .section.cream { background: var(--cream); }
+    .section-inner { max-width: 1000px; margin: 0 auto; }
 
     .section-eyebrow {
-      display: flex; align-items: center; gap: 0.75rem;
+      display: flex; align-items: center; gap: 10px;
       font-family: 'DM Mono', monospace; font-size: 0.65rem;
-      letter-spacing: 0.12em; color: var(--accent); text-transform: uppercase;
-      margin-bottom: 1.25rem;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted2);
+      margin-bottom: 1rem;
+    }
+    .eyebrow-rule { width: 20px; height: 1px; background: var(--border2); }
+
+    .section-title {
+      font-family: 'Fraunces', serif;
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 700;
+      line-height: 1.1; letter-spacing: -0.03em; color: var(--ink); margin-bottom: 1rem;
+    }
+    .section-title em { font-style: italic; color: var(--muted); font-weight: 300; }
+
+    .section-body { font-size: 1rem; font-weight: 300; color: var(--muted); line-height: 1.85; max-width: 500px; margin-bottom: 3rem; }
+
+    /* LIVE FEED */
+    .feed-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
+    @media (max-width: 680px) { .feed-wrap { grid-template-columns: 1fr; } }
+
+    .feed-panel { background: var(--ink); border-radius: 16px; padding: 1.75rem; display: flex; flex-direction: column; gap: 10px; }
+
+    .feed-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    .feed-title { font-family: 'DM Mono', monospace; font-size: 0.65rem; color: #555; letter-spacing: 0.1em; text-transform: uppercase; }
+    .feed-badge {
+      font-family: 'DM Mono', monospace; font-size: 0.6rem;
+      color: var(--orange); background: rgba(212,98,42,0.12);
+      border: 1px solid rgba(212,98,42,0.25); padding: 3px 8px;
+      border-radius: 6px; display: flex; align-items: center; gap: 4px;
     }
 
-    .eyebrow-line { width: 20px; height: 1px; background: var(--accent); opacity: 0.4; }
-
-    .section-heading {
-      font-size: clamp(2rem, 4vw, 3rem); font-weight: 800;
-      letter-spacing: -0.04em; line-height: 1.1; margin-bottom: 1rem;
+    .feed-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #2a2118; border-radius: 8px; padding: 10px 14px;
     }
+    .feed-row.new { animation: slideIn 0.5s ease; }
+    @keyframes slideIn { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
 
-    .section-heading .soft { color: var(--muted2); font-weight: 300; font-style: normal; }
+    .feed-row-left { display: flex; align-items: center; gap: 10px; }
+    .feed-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .feed-name { font-size: 0.8rem; font-weight: 500; color: #e8e0d4; }
+    .feed-time { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: #555; }
+    .feed-amt { font-size: 0.85rem; font-weight: 500; }
 
-    .section-body {
-      font-size: 1rem; font-weight: 300; color: var(--muted2);
-      line-height: 1.85; max-width: 480px; margin-bottom: 3rem;
+    .feed-right { display: flex; flex-direction: column; gap: 1.25rem; }
+
+    .metric-card { background: var(--cream); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
+    .metric-card-label { font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted2); margin-bottom: 0.5rem; }
+    .metric-card-val { font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); }
+    .metric-card-sub { font-size: 0.78rem; color: var(--green); font-family: 'DM Mono', monospace; margin-top: 4px; }
+
+    /* CHART */
+    .chart-area { background: var(--cream); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; overflow: hidden; }
+    .chart-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+    .chart-legend { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--muted); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    svg.linechart { width: 100%; height: 180px; display: block; }
+
+    /* TOP PRODUCTS */
+    .products-grid { display: flex; flex-direction: column; gap: 10px; }
+
+    .product-row {
+      display: grid; grid-template-columns: 180px 1fr 80px;
+      align-items: center; gap: 1rem;
+      background: var(--cream); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1rem 1.25rem; transition: border-color 0.2s;
     }
+    .product-row:hover { border-color: var(--border2); }
+
+    .product-name { font-size: 0.88rem; font-weight: 500; color: var(--ink); }
+    .product-sub  { font-size: 0.72rem; color: var(--muted2); font-family: 'DM Mono', monospace; }
+    .product-bar-wrap { height: 8px; background: var(--paper); border-radius: 999px; overflow: hidden; }
+    .product-bar { height: 100%; border-radius: 999px; }
+    .product-val { font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 700; color: var(--ink); text-align: right; }
 
     /* HOW IT WORKS */
-    .steps-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 1.5px; background: var(--border); border-radius: 20px; overflow: hidden;
+    .steps-row {
+      display: grid; grid-template-columns: repeat(3,1fr);
+      gap: 1.5px; background: var(--border); border-radius: 16px; overflow: hidden;
     }
+    @media (max-width: 640px) { .steps-row { grid-template-columns: 1fr; } }
 
-    @media (max-width: 640px) { .steps-grid { grid-template-columns: 1fr; } }
+    .step-box { background: var(--offwhite); padding: 2.5rem 2rem; transition: background 0.2s; }
+    .step-box:hover { background: var(--paper); }
 
-    .step-cell {
-      background: var(--card); padding: 2.5rem 2rem; position: relative;
-      transition: background 0.3s;
+    .step-num {
+      font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.12em;
+      color: var(--muted2); margin-bottom: 1.75rem;
+      display: flex; align-items: center; gap: 8px;
     }
-
-    .step-cell:hover { background: var(--card2); }
-
-    .step-number {
-      font-family: 'DM Mono', monospace; font-size: 0.6rem;
-      letter-spacing: 0.15em; color: var(--muted); margin-bottom: 2rem;
-      display: flex; align-items: center; gap: 0.5rem;
-    }
-
-    .step-number::after { content: ''; flex: 1; height: 1px; background: var(--border-light); }
+    .step-num::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
     .step-icon {
-      width: 44px; height: 44px; border-radius: 12px;
+      width: 42px; height: 42px; border-radius: 12px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 1.1rem; margin-bottom: 1.25rem;
+      font-size: 1.1rem; margin-bottom: 1rem;
     }
+    .step-icon.o { background: var(--orange-bg); border: 1px solid var(--orange-bd); }
+    .step-icon.g { background: var(--green-bg);  border: 1px solid var(--green-bd); }
+    .step-icon.p { background: var(--purple-bg); border: 1px solid var(--purple-bd); }
 
-    .step-icon.green { background: rgba(0,229,160,0.1); border: 1px solid rgba(0,229,160,0.2); }
-    .step-icon.blue { background: rgba(91,141,239,0.1); border: 1px solid rgba(91,141,239,0.2); }
-    .step-icon.mixed { background: linear-gradient(135deg,rgba(0,229,160,0.1),rgba(91,141,239,0.1)); border: 1px solid rgba(91,141,239,0.2); }
-
-    .step-cell h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.6rem; letter-spacing: -0.02em; }
-    .step-cell p { font-size: 0.875rem; color: var(--muted2); line-height: 1.75; font-weight: 300; }
+    .step-box h3 { font-family: 'Fraunces', serif; font-size: 1.05rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.5rem; color: var(--ink); }
+    .step-box p  { font-size: 0.875rem; color: var(--muted); line-height: 1.75; font-weight: 300; }
 
     /* WHO IT'S FOR */
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
-    @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; gap: 2rem; } }
+    .for-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; }
+    @media (max-width: 560px) { .for-grid { grid-template-columns: 1fr; } }
 
-    .for-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .for-card { border-radius: 14px; padding: 1.5rem; border: 1px solid transparent; transition: border-color 0.2s; }
+    .for-card:hover { border-color: var(--border); }
+    .for-card.o    { background: var(--orange-bg); }
+    .for-card.g    { background: var(--green-bg); }
+    .for-card.p    { background: var(--purple-bg); }
+    .for-card.gold { background: var(--gold-bg); }
 
-    .for-item {
-      display: flex; align-items: flex-start; gap: 1.25rem;
-      padding: 1.25rem 1.5rem; background: var(--card);
-      border: 1px solid transparent; border-radius: 16px;
-      transition: border-color 0.3s, background 0.3s;
-    }
-
-    .for-item:hover { border-color: var(--border-light); background: var(--card2); }
-
-    .for-item-icon {
-      width: 40px; height: 40px; border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1rem; flex-shrink: 0;
-      background: var(--card2); border: 1px solid var(--border-light);
-    }
-
-    .for-item-text h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.3rem; letter-spacing: -0.01em; }
-    .for-item-text p { font-size: 0.82rem; color: var(--muted2); line-height: 1.7; font-weight: 300; }
-
-    .for-visual {
-      background: var(--card); border: 1px solid var(--border-light);
-      border-radius: 20px; padding: 2rem;
-      box-shadow: 0 30px 60px rgba(0,0,0,0.3);
-    }
-
-    .for-visual-header {
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;
-    }
-
-    .for-visual-title { font-size: 0.8rem; font-weight: 600; color: var(--muted2); font-family: 'DM Mono', monospace; }
-
-    .export-btn {
-      font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.06em;
-      background: rgba(0,229,160,0.1); border: 1px solid rgba(0,229,160,0.25);
-      color: var(--accent); padding: 0.3rem 0.65rem; border-radius: 8px;
-    }
-
-    .data-rows { display: flex; flex-direction: column; gap: 0.5rem; }
-
-    .data-row {
-      display: grid; grid-template-columns: 1fr 1fr 80px; gap: 0.5rem;
-      font-family: 'DM Mono', monospace; font-size: 0.62rem;
-      padding: 0.6rem 0.75rem; background: var(--card2);
-      border-radius: 8px; border: 1px solid var(--border);
-    }
-
-    .data-row.header { color: var(--muted); }
-    .data-row:not(.header) { color: var(--text); }
-    .data-row .pos { color: var(--accent); }
+    .for-card-icon { font-size: 1.25rem; margin-bottom: 0.75rem; }
+    .for-card h4 { font-family: 'Fraunces', serif; font-size: 0.95rem; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 0.4rem; }
+    .for-card.o h4    { color: var(--orange); }
+    .for-card.g h4    { color: var(--green); }
+    .for-card.p h4    { color: var(--purple); }
+    .for-card.gold h4 { color: var(--gold); }
+    .for-card p { font-size: 0.82rem; color: var(--muted); line-height: 1.7; font-weight: 300; }
 
     /* PRIVACY */
-    .privacy-section {
-      position: relative; z-index: 1;
-      background: var(--surface);
-      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    .privacy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+    @media (max-width: 700px) { .privacy-grid { grid-template-columns: 1fr; gap: 2rem; } }
+
+    .big-word { font-family: 'Fraunces', serif; font-size: clamp(3.5rem, 8vw, 6rem); font-weight: 800; line-height: 0.95; letter-spacing: -0.05em; }
+    .big-word .outline { -webkit-text-stroke: 1.5px var(--border2); color: transparent; display: block; }
+    .big-word .filled  { color: var(--orange); display: block; }
+    .big-word .filled2 { color: var(--green);  display: block; }
+
+    .privacy-checks { display: flex; flex-direction: column; gap: 10px; }
+
+    .priv-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 1.1rem 1.25rem; background: var(--cream);
+      border: 1px solid var(--border); border-radius: 12px; transition: border-color 0.2s;
     }
+    .priv-item:hover { border-color: var(--border2); }
 
-    .privacy-inner {
-      max-width: 1100px; margin: 0 auto; padding: 6rem 2rem;
-      display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center;
+    .priv-check {
+      width: 22px; height: 22px; flex-shrink: 0;
+      border-radius: 8px; display: flex; align-items: center;
+      justify-content: center; font-size: 0.7rem; margin-top: 1px;
     }
+    .priv-check.o    { background: var(--orange-bg); border: 1px solid var(--orange-bd); color: var(--orange); }
+    .priv-check.g    { background: var(--green-bg);  border: 1px solid var(--green-bd);  color: var(--green); }
+    .priv-check.p    { background: var(--purple-bg); border: 1px solid var(--purple-bd); color: var(--purple); }
+    .priv-check.gold { background: var(--gold-bg);   border: 1px solid var(--gold-bd);   color: var(--gold); }
 
-    @media (max-width: 768px) { .privacy-inner { grid-template-columns: 1fr; gap: 3rem; } }
-
-    .privacy-checks { display: flex; flex-direction: column; gap: 1rem; }
-
-    .privacy-check-item {
-      display: flex; align-items: flex-start; gap: 1rem;
-      padding: 1.25rem; background: var(--card);
-      border: 1px solid var(--border); border-radius: 14px; transition: border-color 0.3s;
-    }
-
-    .privacy-check-item:hover { border-color: rgba(0,229,160,0.25); }
-
-    .check-icon {
-      width: 24px; height: 24px;
-      background: rgba(0,229,160,0.12); border: 1px solid rgba(0,229,160,0.3);
-      border-radius: 8px; display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; font-size: 0.7rem; color: var(--accent); margin-top: 1px;
-    }
-
-    .check-text strong { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.2rem; }
-    .check-text p { font-size: 0.8rem; color: var(--muted2); line-height: 1.6; font-weight: 300; }
-
-    .big-text { font-size: clamp(3rem, 7vw, 5.5rem); font-weight: 800; letter-spacing: -0.05em; line-height: 1; }
-    .big-text .outline { -webkit-text-stroke: 1px var(--border-light); color: transparent; }
-    .big-text .filled { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-
-    .api-tag {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--accent2);
-      background: rgba(91,141,239,0.08); border: 1px solid rgba(91,141,239,0.2);
-      padding: 0.4rem 0.85rem; border-radius: 8px; margin-top: 1.5rem;
-    }
+    .priv-text strong { display: block; font-size: 0.88rem; font-weight: 500; color: var(--ink); margin-bottom: 2px; }
+    .priv-text p { font-size: 0.78rem; color: var(--muted); line-height: 1.6; font-weight: 300; }
 
     /* FOOTER */
-    footer { position: relative; z-index: 1; border-top: 1px solid var(--border); padding: 3rem 2rem; }
+    footer { background: var(--ink); padding: 3rem 2rem; }
+    .footer-inner { max-width: 1000px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 2rem; flex-wrap: wrap; }
 
-    .footer-inner {
-      max-width: 1100px; margin: 0 auto;
-      display: flex; align-items: center; justify-content: space-between; gap: 2rem; flex-wrap: wrap;
-    }
+    .footer-logo { font-family: 'Fraunces', serif; font-size: 0.95rem; font-weight: 700; color: var(--cream); display: flex; align-items: center; gap: 8px; }
+    .footer-logo-mark { width: 22px; height: 22px; border-radius: 6px; background: var(--cream); display: flex; align-items: center; justify-content: center; }
+    .footer-logo-mark svg { width: 12px; height: 12px; fill: var(--ink); }
 
-    .footer-logo {
-      font-weight: 700; font-size: 0.9rem; letter-spacing: -0.02em;
-      display: flex; align-items: center; gap: 0.5rem; color: var(--muted2);
-    }
-
-    .footer-disclaimer {
-      font-family: 'DM Mono', monospace; font-size: 0.62rem;
-      color: var(--muted); line-height: 1.9; text-align: right; max-width: 520px;
-    }
-
-    @media (max-width: 640px) { .footer-inner { flex-direction: column; align-items: flex-start; } .footer-disclaimer { text-align: left; } }
+    .footer-disclaimer { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: #554433; line-height: 1.9; text-align: right; max-width: 480px; }
+    @media (max-width: 640px) { .footer-inner { flex-direction: column; } .footer-disclaimer { text-align: left; } }
 
     /* SCROLL REVEAL */
-    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s ease; }
+    .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.65s ease, transform 0.65s ease; }
     .reveal.visible { opacity: 1; transform: translateY(0); }
 
     ::-webkit-scrollbar { width: 5px; }
-    ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+    ::-webkit-scrollbar-track { background: var(--cream); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
   </style>
 </head>
 <body>
 
-  <div class="blob blob-1"></div>
-  <div class="blob blob-2"></div>
-  <div class="blob blob-3"></div>
-
   <!-- NAV -->
   <nav>
     <div class="logo">
-      <div class="logo-icon">⚡</div>
+      <div class="logo-mark">
+        <svg viewBox="0 0 14 14"><path d="M7 1L9.5 5.5H13L9.5 8.5L11 13L7 10L3 13L4.5 8.5L1 5.5H4.5Z"/></svg>
+      </div>
       Sales Pulse Live
     </div>
-    <div class="nav-pill">
-      <div class="live-dot"></div>
-      LIVE DATA
+    <div class="nav-pills">
+      <div class="nav-pill pill-live"><div class="live-dot"></div>Live Data</div>
+      <div class="nav-pill pill-api">Etsy API v3</div>
     </div>
   </nav>
 
   <!-- HERO -->
   <div class="hero">
-    <div class="hero-left">
-      <div class="hero-badge">
-        <div class="hero-badge-line"></div>
-        Real-Time Shop Analytics
-      </div>
-      <h1>Your Etsy sales.<br><span class="soft">On your terms.</span><br><span class="grad">Instantly.</span></h1>
-      <p class="hero-sub">
-        Sales Pulse Live connects to your shop via the Etsy API so you can export and monitor your sales, orders, and revenue in real time — no manual downloads required.
-      </p>
-      <div class="hero-stats">
-        <div class="hero-stat">
-          <div class="hero-stat-val">CSV</div>
-          <div class="hero-stat-label">Export Format</div>
-        </div>
-        <div class="stat-div"></div>
-        <div class="hero-stat">
-          <div class="hero-stat-val">JSON</div>
-          <div class="hero-stat-label">Export Format</div>
-        </div>
-        <div class="stat-div"></div>
-        <div class="hero-stat">
-          <div class="hero-stat-val" style="font-size:1rem;padding-top:6px;">Read‑Only</div>
-          <div class="hero-stat-label">Always Secure</div>
-        </div>
-      </div>
+    <div class="hero-chips">
+      <div class="chip chip-o">Real-time sync</div>
+      <div class="chip chip-g">Read-only access</div>
+      <div class="chip chip-p">OAuth 2.0 secured</div>
+      <div class="chip chip-gold">No data stored</div>
     </div>
+    <h1>Your Etsy sales.<br><span class="ul">Exported</span> <span class="gr">instantly.</span></h1>
+    <p class="hero-sub">
+      Sales Pulse Live connects to your shop via the Etsy API so you can export and monitor your sales, orders, and revenue in real time — no manual downloads required.
+    </p>
+    <div class="hero-stats">
+      <div class="h-stat"><div class="h-stat-val">CSV</div><div class="h-stat-lbl">Export format</div></div>
+      <div class="h-stat"><div class="h-stat-val">JSON</div><div class="h-stat-lbl">Export format</div></div>
+      <div class="h-stat"><div class="h-stat-val">Read-only</div><div class="h-stat-lbl">Always secure</div></div>
+      <div class="h-stat"><div class="h-stat-val">API v3</div><div class="h-stat-lbl">Official Etsy</div></div>
+    </div>
+  </div>
 
-    <!-- Mock Dashboard -->
-    <div class="hero-visual">
-      <div class="dashboard-card">
-        <div class="dash-header">
-          <div class="dash-title">Revenue Overview</div>
-          <div class="dash-badge"><div class="live-dot"></div> SYNCING</div>
-        </div>
-        <div class="dash-metric">$4,829.40</div>
-        <div class="dash-metric-sub">↑ 18.4% vs last month</div>
-        <div class="chart-bars">
-          <div class="bar" style="height:35%"></div>
-          <div class="bar" style="height:50%"></div>
-          <div class="bar" style="height:40%"></div>
-          <div class="bar active" style="height:65%"></div>
-          <div class="bar active" style="height:55%"></div>
-          <div class="bar active" style="height:80%"></div>
-          <div class="bar active" style="height:70%"></div>
-          <div class="bar highlight" style="height:100%"></div>
-          <div class="bar active" style="height:88%"></div>
-          <div class="bar active" style="height:75%"></div>
-          <div class="bar" style="height:30%"></div>
-          <div class="bar" style="height:20%"></div>
-        </div>
-        <div class="order-rows">
-          <div class="order-row">
-            <div class="order-left">
-              <div class="order-dot" style="background:#00e5a0"></div>
-              <div>
-                <div class="order-name">Custom Ring Order</div>
-                <div class="order-time">2 min ago</div>
-              </div>
-            </div>
-            <div class="order-amount">+$128.00</div>
+  <!-- LIVE FEED -->
+  <div class="section off">
+    <div class="section-inner">
+      <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Live Orders</div>
+      <h2 class="section-title reveal">Watch your sales <em>as they happen.</em></h2>
+      <p class="section-body reveal">Every order that comes in appears instantly — no refreshing, no waiting. Your data, the moment it's yours.</p>
+      <div class="feed-wrap reveal">
+        <div class="feed-panel" id="feed">
+          <div class="feed-header">
+            <div class="feed-title">Recent orders</div>
+            <div class="feed-badge"><div class="live-dot"></div> Syncing</div>
           </div>
-          <div class="order-row">
-            <div class="order-left">
-              <div class="order-dot" style="background:var(--accent2)"></div>
-              <div>
-                <div class="order-name">Print Set — Botanical</div>
-                <div class="order-time">14 min ago</div>
-              </div>
-            </div>
-            <div class="order-amount">+$54.00</div>
+          <div class="feed-row">
+            <div class="feed-row-left"><div class="feed-dot" style="background:#d4622a"></div><div><div class="feed-name">Custom Ring Order</div><div class="feed-time">Just now</div></div></div>
+            <div class="feed-amt" style="color:#fb923c">+$128.00</div>
           </div>
-          <div class="order-row">
-            <div class="order-left">
-              <div class="order-dot" style="background:#a78bfa"></div>
-              <div>
-                <div class="order-name">Ceramic Mug — Set of 4</div>
-                <div class="order-time">31 min ago</div>
-              </div>
-            </div>
-            <div class="order-amount">+$89.50</div>
+          <div class="feed-row">
+            <div class="feed-row-left"><div class="feed-dot" style="background:#3a7d4c"></div><div><div class="feed-name">Print Set — Botanical</div><div class="feed-time">4 min ago</div></div></div>
+            <div class="feed-amt" style="color:#4ade80">+$54.00</div>
+          </div>
+          <div class="feed-row">
+            <div class="feed-row-left"><div class="feed-dot" style="background:#5a3d9e"></div><div><div class="feed-name">Ceramic Mug — Set of 4</div><div class="feed-time">11 min ago</div></div></div>
+            <div class="feed-amt" style="color:#c084fc">+$89.50</div>
+          </div>
+          <div class="feed-row">
+            <div class="feed-row-left"><div class="feed-dot" style="background:#b8860b"></div><div><div class="feed-name">Candle Bundle</div><div class="feed-time">18 min ago</div></div></div>
+            <div class="feed-amt" style="color:#fbbf24">+$42.00</div>
+          </div>
+          <div class="feed-row">
+            <div class="feed-row-left"><div class="feed-dot" style="background:#3a7d4c"></div><div><div class="feed-name">Linen Tote Bag</div><div class="feed-time">26 min ago</div></div></div>
+            <div class="feed-amt" style="color:#4ade80">+$36.00</div>
           </div>
         </div>
-      </div>
-      <div class="float-card">
-        <div class="float-icon">📦</div>
-        <div>
-          <div class="float-label">ORDERS TODAY</div>
-          <div class="float-val">47</div>
+        <div class="feed-right">
+          <div class="metric-card">
+            <div class="metric-card-label">Revenue this month</div>
+            <div class="metric-card-val">$4,829.40</div>
+            <div class="metric-card-sub">↑ 18.4% vs last month</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-card-label">Orders today</div>
+            <div class="metric-card-val">47</div>
+            <div class="metric-card-sub">↑ 12 more than yesterday</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-card-label">Avg. order value</div>
+            <div class="metric-card-val">$72.40</div>
+            <div class="metric-card-sub">↑ 6.2% vs last month</div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- MARQUEE -->
-  <div class="marquee-wrap">
-    <div class="marquee-track">
-      <div class="marquee-item"><span class="dot">◆</span> READ-ONLY ACCESS</div>
-      <div class="marquee-item"><span class="dot">◆</span> ETSY OPEN API V3</div>
-      <div class="marquee-item"><span class="dot">◆</span> OAUTH 2.0 SECURED</div>
-      <div class="marquee-item"><span class="dot">◆</span> CSV EXPORT</div>
-      <div class="marquee-item"><span class="dot">◆</span> JSON EXPORT</div>
-      <div class="marquee-item"><span class="dot">◆</span> REAL-TIME SYNC</div>
-      <div class="marquee-item"><span class="dot">◆</span> NO DATA STORED</div>
-      <div class="marquee-item"><span class="dot">◆</span> REVENUE TRACKING</div>
-      <div class="marquee-item"><span class="dot">◆</span> ORDER HISTORY</div>
-      <div class="marquee-item"><span class="dot">◆</span> TREND ANALYSIS</div>
-      <div class="marquee-item"><span class="dot">◆</span> READ-ONLY ACCESS</div>
-      <div class="marquee-item"><span class="dot">◆</span> ETSY OPEN API V3</div>
-      <div class="marquee-item"><span class="dot">◆</span> OAUTH 2.0 SECURED</div>
-      <div class="marquee-item"><span class="dot">◆</span> CSV EXPORT</div>
-      <div class="marquee-item"><span class="dot">◆</span> JSON EXPORT</div>
-      <div class="marquee-item"><span class="dot">◆</span> REAL-TIME SYNC</div>
-      <div class="marquee-item"><span class="dot">◆</span> NO DATA STORED</div>
-      <div class="marquee-item"><span class="dot">◆</span> REVENUE TRACKING</div>
-      <div class="marquee-item"><span class="dot">◆</span> ORDER HISTORY</div>
-      <div class="marquee-item"><span class="dot">◆</span> TREND ANALYSIS</div>
+  <!-- REVENUE CHART -->
+  <div class="section cream">
+    <div class="section-inner">
+      <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Revenue Trends</div>
+      <h2 class="section-title reveal">Spot patterns <em>before they pass.</em></h2>
+      <p class="section-body reveal">Export your revenue data and visualize trends over days, weeks, or months. Know your busiest seasons before they arrive.</p>
+      <div class="chart-area reveal">
+        <div class="chart-header">
+          <div>
+            <div style="font-family:'Fraunces',serif;font-size:1.5rem;font-weight:700;letter-spacing:-0.03em;color:var(--ink)">$4,829.40</div>
+            <div style="font-size:0.75rem;color:var(--green);font-family:'DM Mono',monospace;margin-top:2px">↑ 18.4% this month</div>
+          </div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#d4622a"></div>Revenue</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#3a7d4c"></div>Orders</div>
+          </div>
+        </div>
+        <svg class="linechart" viewBox="0 0 900 180" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="go" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#d4622a" stop-opacity="0.18"/>
+              <stop offset="100%" stop-color="#d4622a" stop-opacity="0"/>
+            </linearGradient>
+            <linearGradient id="gg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#3a7d4c" stop-opacity="0.14"/>
+              <stop offset="100%" stop-color="#3a7d4c" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path d="M0,140 C60,130 90,115 150,100 C210,85 240,95 300,80 C360,65 390,75 450,55 C510,35 540,50 600,40 C660,30 690,45 750,25 C810,10 840,20 900,15 L900,180 L0,180 Z" fill="url(#go)"/>
+          <path d="M0,140 C60,130 90,115 150,100 C210,85 240,95 300,80 C360,65 390,75 450,55 C510,35 540,50 600,40 C660,30 690,45 750,25 C810,10 840,20 900,15" fill="none" stroke="#d4622a" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M0,155 C60,148 90,140 150,132 C210,124 240,130 300,120 C360,110 390,116 450,105 C510,94 540,100 600,90 C660,80 690,88 750,75 C810,62 840,70 900,60 L900,180 L0,180 Z" fill="url(#gg)"/>
+          <path d="M0,155 C60,148 90,140 150,132 C210,124 240,130 300,120 C360,110 390,116 450,105 C510,94 540,100 600,90 C660,80 690,88 750,75 C810,62 840,70 900,60" fill="none" stroke="#3a7d4c" stroke-width="2" stroke-linecap="round" stroke-dasharray="5,3"/>
+          <text x="0"   y="178" font-size="9" fill="#a89e90" font-family="monospace">Jan</text>
+          <text x="110" y="178" font-size="9" fill="#a89e90" font-family="monospace">Feb</text>
+          <text x="220" y="178" font-size="9" fill="#a89e90" font-family="monospace">Mar</text>
+          <text x="330" y="178" font-size="9" fill="#a89e90" font-family="monospace">Apr</text>
+          <text x="440" y="178" font-size="9" fill="#a89e90" font-family="monospace">May</text>
+          <text x="550" y="178" font-size="9" fill="#a89e90" font-family="monospace">Jun</text>
+          <text x="660" y="178" font-size="9" fill="#a89e90" font-family="monospace">Jul</text>
+          <text x="770" y="178" font-size="9" fill="#a89e90" font-family="monospace">Aug</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP PRODUCTS -->
+  <div class="section off">
+    <div class="section-inner">
+      <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Top Products</div>
+      <h2 class="section-title reveal">Know what's <em>actually selling.</em></h2>
+      <p class="section-body reveal">Export your order data and rank your products by revenue or volume — without digging through Etsy's native reports.</p>
+      <div class="products-grid reveal">
+        <div class="product-row">
+          <div><div class="product-name">Custom Ring Order</div><div class="product-sub">142 orders</div></div>
+          <div class="product-bar-wrap"><div class="product-bar" style="width:100%;background:#d4622a"></div></div>
+          <div class="product-val">$4,260</div>
+        </div>
+        <div class="product-row">
+          <div><div class="product-name">Ceramic Mug Set</div><div class="product-sub">98 orders</div></div>
+          <div class="product-bar-wrap"><div class="product-bar" style="width:76%;background:#3a7d4c"></div></div>
+          <div class="product-val">$3,234</div>
+        </div>
+        <div class="product-row">
+          <div><div class="product-name">Botanical Print Set</div><div class="product-sub">87 orders</div></div>
+          <div class="product-bar-wrap"><div class="product-bar" style="width:62%;background:#5a3d9e"></div></div>
+          <div class="product-val">$2,871</div>
+        </div>
+        <div class="product-row">
+          <div><div class="product-name">Candle Bundle</div><div class="product-sub">74 orders</div></div>
+          <div class="product-bar-wrap"><div class="product-bar" style="width:49%;background:#b8860b"></div></div>
+          <div class="product-val">$2,442</div>
+        </div>
+        <div class="product-row">
+          <div><div class="product-name">Linen Tote Bag</div><div class="product-sub">61 orders</div></div>
+          <div class="product-bar-wrap"><div class="product-bar" style="width:36%;background:#d4622a"></div></div>
+          <div class="product-val">$1,980</div>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- HOW IT WORKS -->
-  <div class="section-wrap">
-    <div class="section-eyebrow reveal"><div class="eyebrow-line"></div> How It Works</div>
-    <h2 class="section-heading reveal">Three steps to <span class="soft">real-time clarity.</span></h2>
-    <p class="section-body reveal">Sales Pulse Live reads your order and transaction data and exports it in structured formats so you can analyze your shop performance anywhere.</p>
-    <div class="steps-grid reveal">
-      <div class="step-cell">
-        <div class="step-number">01</div>
-        <div class="step-icon green">🔐</div>
-        <h3>Connect Your Shop</h3>
-        <p>Authenticate securely using Etsy's official OAuth 2.0 login. We never see or store your password.</p>
-      </div>
-      <div class="step-cell">
-        <div class="step-number">02</div>
-        <div class="step-icon blue">⚡</div>
-        <h3>Sync Your Data</h3>
-        <p>Sales Pulse Live reads your sales, orders, and receipt data in real time directly from the Etsy Open API v3.</p>
-      </div>
-      <div class="step-cell">
-        <div class="step-number">03</div>
-        <div class="step-icon mixed">📤</div>
-        <h3>Export &amp; Analyze</h3>
-        <p>Download your data as CSV or JSON and plug it into any spreadsheet, dashboard, or analytics tool you prefer.</p>
+  <div class="section cream">
+    <div class="section-inner">
+      <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> How It Works</div>
+      <h2 class="section-title reveal">Three steps to <em>real-time clarity.</em></h2>
+      <p class="section-body reveal">Sales Pulse Live reads your order and transaction data and exports it in structured formats so you can analyze your shop anywhere.</p>
+      <div class="steps-row reveal">
+        <div class="step-box">
+          <div class="step-num">01</div>
+          <div class="step-icon o">🔐</div>
+          <h3>Connect Your Shop</h3>
+          <p>Authenticate securely using Etsy's official OAuth 2.0 login. We never see or store your password.</p>
+        </div>
+        <div class="step-box">
+          <div class="step-num">02</div>
+          <div class="step-icon g">⚡</div>
+          <h3>Sync Your Data</h3>
+          <p>Sales Pulse Live reads your sales, orders, and receipt data in real time directly from the Etsy Open API v3.</p>
+        </div>
+        <div class="step-box">
+          <div class="step-num">03</div>
+          <div class="step-icon p">📤</div>
+          <h3>Export &amp; Analyze</h3>
+          <p>Download as CSV or JSON and plug into any spreadsheet, dashboard, or analytics tool you prefer.</p>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- WHO IT'S FOR -->
-  <div class="section-wrap" style="padding-top:0">
-    <div class="two-col">
-      <div>
-        <div class="section-eyebrow reveal"><div class="eyebrow-line"></div> Who It's For</div>
-        <h2 class="section-heading reveal">Built for sellers <span class="soft">who mean business.</span></h2>
-        <p class="section-body reveal">Whether you run one shop or manage multiple, Sales Pulse Live gives you faster, cleaner access to your own data.</p>
-        <div class="for-list">
-          <div class="for-item reveal">
-            <div class="for-item-icon">📊</div>
-            <div class="for-item-text">
-              <h4>Spreadsheet Sellers</h4>
-              <p>Export directly to CSV and drop it into your existing Google Sheets or Excel workflow.</p>
-            </div>
-          </div>
-          <div class="for-item reveal">
-            <div class="for-item-icon">📈</div>
-            <div class="for-item-text">
-              <h4>Dashboard Builders</h4>
-              <p>Feed clean JSON data into Notion, Airtable, or any custom dashboard you've built.</p>
-            </div>
-          </div>
-          <div class="for-item reveal">
-            <div class="for-item-icon">🔍</div>
-            <div class="for-item-text">
-              <h4>Trend Trackers</h4>
-              <p>Spot seasonal patterns, top products, and revenue trends without digging through Etsy's native reports.</p>
-            </div>
-          </div>
-          <div class="for-item reveal">
-            <div class="for-item-icon">⚡</div>
-            <div class="for-item-text">
-              <h4>Real-Time Monitors</h4>
-              <p>Watch your sales as they happen — no more refreshing and waiting for data to update.</p>
-            </div>
-          </div>
+  <div class="section off">
+    <div class="section-inner">
+      <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Who It's For</div>
+      <h2 class="section-title reveal">Built for sellers <em>who mean business.</em></h2>
+      <p class="section-body reveal">Whether you run one shop or manage multiple, Sales Pulse Live gives you faster, cleaner access to your own data.</p>
+      <div class="for-grid reveal">
+        <div class="for-card o">
+          <div class="for-card-icon">📊</div>
+          <h4>Spreadsheet Sellers</h4>
+          <p>Export directly to CSV and drop it into your existing Google Sheets or Excel workflow.</p>
         </div>
-      </div>
-      <div class="for-visual reveal">
-        <div class="for-visual-header">
-          <div class="for-visual-title">orders_export_2026.csv</div>
-          <div class="export-btn">↓ DOWNLOAD</div>
+        <div class="for-card g">
+          <div class="for-card-icon">📈</div>
+          <h4>Dashboard Builders</h4>
+          <p>Feed clean JSON data into Notion, Airtable, or any custom dashboard you've built.</p>
         </div>
-        <div class="data-rows">
-          <div class="data-row header">
-            <span>ORDER ID</span><span>ITEM</span><span>AMOUNT</span>
-          </div>
-          <div class="data-row"><span>#10842</span><span>Custom Ring</span><span class="pos">$128.00</span></div>
-          <div class="data-row"><span>#10841</span><span>Print Set</span><span class="pos">$54.00</span></div>
-          <div class="data-row"><span>#10840</span><span>Ceramic Mug</span><span class="pos">$89.50</span></div>
-          <div class="data-row"><span>#10839</span><span>Candle Bundle</span><span class="pos">$42.00</span></div>
-          <div class="data-row"><span>#10838</span><span>Linen Tote</span><span class="pos">$36.00</span></div>
-          <div class="data-row"><span>#10837</span><span>Wall Art Print</span><span class="pos">$68.00</span></div>
+        <div class="for-card p">
+          <div class="for-card-icon">🔍</div>
+          <h4>Trend Trackers</h4>
+          <p>Spot seasonal patterns, top products, and revenue trends without digging through Etsy's native reports.</p>
+        </div>
+        <div class="for-card gold">
+          <div class="for-card-icon">⚡</div>
+          <h4>Real-Time Monitors</h4>
+          <p>Watch your sales as they happen — no more refreshing and waiting for data to update.</p>
         </div>
       </div>
     </div>
   </div>
 
   <!-- PRIVACY -->
-  <div class="privacy-section">
-    <div class="privacy-inner">
-      <div>
-        <div class="section-eyebrow reveal"><div class="eyebrow-line"></div> Privacy &amp; Data</div>
-        <div class="big-text reveal">
-          <div class="outline">READ</div>
-          <div class="filled">ONLY.</div>
-          <div class="outline">ALWAYS.</div>
-        </div>
-        <div class="api-tag reveal">✓ &nbsp;Etsy Open API v3 Compliant</div>
-      </div>
-      <div class="privacy-checks">
-        <div class="privacy-check-item reveal">
-          <div class="check-icon">✓</div>
-          <div class="check-text">
-            <strong>Read-only access</strong>
-            <p>We never write, edit, or delete any listings, orders, or account data in your shop.</p>
+  <div class="section cream">
+    <div class="section-inner">
+      <div class="privacy-grid">
+        <div class="reveal">
+          <div class="section-eyebrow" style="margin-bottom:1.5rem"><div class="eyebrow-rule"></div> Privacy &amp; Data</div>
+          <div class="big-word">
+            <span class="outline">Read</span>
+            <span class="filled">Only.</span>
+            <span class="filled2">Always.</span>
+          </div>
+          <div style="margin-top:1.5rem;display:inline-flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--purple);background:var(--purple-bg);border:1px solid var(--purple-bd);padding:6px 14px;border-radius:8px;">
+            ✓ &nbsp;Etsy Open API v3 compliant
           </div>
         </div>
-        <div class="privacy-check-item reveal">
-          <div class="check-icon">✓</div>
-          <div class="check-text">
-            <strong>OAuth 2.0 secured</strong>
-            <p>Login is handled entirely by Etsy's official authentication system — your credentials never touch our servers.</p>
+        <div class="privacy-checks">
+          <div class="priv-item reveal">
+            <div class="priv-check o">✓</div>
+            <div class="priv-text"><strong>Read-only access</strong><p>We never write, edit, or delete any listings, orders, or account data in your shop.</p></div>
           </div>
-        </div>
-        <div class="privacy-check-item reveal">
-          <div class="check-icon">✓</div>
-          <div class="check-text">
-            <strong>No data storage</strong>
-            <p>We do not store your personal data, shop data, or order history on our servers.</p>
+          <div class="priv-item reveal">
+            <div class="priv-check g">✓</div>
+            <div class="priv-text"><strong>OAuth 2.0 secured</strong><p>Login handled entirely by Etsy's official auth system — your credentials never touch our servers.</p></div>
           </div>
-        </div>
-        <div class="privacy-check-item reveal">
-          <div class="check-icon">✓</div>
-          <div class="check-text">
-            <strong>API compliant</strong>
-            <p>Fully built on Etsy's Open API v3, within all usage policies and rate limits.</p>
+          <div class="priv-item reveal">
+            <div class="priv-check p">✓</div>
+            <div class="priv-text"><strong>No data storage</strong><p>We do not store your personal data, shop data, or order history on our servers.</p></div>
+          </div>
+          <div class="priv-item reveal">
+            <div class="priv-check gold">✓</div>
+            <div class="priv-text"><strong>API compliant</strong><p>Fully built on Etsy's Open API v3, within all usage policies and rate limits.</p></div>
           </div>
         </div>
       </div>
@@ -730,7 +591,9 @@
   <footer>
     <div class="footer-inner">
       <div class="footer-logo">
-        <div class="logo-icon" style="width:22px;height:22px;font-size:0.65rem;">⚡</div>
+        <div class="footer-logo-mark">
+          <svg viewBox="0 0 14 14"><path d="M7 1L9.5 5.5H13L9.5 8.5L11 13L7 10L3 13L4.5 8.5L1 5.5H4.5Z"/></svg>
+        </div>
         Sales Pulse Live
       </div>
       <p class="footer-disclaimer">
@@ -745,12 +608,38 @@
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry, i) => {
         if (entry.isIntersecting) {
-          setTimeout(() => entry.target.classList.add('visible'), i * 60);
+          setTimeout(() => entry.target.classList.add('visible'), i * 70);
           observer.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.1 });
+    }, { threshold: 0.08 });
     reveals.forEach(el => observer.observe(el));
+
+    const orders = [
+      { name: 'Wall Art Print',     color: '#d4622a', amtColor: '#fb923c', amt: '+$68.00' },
+      { name: 'Custom Ring Order',  color: '#3a7d4c', amtColor: '#4ade80', amt: '+$128.00' },
+      { name: 'Dried Flower Bunch', color: '#5a3d9e', amtColor: '#c084fc', amt: '+$29.00' },
+      { name: 'Wax Seal Stamp Set', color: '#b8860b', amtColor: '#fbbf24', amt: '+$44.00' },
+      { name: 'Linen Pillowcase',   color: '#3a7d4c', amtColor: '#4ade80', amt: '+$38.00' },
+    ];
+
+    let idx = 0;
+    setInterval(() => {
+      const feed = document.getElementById('feed');
+      const rows = feed.querySelectorAll('.feed-row');
+      const o = orders[idx % orders.length];
+      const row = document.createElement('div');
+      row.className = 'feed-row new';
+      row.innerHTML = `
+        <div class="feed-row-left">
+          <div class="feed-dot" style="background:${o.color}"></div>
+          <div><div class="feed-name">${o.name}</div><div class="feed-time">Just now</div></div>
+        </div>
+        <div class="feed-amt" style="color:${o.amtColor}">${o.amt}</div>`;
+      feed.insertBefore(row, rows[0]);
+      if (feed.querySelectorAll('.feed-row').length > 5) feed.removeChild(feed.querySelectorAll('.feed-row')[5]);
+      idx++;
+    }, 3500);
   </script>
 
 </body>
