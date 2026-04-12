@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sales Pulse Live — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,800;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cream:    #fdf6ee;
+      --offwhite: #f7f2eb;
+      --paper:    #f0ebe2;
+      --border:   #e2ddd4;
+      --border2:  #d4cec5;
+      --ink:      #1a1108;
+      --ink2:     #3d3022;
+      --muted:    #7a6a58;
+      --muted2:   #a89e90;
+      --orange:   #d4622a;
+      --green:    #3a7d4c;
+      --purple:   #5a3d9e;
+      --gold:     #b8860b;
+      --orange-bg: #fde8d8; --orange-bd: #f5c5a8;
+      --green-bg:  #d8eddf; --green-bd:  #a8d4b5;
+      --purple-bg: #e8e0f5; --purple-bd: #c8b8ee;
+      --gold-bg:   #fef3d8; --gold-bd:   #f0d898;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--cream);
+      color: var(--ink);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+    }
+
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: 0.03; pointer-events: none; z-index: 999;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2rem;
+      background: rgba(253,246,238,0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-family: 'Fraunces', serif; font-weight: 700; font-size: 1rem;
+      color: var(--ink); display: flex; align-items: center; gap: 0.5rem;
+    }
+    .logo-mark {
+      width: 24px; height: 24px; border-radius: 7px; background: var(--ink);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .logo-mark svg { width: 13px; height: 13px; fill: var(--cream); }
+
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+
+    .nav-pill {
+      font-family: 'DM Mono', monospace; font-size: 0.62rem;
+      letter-spacing: 0.07em; padding: 0.28rem 0.7rem;
+      border-radius: 999px; border: 1px solid;
+    }
+    .pill-live { color: var(--orange); background: var(--orange-bg); border-color: var(--orange-bd); display: flex; align-items: center; gap: 5px; }
+    .live-dot { width: 5px; height: 5px; background: var(--orange); border-radius: 50%; animation: blink 1.4s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+    #disconnect-btn {
+      font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.06em;
+      background: none; border: 1px solid var(--border2); color: var(--muted);
+      padding: 0.28rem 0.75rem; border-radius: 999px; cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    #disconnect-btn:hover { border-color: var(--orange-bd); color: var(--orange); }
+
+    /* ── CONNECT SCREEN ── */
+    #connect-screen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 6rem 2rem 4rem; flex-direction: column; text-align: center;
+    }
+
+    .connect-card {
+      background: var(--offwhite); border: 1px solid var(--border);
+      border-radius: 24px; padding: 3rem 2.5rem; max-width: 460px; width: 100%;
+      box-shadow: 0 20px 60px rgba(26,17,8,0.08);
+    }
+
+    .connect-icon {
+      width: 56px; height: 56px; background: var(--orange-bg);
+      border: 1px solid var(--orange-bd); border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; margin: 0 auto 1.5rem;
+    }
+
+    .connect-card h2 {
+      font-family: 'Fraunces', serif; font-size: 1.6rem; font-weight: 700;
+      letter-spacing: -0.03em; color: var(--ink); margin-bottom: 0.75rem;
+    }
+
+    .connect-card p {
+      font-size: 0.9rem; color: var(--muted); line-height: 1.8;
+      font-weight: 300; margin-bottom: 2rem;
+    }
+
+    .config-row {
+      display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.25rem; text-align: left;
+    }
+    .config-row label {
+      font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted2);
+    }
+    .config-row input {
+      background: var(--cream); border: 1px solid var(--border2);
+      border-radius: 10px; padding: 0.65rem 0.9rem;
+      font-family: 'DM Mono', monospace; font-size: 0.8rem; color: var(--ink);
+      outline: none; transition: border-color 0.2s;
+    }
+    .config-row input:focus { border-color: var(--orange-bd); }
+    .config-row input::placeholder { color: var(--muted2); }
+
+    .connect-btn {
+      width: 100%; padding: 0.85rem;
+      background: var(--ink); color: var(--cream);
+      font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 700;
+      border: none; border-radius: 12px; cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    }
+    .connect-btn:hover { background: var(--ink2); }
+    .connect-btn:active { transform: scale(0.99); }
+
+    .connect-note {
+      font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--muted2);
+      margin-top: 1.25rem; line-height: 1.8; letter-spacing: 0.04em;
+    }
+
+    .scopes-row {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.5rem;
+    }
+    .scope-tag {
+      font-family: 'DM Mono', monospace; font-size: 0.58rem; letter-spacing: 0.06em;
+      padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border2);
+      color: var(--muted); background: var(--cream);
+    }
+
+    /* ── ERROR ── */
+    #error-banner {
+      display: none; background: #fde8d8; border: 1px solid var(--orange-bd);
+      border-radius: 10px; padding: 0.75rem 1rem;
+      font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--orange);
+      margin-bottom: 1rem; text-align: left; line-height: 1.6;
+    }
+
+    /* ── LOADING ── */
+    #loading-screen {
+      display: none; min-height: 100vh; align-items: center; justify-content: center;
+      flex-direction: column; gap: 1rem; padding-top: 4rem;
+    }
+    .spinner {
+      width: 36px; height: 36px; border: 3px solid var(--border);
+      border-top-color: var(--orange); border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text {
+      font-family: 'DM Mono', monospace; font-size: 0.72rem;
+      color: var(--muted2); letter-spacing: 0.08em;
+    }
+
+    /* ── DASHBOARD ── */
+    #dashboard { display: none; padding: 5rem 2rem 4rem; max-width: 1060px; margin: 0 auto; }
+
+    .dash-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 2rem; gap: 1rem; flex-wrap: wrap;
+    }
+
+    .dash-shop-name {
+      font-family: 'Fraunces', serif; font-size: 1.6rem; font-weight: 700;
+      letter-spacing: -0.03em; color: var(--ink);
+    }
+    .dash-shop-sub {
+      font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--muted2);
+      letter-spacing: 0.06em; margin-top: 4px;
+    }
+
+    .dash-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .export-btn {
+      font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.06em;
+      padding: 0.4rem 0.9rem; border-radius: 999px; border: 1px solid; cursor: pointer;
+      transition: opacity 0.2s; display: flex; align-items: center; gap: 5px;
+    }
+    .export-csv { background: var(--green-bg); border-color: var(--green-bd); color: var(--green); }
+    .export-json { background: var(--purple-bg); border-color: var(--purple-bd); color: var(--purple); }
+    .export-btn:hover { opacity: 0.75; }
+
+    /* KPI ROW */
+    .kpi-row {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 2rem;
+    }
+    @media (max-width: 700px) { .kpi-row { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 380px) { .kpi-row { grid-template-columns: 1fr; } }
+
+    .kpi-card {
+      background: var(--offwhite); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.25rem 1.25rem 1rem;
+    }
+    .kpi-label {
+      font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted2); margin-bottom: 0.5rem;
+    }
+    .kpi-val {
+      font-family: 'Fraunces', serif; font-size: 1.6rem; font-weight: 700;
+      letter-spacing: -0.03em; color: var(--ink); line-height: 1;
+    }
+    .kpi-sub { font-size: 0.75rem; color: var(--muted2); margin-top: 4px; font-weight: 300; }
+
+    /* ORDERS TABLE */
+    .panel {
+      background: var(--offwhite); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden; margin-bottom: 1.5rem;
+    }
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);
+    }
+    .panel-title {
+      font-family: 'Fraunces', serif; font-size: 0.95rem; font-weight: 700;
+      letter-spacing: -0.01em; color: var(--ink);
+    }
+    .panel-count {
+      font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--muted2);
+      background: var(--paper); border: 1px solid var(--border2);
+      padding: 2px 8px; border-radius: 999px;
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%; border-collapse: collapse; font-size: 0.82rem;
+    }
+    thead th {
+      font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted2); padding: 0.7rem 1.25rem;
+      text-align: left; background: var(--paper); border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--paper); }
+    tbody td {
+      padding: 0.75rem 1.25rem; color: var(--ink); vertical-align: middle;
+      white-space: nowrap;
+    }
+    .td-mono { font-family: 'DM Mono', monospace; font-size: 0.72rem; }
+    .td-muted { color: var(--muted2); }
+
+    .status-badge {
+      font-family: 'DM Mono', monospace; font-size: 0.58rem; letter-spacing: 0.06em;
+      padding: 3px 8px; border-radius: 999px; border: 1px solid;
+    }
+    .s-paid    { background: var(--green-bg);  border-color: var(--green-bd);  color: var(--green); }
+    .s-shipped { background: var(--purple-bg); border-color: var(--purple-bd); color: var(--purple); }
+    .s-open    { background: var(--gold-bg);   border-color: var(--gold-bd);   color: var(--gold); }
+    .s-other   { background: var(--paper);     border-color: var(--border2);   color: var(--muted); }
+
+    .amount-pos { color: var(--green); font-family: 'Fraunces', serif; font-weight: 700; font-size: 0.9rem; }
+
+    /* PAGINATION */
+    .pagination {
+      display: flex; align-items: center; gap: 8px;
+      padding: 0.75rem 1.25rem; border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .page-btn {
+      font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.04em;
+      padding: 0.3rem 0.7rem; border-radius: 8px; border: 1px solid var(--border2);
+      background: var(--cream); color: var(--muted); cursor: pointer;
+      transition: all 0.15s;
+    }
+    .page-btn:hover { border-color: var(--orange-bd); color: var(--orange); }
+    .page-btn.active { background: var(--ink); border-color: var(--ink); color: var(--cream); }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .page-info {
+      font-family: 'DM Mono', monospace; font-size: 0.62rem; color: var(--muted2);
+      margin-left: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 14 14"><path d="M7 1L9.5 5.5H13L9.5 8.5L11 13L7 10L3 13L4.5 8.5L1 5.5H4.5Z"/></svg>
+      </div>
+      Sales Pulse Live
+    </div>
+    <div class="nav-right">
+      <div class="nav-pill pill-live" id="live-badge" style="display:none">
+        <div class="live-dot"></div> Connected
+      </div>
+      <button id="disconnect-btn" style="display:none" onclick="disconnect()">Disconnect</button>
+    </div>
+  </nav>
+
+  <!-- CONNECT SCREEN -->
+  <div id="connect-screen">
+    <div class="connect-card">
+      <div class="connect-icon">🔐</div>
+      <h2>Connect your Etsy shop</h2>
+      <p>Enter your Etsy API keystring and redirect URI, then authenticate with OAuth 2.0. We request read-only access — your shop data is never stored.</p>
+
+      <div id="error-banner"></div>
+
+      <div class="config-row">
+        <label>Etsy API Keystring</label>
+        <input type="text" id="api-key-input" placeholder="e.g. abc123xyz..." autocomplete="off" spellcheck="false"/>
+      </div>
+      <div class="config-row">
+        <label>Redirect URI (must match your Etsy app)</label>
+        <input type="text" id="redirect-uri-input" value="http://localhost:5500/app.html" spellcheck="false"/>
+      </div>
+
+      <div class="scopes-row">
+        <span class="scope-tag">transactions_r</span>
+        <span class="scope-tag">listings_r</span>
+        <span class="scope-tag">shops_r</span>
+        <span class="scope-tag">read-only</span>
+      </div>
+
+      <button class="connect-btn" onclick="startOAuth()">
+        🛒 Connect with Etsy
+      </button>
+
+      <p class="connect-note">
+        PKCE flow · No backend required · Your credentials stay in your browser
+      </p>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div id="loading-screen">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loading-text">Fetching your shop data…</div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard">
+    <div class="dash-header">
+      <div>
+        <div class="dash-shop-name" id="shop-name">—</div>
+        <div class="dash-shop-sub" id="shop-sub">Loading…</div>
+      </div>
+      <div class="dash-actions">
+        <button class="export-btn export-csv" onclick="exportCSV()">↓ CSV</button>
+        <button class="export-btn export-json" onclick="exportJSON()">↓ JSON</button>
+      </div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Revenue</div>
+        <div class="kpi-val" id="kpi-revenue">—</div>
+        <div class="kpi-sub" id="kpi-revenue-sub">across all orders</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Total Orders</div>
+        <div class="kpi-val" id="kpi-orders">—</div>
+        <div class="kpi-sub">fetched from Etsy</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Avg. Order Value</div>
+        <div class="kpi-val" id="kpi-aov">—</div>
+        <div class="kpi-sub">mean transaction</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Shop ID</div>
+        <div class="kpi-val" id="kpi-shopid" style="font-size:1rem;padding-top:6px">—</div>
+        <div class="kpi-sub">Etsy shop identifier</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Order History</div>
+        <div class="panel-count" id="order-count">0 orders</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Receipt ID</th>
+              <th>Date</th>
+              <th>Buyer</th>
+              <th>Items</th>
+              <th>Status</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody id="orders-tbody">
+            <tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">Loading orders…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </div>
+
+<script>
+// ─── CONFIG ────────────────────────────────────────────────────────────────
+const ETSY_AUTH_URL   = 'https://www.etsy.com/oauth/connect';
+const ETSY_TOKEN_URL  = 'https://api.etsy.com/v3/public/oauth/token';
+const ETSY_API_BASE   = 'https://openapi.etsy.com/v3';
+const SCOPES          = 'transactions_r listings_r shops_r';
+const PAGE_SIZE       = 25;
+
+// ─── STATE ─────────────────────────────────────────────────────────────────
+let allOrders = [];
+let currentPage = 1;
+
+// ─── PKCE HELPERS ──────────────────────────────────────────────────────────
+function base64URLEncode(buf) {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+async function generateCodeVerifier() {
+  const arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  return base64URLEncode(arr);
+}
+
+async function generateCodeChallenge(verifier) {
+  const enc = new TextEncoder().encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', enc);
+  return base64URLEncode(digest);
+}
+
+// ─── OAUTH START ───────────────────────────────────────────────────────────
+async function startOAuth() {
+  const apiKey      = document.getElementById('api-key-input').value.trim();
+  const redirectUri = document.getElementById('redirect-uri-input').value.trim();
+
+  if (!apiKey) { showError('Please enter your Etsy API keystring.'); return; }
+  if (!redirectUri) { showError('Please enter a redirect URI.'); return; }
+
+  // Persist config for callback
+  sessionStorage.setItem('spl_api_key', apiKey);
+  sessionStorage.setItem('spl_redirect_uri', redirectUri);
+
+  const verifier   = await generateCodeVerifier();
+  const challenge  = await generateCodeChallenge(verifier);
+  const state      = base64URLEncode(crypto.getRandomValues(new Uint8Array(16)));
+
+  sessionStorage.setItem('spl_verifier', verifier);
+  sessionStorage.setItem('spl_state', state);
+
+  const params = new URLSearchParams({
+    response_type:         'code',
+    redirect_uri:          redirectUri,
+    scope:                 SCOPES,
+    client_id:             apiKey,
+    state:                 state,
+    code_challenge:        challenge,
+    code_challenge_method: 'S256',
+  });
+
+  window.location.href = `${ETSY_AUTH_URL}?${params}`;
+}
+
+// ─── OAUTH CALLBACK ────────────────────────────────────────────────────────
+async function handleCallback(code, returnedState) {
+  const storedState   = sessionStorage.getItem('spl_state');
+  const verifier      = sessionStorage.getItem('spl_verifier');
+  const apiKey        = sessionStorage.getItem('spl_api_key');
+  const redirectUri   = sessionStorage.getItem('spl_redirect_uri');
+
+  if (returnedState !== storedState) {
+    showError('OAuth state mismatch — possible CSRF. Please try again.'); showConnect(); return;
+  }
+
+  showLoading('Exchanging auth code for access token…');
+
+  try {
+    const resp = await fetch(ETSY_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type:    'authorization_code',
+        client_id:     apiKey,
+        redirect_uri:  redirectUri,
+        code,
+        code_verifier: verifier,
+      }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error_description || `Token exchange failed (${resp.status})`);
+    }
+
+    const data = await resp.json();
+    sessionStorage.setItem('spl_token', data.access_token);
+    // Clean URL
+    history.replaceState({}, '', window.location.pathname);
+    await loadDashboard();
+  } catch (e) {
+    showConnect();
+    showError(`Token exchange error: ${e.message}`);
+  }
+}
+
+// ─── LOAD DASHBOARD ────────────────────────────────────────────────────────
+async function loadDashboard() {
+  const token  = sessionStorage.getItem('spl_token');
+  const apiKey = sessionStorage.getItem('spl_api_key');
+  if (!token) { showConnect(); return; }
+
+  showLoading('Fetching your shop…');
+
+  try {
+    // 1. Get user
+    const meResp = await etsyFetch('/application/users/me', token, apiKey);
+    const me     = await meResp.json();
+    const userId = me.user_id;
+
+    showLoading('Loading shop details…');
+
+    // 2. Get shop
+    const shopResp = await etsyFetch(`/application/users/${userId}/shops`, token, apiKey);
+    const shopData = await shopResp.json();
+    const shop     = shopData.results ? shopData.results[0] : shopData;
+    const shopId   = shop.shop_id;
+    const shopName = shop.shop_name || 'Your Shop';
+
+    document.getElementById('shop-name').textContent = shopName;
+    document.getElementById('shop-sub').textContent  = `Shop ID: ${shopId} · @${shopName.toLowerCase()}`;
+    document.getElementById('kpi-shopid').textContent = shopId;
+
+    sessionStorage.setItem('spl_shop_id', shopId);
+    sessionStorage.setItem('spl_shop_name', shopName);
+
+    showLoading('Fetching orders (this may take a moment)…');
+
+    // 3. Fetch orders (paginated, up to 100 most recent)
+    allOrders = await fetchOrders(shopId, token, apiKey, 100);
+
+    renderKPIs();
+    currentPage = 1;
+    renderTable();
+    showDashboard();
+
+  } catch (e) {
+    showConnect();
+    showError(`Error loading data: ${e.message}. Your token may have expired — please reconnect.`);
+  }
+}
+
+async function fetchOrders(shopId, token, apiKey, limit = 100) {
+  let orders = [];
+  let offset = 0;
+  const batchSize = 100;
+
+  while (orders.length < limit) {
+    const fetchN = Math.min(batchSize, limit - orders.length);
+    const resp   = await etsyFetch(
+      `/application/shops/${shopId}/receipts?limit=${fetchN}&offset=${offset}&was_paid=true`,
+      token, apiKey
+    );
+    if (!resp.ok) break;
+    const data = await resp.json();
+    const batch = data.results || [];
+    orders = orders.concat(batch);
+    if (batch.length < fetchN) break; // no more pages
+    offset += fetchN;
+  }
+  return orders;
+}
+
+function etsyFetch(path, token, apiKey) {
+  return fetch(`${ETSY_API_BASE}${path}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'x-api-key':     apiKey,
+    }
+  });
+}
+
+// ─── KPIs ──────────────────────────────────────────────────────────────────
+function renderKPIs() {
+  const total = allOrders.reduce((s, o) => s + (o.grandtotal?.amount || 0) / (o.grandtotal?.divisor || 100), 0);
+  const count = allOrders.length;
+  const aov   = count ? total / count : 0;
+
+  document.getElementById('kpi-revenue').textContent = fmtMoney(total);
+  document.getElementById('kpi-orders').textContent  = count;
+  document.getElementById('kpi-aov').textContent     = fmtMoney(aov);
+  document.getElementById('order-count').textContent = `${count} order${count !== 1 ? 's' : ''}`;
+}
+
+// ─── TABLE ─────────────────────────────────────────────────────────────────
+function renderTable() {
+  const tbody   = document.getElementById('orders-tbody');
+  const start   = (currentPage - 1) * PAGE_SIZE;
+  const page    = allOrders.slice(start, start + PAGE_SIZE);
+
+  if (!page.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">No orders found.</td></tr>`;
+    renderPagination();
+    return;
+  }
+
+  tbody.innerHTML = page.map(o => {
+    const date     = o.create_timestamp ? new Date(o.create_timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+    const buyer    = o.name || o.buyer_user_id || '—';
+    const items    = o.transactions ? o.transactions.length : (o.transaction_count || '—');
+    const total    = o.grandtotal ? fmtMoney((o.grandtotal.amount || 0) / (o.grandtotal.divisor || 100)) : '—';
+    const status   = getStatus(o);
+
+    return `<tr>
+      <td class="td-mono td-muted">#${o.receipt_id || '—'}</td>
+      <td class="td-mono td-muted">${date}</td>
+      <td>${escHtml(buyer)}</td>
+      <td class="td-mono" style="color:var(--muted)">${items}</td>
+      <td><span class="status-badge ${statusClass(status)}">${status}</span></td>
+      <td><span class="amount-pos">${total}</span></td>
+    </tr>`;
+  }).join('');
+
+  renderPagination();
+}
+
+function getStatus(o) {
+  if (o.status) return o.status;
+  if (o.was_shipped) return 'shipped';
+  if (o.was_paid)    return 'paid';
+  return 'open';
+}
+
+function statusClass(s) {
+  const sl = (s || '').toLowerCase();
+  if (sl === 'paid' || sl === 'completed') return 's-paid';
+  if (sl === 'shipped')                    return 's-shipped';
+  if (sl === 'open')                       return 's-open';
+  return 's-other';
+}
+
+function renderPagination() {
+  const totalPages = Math.ceil(allOrders.length / PAGE_SIZE);
+  const pg         = document.getElementById('pagination');
+  if (totalPages <= 1) { pg.innerHTML = ''; return; }
+
+  let html = `<button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>← Prev</button>`;
+
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
+      html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+    } else if (Math.abs(i - currentPage) === 2) {
+      html += `<span style="color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.7rem">…</span>`;
+    }
+  }
+
+  html += `<button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next →</button>`;
+  html += `<span class="page-info">Page ${currentPage} of ${totalPages}</span>`;
+  pg.innerHTML = html;
+}
+
+function goPage(n) {
+  const totalPages = Math.ceil(allOrders.length / PAGE_SIZE);
+  if (n < 1 || n > totalPages) return;
+  currentPage = n;
+  renderTable();
+  document.querySelector('.panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ─── EXPORTS ───────────────────────────────────────────────────────────────
+function exportCSV() {
+  const headers = ['Receipt ID', 'Date', 'Buyer', 'Items', 'Status', 'Total (USD)'];
+  const rows = allOrders.map(o => [
+    o.receipt_id || '',
+    o.create_timestamp ? new Date(o.create_timestamp * 1000).toISOString().slice(0, 10) : '',
+    o.name || o.buyer_user_id || '',
+    o.transactions ? o.transactions.length : (o.transaction_count || ''),
+    getStatus(o),
+    o.grandtotal ? ((o.grandtotal.amount || 0) / (o.grandtotal.divisor || 100)).toFixed(2) : '',
+  ]);
+
+  const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  download('orders_export.csv', csv, 'text/csv');
+}
+
+function exportJSON() {
+  const data = allOrders.map(o => ({
+    receipt_id:   o.receipt_id,
+    date:         o.create_timestamp ? new Date(o.create_timestamp * 1000).toISOString() : null,
+    buyer:        o.name || o.buyer_user_id || null,
+    item_count:   o.transactions ? o.transactions.length : (o.transaction_count || null),
+    status:       getStatus(o),
+    total_usd:    o.grandtotal ? ((o.grandtotal.amount || 0) / (o.grandtotal.divisor || 100)) : null,
+  }));
+  download('orders_export.json', JSON.stringify(data, null, 2), 'application/json');
+}
+
+function download(filename, content, type) {
+  const a   = document.createElement('a');
+  a.href    = URL.createObjectURL(new Blob([content], { type }));
+  a.download = filename;
+  a.click();
+}
+
+// ─── UTILS ─────────────────────────────────────────────────────────────────
+function fmtMoney(n) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  el.style.display = 'block';
+  el.textContent   = '⚠ ' + msg;
+}
+
+function showConnect() {
+  document.getElementById('connect-screen').style.display  = 'flex';
+  document.getElementById('loading-screen').style.display  = 'none';
+  document.getElementById('dashboard').style.display       = 'none';
+  document.getElementById('live-badge').style.display      = 'none';
+  document.getElementById('disconnect-btn').style.display  = 'none';
+}
+
+function showLoading(msg) {
+  document.getElementById('loading-text').textContent      = msg || 'Loading…';
+  document.getElementById('connect-screen').style.display  = 'none';
+  document.getElementById('loading-screen').style.display  = 'flex';
+  document.getElementById('dashboard').style.display       = 'none';
+}
+
+function showDashboard() {
+  document.getElementById('connect-screen').style.display  = 'none';
+  document.getElementById('loading-screen').style.display  = 'none';
+  document.getElementById('dashboard').style.display       = 'block';
+  document.getElementById('live-badge').style.display      = 'flex';
+  document.getElementById('disconnect-btn').style.display  = 'block';
+}
+
+function disconnect() {
+  sessionStorage.clear();
+  allOrders = [];
+  showConnect();
+  document.getElementById('error-banner').style.display = 'none';
+}
+
+// ─── BOOT ──────────────────────────────────────────────────────────────────
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  const code   = params.get('code');
+  const state  = params.get('state');
+  const error  = params.get('error');
+
+  if (error) {
+    showConnect();
+    showError(`Etsy declined the request: ${params.get('error_description') || error}`);
+    return;
+  }
+
+  if (code && state) {
+    await handleCallback(code, state);
+    return;
+  }
+
+  const token = sessionStorage.getItem('spl_token');
+  if (token) {
+    await loadDashboard();
+    return;
+  }
+
+  // Restore previous input if any
+  const saved = sessionStorage.getItem('spl_api_key');
+  if (saved) document.getElementById('api-key-input').value = saved;
+  const savedUri = sessionStorage.getItem('spl_redirect_uri');
+  if (savedUri) document.getElementById('redirect-uri-input').value = savedUri;
+
+  showConnect();
+})();
+</script>
+</body>
+</html>
