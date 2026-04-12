@@ -310,6 +310,33 @@
     .footer-disclaimer { font-family: 'DM Mono', monospace; font-size: 0.62rem; color: #554433; line-height: 1.9; text-align: right; max-width: 480px; }
     @media (max-width: 640px) { .footer-inner { flex-direction: column; } .footer-disclaimer { text-align: left; } }
 
+    /* CTA BUTTON */
+    .nav-cta {
+      font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.05em;
+      padding: 0.32rem 0.9rem; border-radius: 999px;
+      background: var(--ink); color: var(--cream);
+      border: none; cursor: pointer; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 5px;
+      transition: background 0.2s;
+    }
+    .nav-cta:hover { background: var(--ink2); }
+
+    .hero-cta {
+      display: inline-flex; align-items: center; gap: 0.6rem;
+      margin-top: 2rem;
+      padding: 0.9rem 1.9rem;
+      background: var(--ink); color: var(--cream);
+      font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 700;
+      letter-spacing: -0.01em; border: none; border-radius: 14px;
+      cursor: pointer; text-decoration: none;
+      transition: background 0.2s, transform 0.15s;
+      opacity: 0; animation: fadeUp 0.7s ease forwards 0.7s;
+    }
+    .hero-cta:hover { background: var(--ink2); transform: translateY(-1px); }
+    .hero-cta:active { transform: scale(0.99); }
+    .hero-cta-arrow { transition: transform 0.2s; }
+    .hero-cta:hover .hero-cta-arrow { transform: translateX(3px); }
+
     /* SCROLL REVEAL */
     .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.65s ease, transform 0.65s ease; }
     .reveal.visible { opacity: 1; transform: translateY(0); }
@@ -332,6 +359,7 @@
     <div class="nav-pills">
       <div class="nav-pill pill-live"><div class="live-dot"></div>Live Data</div>
       <div class="nav-pill pill-api">Etsy API v3</div>
+      <a href="app.html" class="nav-cta">Launch App →</a>
     </div>
   </nav>
 
@@ -352,6 +380,11 @@
       <div class="h-stat"><div class="h-stat-val">JSON</div><div class="h-stat-lbl">Export format</div></div>
       <div class="h-stat"><div class="h-stat-val">Read-only</div><div class="h-stat-lbl">Always secure</div></div>
       <div class="h-stat"><div class="h-stat-val">API v3</div><div class="h-stat-lbl">Official Etsy</div></div>
+    </div>
+    <div style="opacity:0;animation:fadeUp 0.7s ease forwards 0.7s">
+      <a href="app.html" class="hero-cta">
+        🛒 Connect Your Shop <span class="hero-cta-arrow">→</span>
+      </a>
     </div>
   </div>
 
