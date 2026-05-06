@@ -422,8 +422,9 @@
 <script>
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 const ETSY_AUTH_URL   = 'https://www.etsy.com/oauth/connect';
-const ETSY_TOKEN_URL  = 'https://sales-pulse-live.ammon-wendel.workers.dev';
-const ETSY_API_BASE   = 'https://openapi.etsy.com/v3';
+const WORKER_BASE     = 'https://sales-pulse-live.ammon-wendel.workers.dev';
+const ETSY_TOKEN_URL  = `${WORKER_BASE}/token`;
+const ETSY_API_BASE   = WORKER_BASE;
 const SCOPES          = 'transactions_r listings_r shops_r';
 const PAGE_SIZE       = 25;
 
