@@ -302,12 +302,12 @@
 
   <!-- NAV -->
   <nav>
-    <a href="index.html" class="logo" style="text-decoration:none;">
+    <div class="logo">
       <div class="logo-mark">
         <svg viewBox="0 0 14 14"><path d="M7 1L9.5 5.5H13L9.5 8.5L11 13L7 10L3 13L4.5 8.5L1 5.5H4.5Z"/></svg>
       </div>
       Sales Pulse Live
-    </a>
+    </div>
     <div class="nav-right">
       <div class="nav-pill pill-live" id="live-badge" style="display:none">
         <div class="live-dot"></div> Connected
@@ -331,7 +331,7 @@
       </div>
       <div class="config-row">
         <label>Redirect URI (must match your Etsy app)</label>
-        <input type="text" id="redirect-uri-input" value="http://localhost:5500/app.html" spellcheck="false"/>
+        <input type="text" id="redirect-uri-input" value="https://nunyaaaaa.github.io/sales-pulse-live/app.html" spellcheck="false"/>
       </div>
 
       <div class="scopes-row">
@@ -422,7 +422,7 @@
 <script>
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 const ETSY_AUTH_URL   = 'https://www.etsy.com/oauth/connect';
-const ETSY_TOKEN_URL  = 'https://api.etsy.com/v3/public/oauth/token';
+const ETSY_TOKEN_URL  = 'https://sales-pulse-live.ammon-wendel.workers.dev';
 const ETSY_API_BASE   = 'https://openapi.etsy.com/v3';
 const SCOPES          = 'transactions_r listings_r shops_r';
 const PAGE_SIZE       = 25;
@@ -504,7 +504,7 @@ async function handleCallback(code, returnedState) {
         redirect_uri:  redirectUri,
         code,
         code_verifier: verifier,
-      }),
+      }).toString(),
     });
 
     if (!resp.ok) {
@@ -532,10 +532,8 @@ async function loadDashboard() {
   showLoading('Fetching your shop…');
 
   try {
-    // 1. Get user
-    const meResp = await etsyFetch('/application/users/me', token, apiKey);
-    const me     = await meResp.json();
-    const userId = me.user_id;
+    // Extract user_id from the token prefix (e.g. "12345678.xxx...") — no extra API call needed
+    const userId = token.split('.')[0];
 
     showLoading('Loading shop details…');
 
