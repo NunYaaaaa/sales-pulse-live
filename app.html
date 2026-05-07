@@ -336,16 +336,15 @@
         <table>
           <thead>
             <tr>
-              <th>Receipt ID</th>
               <th>Date</th>
-              <th>Gross</th>
-              <th>Fees</th>
-              <th>Net</th>
-              <th>Status</th>
+              <th>Description</th>
+              <th>Reference</th>
+              <th>Amount</th>
+              <th>Balance</th>
             </tr>
           </thead>
           <tbody id="finances-tbody">
-            <tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">Click "Load full details" to fetch payment data.</td></tr>
+            <tr><td colspan="5" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">Click "Load full details" to fetch ledger data.</td></tr>
           </tbody>
         </table>
       </div>
@@ -527,6 +526,56 @@ async function loadAllDetails() {
     ptext.textContent = `${pct}% (${done}/${total} orders)`;
     await new Promise(r => setTimeout(r, 150));
   }
+
+  // ── Phase 2: fetch ledger entries across 30-day windows ──
+  ptext.textContent = 'Fetching financial ledger…';
+  fill.style.width = '95%';
+
+  const now          = Math.floor(Date.now() / 1000);
+  const oldestOrder  = allOrders.length ? allOrders[allOrders.length - 1].create_timestamp : now;
+  const windowSize   = 30 * 24 * 60 * 60; // 31 day max
+  let ledgerEntries  = [];
+  let windowEnd      = now;
+
+  while (windowEnd > oldestOrder) {
+    const windowStart = Math.max(windowEnd - windowSize, oldestOrder - 1);
+    const resp = await etsyFetch(
+      `/application/shops/${shopId}/payment-account/ledger-entries?min_created=${windowStart}&max_created=${windowEnd}&limit=100&offset=0`,
+      token, apiKey
+    );
+    if (resp.ok) {
+      const data = await resp.json();
+      ledgerEntries = ledgerEntries.concat(data.results || []);
+      // If there are more than 100, paginate
+      if ((data.results || []).length === 100) {
+        let offset = 100;
+        while (true) {
+          const r2 = await etsyFetch(
+            `/application/shops/${shopId}/payment-account/ledger-entries?min_created=${windowStart}&max_created=${windowEnd}&limit=100&offset=${offset}`,
+            token, apiKey
+          );
+          if (!r2.ok) break;
+          const d2 = await r2.json();
+          ledgerEntries = ledgerEntries.concat(d2.results || []);
+          if ((d2.results || []).length < 100) break;
+          offset += 100;
+          await new Promise(r => setTimeout(r, 150));
+        }
+      }
+    }
+    windowEnd = windowStart;
+    await new Promise(r => setTimeout(r, 150));
+  }
+
+  // Deduplicate by entry_id
+  const seen = new Set();
+  ledgerEntries = ledgerEntries.filter(e => {
+    if (seen.has(e.entry_id)) return false;
+    seen.add(e.entry_id); return true;
+  });
+
+  // Store on window for renderFinances
+  window._ledgerEntries = ledgerEntries;
 
   detailsLoaded = true;
   prog.style.display = 'none';
@@ -739,37 +788,84 @@ function renderDetailPanel(td, order, detail) {
 function renderFinances() {
   if (!detailsLoaded) return;
 
-  let totalGross = 0, totalFees = 0, totalNet = 0;
-  const rows = [];
+  const entries = window._ledgerEntries || [];
+  if (!entries.length) {
+    document.getElementById('finances-tbody').innerHTML =
+      `<tr><td colspan="5" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">No ledger entries found.</td></tr>`;
+    return;
+  }
 
-  for (const o of allOrders) {
-    const d   = detailCache[o.receipt_id];
-    const pay = d?.payment;
-    if (!pay) continue;
+  // Categorise entries
+  const GROSS_TYPES = ['PAYMENT_GROSS'];
+  const FEE_TYPES   = ['PAYMENT_PROCESSING_FEE','transaction','shipping_transaction','sales_tax','renew_sold_auto','prolist','listing','LISTING_FEE'];
 
-    const g = money(pay.amount_gross);
-    const f = money(pay.amount_fees);
-    const n = money(pay.amount_net);
-    totalGross += g; totalFees += f; totalNet += n;
+  let totalGross = 0, totalFees = 0;
 
-    const date = o.create_timestamp ? new Date(o.create_timestamp*1000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
-    rows.push(`<tr>
-      <td class="td-mono td-muted">#${o.receipt_id}</td>
-      <td class="td-mono td-muted">${date}</td>
-      <td><span class="amount-pos">${fmtMoney(g)}</span></td>
-      <td style="color:var(--red);font-family:'DM Mono',monospace;font-size:0.72rem">−${fmtMoney(f)}</td>
-      <td style="color:var(--green);font-family:'Fraunces',serif;font-weight:700;font-size:0.9rem">${fmtMoney(n)}</td>
-      <td><span class="status-badge ${pay.status==='SETTLED'?'s-paid':'s-open'}">${pay.status||'—'}</span></td>
-    </tr>`);
+  const typeMap = {};
+  for (const e of entries) {
+    const amt = e.amount / 100; // amounts are in cents
+    if (GROSS_TYPES.includes(e.type))  totalGross += amt;
+    if (FEE_TYPES.includes(e.type))    totalFees  += Math.abs(amt);
+    typeMap[e.type] = (typeMap[e.type] || 0) + amt;
+  }
+
+  const totalNet = totalGross + Object.values(typeMap)
+    .filter((_, i) => FEE_TYPES.includes(Object.keys(typeMap)[i]))
+    .reduce((s, v) => s + v, 0);
+
+  // Recalc net properly
+  let netCalc = 0;
+  for (const e of entries) {
+    netCalc += e.amount / 100;
   }
 
   document.getElementById('fin-gross').textContent = fmtMoney(totalGross);
   document.getElementById('fin-fees').textContent  = fmtMoney(totalFees);
-  document.getElementById('fin-net').textContent   = fmtMoney(totalNet);
-  document.getElementById('fin-count').textContent = `${rows.length} payment${rows.length!==1?'s':''}`;
+  document.getElementById('fin-net').textContent   = fmtMoney(netCalc);
+  document.getElementById('fin-count').textContent = `${entries.length} entries`;
 
-  const tbody = document.getElementById('finances-tbody');
-  tbody.innerHTML = rows.length ? rows.join('') : `<tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">No settled payments found.</td></tr>`;
+  // Also update KPI net/fees
+  document.getElementById('kpi-fees').textContent     = fmtMoney(totalFees);
+  document.getElementById('kpi-net').textContent      = fmtMoney(netCalc);
+  document.getElementById('kpi-fees-sub').textContent = 'from ledger';
+  document.getElementById('kpi-net-sub').textContent  = 'net from ledger';
+
+  // Sort entries newest first
+  const sorted = [...entries].sort((a, b) => b.created_timestamp - a.created_timestamp);
+
+  const typeLabel = {
+    'PAYMENT_GROSS':        'Payment received',
+    'PAYMENT_PROCESSING_FEE': 'Processing fee',
+    'transaction':          'Transaction fee',
+    'shipping_transaction': 'Shipping label',
+    'sales_tax':            'Sales tax',
+    'renew_sold_auto':      'Listing renewal',
+    'prolist':              'Promoted listing',
+    'listing':              'Listing fee',
+  };
+
+  const rows = sorted.map(e => {
+    const amt     = e.amount / 100;
+    const isPos   = amt >= 0;
+    const date    = new Date(e.created_timestamp * 1000).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+    const label   = typeLabel[e.type] || e.description || e.type;
+    const refLink = e.reference_type === 'receipt' ? `<span class="td-mono td-muted">#${e.reference_id}</span>` : `<span style="color:var(--muted2);font-size:0.65rem">${e.reference_type}</span>`;
+    const amtHtml = isPos
+      ? `<span style="color:var(--green);font-family:'Fraunces',serif;font-weight:700;font-size:0.9rem">+${fmtMoney(amt)}</span>`
+      : `<span style="color:var(--red);font-family:'DM Mono',monospace;font-size:0.72rem">${fmtMoney(amt)}</span>`;
+    const bal     = fmtMoney(e.balance / 100);
+
+    return `<tr>
+      <td class="td-mono td-muted">${date}</td>
+      <td>${label}</td>
+      <td>${refLink}</td>
+      <td>${amtHtml}</td>
+      <td class="td-mono td-muted">${bal}</td>
+    </tr>`;
+  });
+
+  document.getElementById('finances-tbody').innerHTML = rows.join('');
+  document.getElementById('fin-count').textContent = `${entries.length} entries`;
 }
 
 // ─── TABS ──────────────────────────────────────────────────────────────────
