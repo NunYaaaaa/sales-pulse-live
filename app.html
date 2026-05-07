@@ -505,31 +505,51 @@ async function loadAllDetails() {
   const total = allOrders.length;
   let done = 0;
 
+  // ── Phase 1: fetch all payments in batches of 25 receipt_ids at once ──
+  // This avoids one-request-per-order and suppresses 404s for unshipped orders
+  const receiptIds = allOrders.map(o => o.receipt_id);
+  const paymentMap = {};
+  const batchSize  = 25;
+
+  for (let i = 0; i < receiptIds.length; i += batchSize) {
+    const batch = receiptIds.slice(i, i + batchSize);
+    const resp  = await etsyFetch(
+      `/application/shops/${shopId}/payments?receipt_ids=${batch.join(',')}`,
+      token, apiKey
+    );
+    if (resp.ok) {
+      const data = await resp.json();
+      const results = data.results || [];
+      for (const pay of results) {
+        if (pay.receipt_id) paymentMap[pay.receipt_id] = pay;
+      }
+    }
+    const pct = Math.round(((i + batch.length) / receiptIds.length) * 50);
+    fill.style.width  = `${pct}%`;
+    ptext.textContent = `Fetching payments… ${pct}%`;
+    await new Promise(r => setTimeout(r, 120));
+  }
+
+  // ── Phase 2: fetch transactions per order ──
   for (const order of allOrders) {
     const rid = order.receipt_id;
-    if (detailCache[rid]) { done++; continue; }
+    if (detailCache[rid]?.transactions) { done++; continue; }
 
-    // Fetch transactions and payment in parallel
-    const [txResp, payResp] = await Promise.all([
-      etsyFetch(`/application/shops/${shopId}/receipts/${rid}/transactions`, token, apiKey),
-      etsyFetch(`/application/shops/${shopId}/receipts/${rid}/payment`, token, apiKey),
-    ]);
-
-    const txData  = txResp.ok  ? await txResp.json()  : null;
-    const payData = payResp.ok ? await payResp.json() : null;
+    const txResp = await etsyFetch(
+      `/application/shops/${shopId}/receipts/${rid}/transactions`, token, apiKey
+    );
+    const txData = txResp.ok ? await txResp.json() : null;
 
     detailCache[rid] = {
       transactions: txData?.results || txData?.transaction || [],
-      payment:      payData?.results?.[0] || payData || null,
+      payment:      paymentMap[rid] || null,
     };
 
     done++;
-    const pct = Math.round((done / total) * 100);
+    const pct = 50 + Math.round((done / total) * 50);
     fill.style.width  = `${pct}%`;
-    ptext.textContent = `${pct}% (${done}/${total})`;
-
-    // Small delay to respect rate limits
-    await new Promise(r => setTimeout(r, 120));
+    ptext.textContent = `Fetching details… ${pct}% (${done}/${total})`;
+    await new Promise(r => setTimeout(r, 100));
   }
 
   detailsLoaded = true;
@@ -659,14 +679,14 @@ async function toggleDetail(tr, order) {
 
     const [txResp, payResp] = await Promise.all([
       etsyFetch(`/application/shops/${shopId}/receipts/${rid}/transactions`, token, apiKey),
-      etsyFetch(`/application/shops/${shopId}/receipts/${rid}/payment`, token, apiKey),
+      etsyFetch(`/application/shops/${shopId}/payments?receipt_ids=${rid}`, token, apiKey),
     ]);
     const txData  = txResp.ok  ? await txResp.json()  : null;
     const payData = payResp.ok ? await payResp.json() : null;
 
     detailCache[rid] = {
       transactions: txData?.results || txData?.transaction || [],
-      payment:      payData?.results?.[0] || payData || null,
+      payment:      payData?.results?.[0] || null,
     };
   }
 
@@ -731,7 +751,7 @@ function renderDetailPanel(td, order, detail) {
             <div class="detail-row"><span class="detail-label">Etsy fees</span><span class="detail-val">${fees}</span></div>
             <div class="detail-row"><span class="detail-label">Net payout</span><span class="detail-val">${net}</span></div>
             <div class="detail-row"><span class="detail-label">Pay status</span><span class="detail-val">${payStatus}</span></div>
-          ` : '<span style="font-size:0.72rem;color:var(--muted2)">Available after order ships</span>'}
+          ` : '<span style="font-size:0.72rem;color:var(--muted2)">Payment data available after order ships &amp; settles</span>'}
         </div>
 
         <div class="detail-section">
