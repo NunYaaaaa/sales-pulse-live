@@ -297,10 +297,8 @@
               <th>Date</th>
               <th>Buyer</th>
               <th>Items</th>
-              <th>Payment</th>
               <th>Status</th>
               <th>Gross</th>
-              <th>Net</th>
             </tr>
           </thead>
           <tbody id="orders-tbody"></tbody>
@@ -505,51 +503,29 @@ async function loadAllDetails() {
   const total = allOrders.length;
   let done = 0;
 
-  // ── Phase 1: fetch all payments in batches of 25 receipt_ids at once ──
-  // This avoids one-request-per-order and suppresses 404s for unshipped orders
-  const receiptIds = allOrders.map(o => o.receipt_id);
-  const paymentMap = {};
-  const batchSize  = 25;
-
-  for (let i = 0; i < receiptIds.length; i += batchSize) {
-    const batch = receiptIds.slice(i, i + batchSize);
-    const resp  = await etsyFetch(
-      `/application/shops/${shopId}/payments?receipt_ids=${batch.join(',')}`,
-      token, apiKey
-    );
-    if (resp.ok) {
-      const data = await resp.json();
-      const results = data.results || [];
-      for (const pay of results) {
-        if (pay.receipt_id) paymentMap[pay.receipt_id] = pay;
-      }
-    }
-    const pct = Math.round(((i + batch.length) / receiptIds.length) * 50);
-    fill.style.width  = `${pct}%`;
-    ptext.textContent = `Fetching payments… ${pct}%`;
-    await new Promise(r => setTimeout(r, 120));
-  }
-
-  // ── Phase 2: fetch transactions per order ──
+  // Fetch transactions + payment per order in parallel, batched to respect rate limits
   for (const order of allOrders) {
     const rid = order.receipt_id;
-    if (detailCache[rid]?.transactions) { done++; continue; }
+    if (detailCache[rid]) { done++; continue; }
 
-    const txResp = await etsyFetch(
-      `/application/shops/${shopId}/receipts/${rid}/transactions`, token, apiKey
-    );
-    const txData = txResp.ok ? await txResp.json() : null;
+    const [txResp, payResp] = await Promise.allSettled([
+      etsyFetch(`/application/shops/${shopId}/receipts/${rid}/transactions`, token, apiKey),
+      etsyFetch(`/application/shops/${shopId}/receipts/${rid}/payment`, token, apiKey),
+    ]);
+
+    const txData  = txResp.status==='fulfilled' && txResp.value.ok  ? await txResp.value.json()  : null;
+    const payData = payResp.status==='fulfilled' && payResp.value.ok ? await payResp.value.json() : null;
 
     detailCache[rid] = {
       transactions: txData?.results || txData?.transaction || [],
-      payment:      paymentMap[rid] || null,
+      payment:      Array.isArray(payData?.results) ? payData.results[0] : (payData && !payData.error ? payData : null),
     };
 
     done++;
-    const pct = 50 + Math.round((done / total) * 50);
+    const pct = Math.round((done / total) * 100);
     fill.style.width  = `${pct}%`;
-    ptext.textContent = `Fetching details… ${pct}% (${done}/${total})`;
-    await new Promise(r => setTimeout(r, 100));
+    ptext.textContent = `${pct}% (${done}/${total} orders)`;
+    await new Promise(r => setTimeout(r, 150));
   }
 
   detailsLoaded = true;
@@ -595,7 +571,7 @@ function renderTable() {
   const page  = allOrders.slice(start, start + PAGE_SIZE);
 
   if (!page.length) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">No orders found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">No orders found.</td></tr>`;
     renderPagination(); return;
   }
 
@@ -607,11 +583,6 @@ function renderTable() {
     const items  = o.transaction_count || (o.transactions?.length) || '—';
     const gross  = o.grandtotal ? fmtMoney(money(o.grandtotal)) : '—';
     const status = getStatus(o);
-    const payMethod = o.payment_method ? o.payment_method.replace('_',' ') : '—';
-
-    const d      = detailCache[rid];
-    const net    = d?.payment ? fmtMoney(money(d.payment.amount_net)) : '<span style="color:var(--muted2);font-size:0.65rem">—</span>';
-
     // Main order row
     const tr = document.createElement('tr');
     tr.className = 'order-row';
@@ -622,10 +593,8 @@ function renderTable() {
       <td class="td-mono td-muted">${date}</td>
       <td>${buyer}</td>
       <td class="td-mono" style="color:var(--muted)">${items}</td>
-      <td class="td-mono td-muted" style="text-transform:capitalize">${payMethod}</td>
       <td><span class="status-badge ${statusClass(status)}">${status}</span></td>
       <td><span class="amount-pos">${gross}</span></td>
-      <td>${net}</td>
     `;
     tr.onclick = () => toggleDetail(tr, o);
     tbody.appendChild(tr);
@@ -636,7 +605,7 @@ function renderTable() {
     dtr.id = `detail-${rid}`;
     dtr.style.display = 'none';
     const dtd = document.createElement('td');
-    dtd.colSpan = 9;
+    dtd.colSpan = 7;
     dtr.appendChild(dtd);
     tbody.appendChild(dtr);
   });
@@ -677,16 +646,16 @@ async function toggleDetail(tr, order) {
     const apiKey = sessionStorage.getItem('spl_api_key');
     const shopId = sessionStorage.getItem('spl_shop_id');
 
-    const [txResp, payResp] = await Promise.all([
+    const [txResp, payResp] = await Promise.allSettled([
       etsyFetch(`/application/shops/${shopId}/receipts/${rid}/transactions`, token, apiKey),
-      etsyFetch(`/application/shops/${shopId}/payments?receipt_ids=${rid}`, token, apiKey),
+      etsyFetch(`/application/shops/${shopId}/receipts/${rid}/payment`, token, apiKey),
     ]);
-    const txData  = txResp.ok  ? await txResp.json()  : null;
-    const payData = payResp.ok ? await payResp.json() : null;
+    const txData  = txResp.status==='fulfilled'  && txResp.value.ok  ? await txResp.value.json()  : null;
+    const payData = payResp.status==='fulfilled' && payResp.value.ok ? await payResp.value.json() : null;
 
     detailCache[rid] = {
       transactions: txData?.results || txData?.transaction || [],
-      payment:      payData?.results?.[0] || null,
+      payment:      Array.isArray(payData?.results) ? payData.results[0] : (payData && !payData.error ? payData : null),
     };
   }
 
@@ -706,6 +675,7 @@ function renderDetailPanel(td, order, detail) {
   const giftMsg   = o.gift_message || '—';
   const buyerMsg  = o.message_from_buyer || '—';
   const addr      = [o.city, o.state, o.country_iso].filter(Boolean).join(', ') || '—';
+  const payMethod = o.payment_method ? o.payment_method.replace(/_/g,' ') : '—';
 
   const gross     = pay ? fmtMoney(money(pay.amount_gross)) : '—';
   const fees      = pay ? `<span style="color:var(--red)">${fmtMoney(money(pay.amount_fees))}</span>` : '—';
@@ -738,6 +708,7 @@ function renderDetailPanel(td, order, detail) {
           <div class="detail-row"><span class="detail-label">Shipping</span><span class="detail-val">${shipping}</span></div>
           <div class="detail-row"><span class="detail-label">Tax</span><span class="detail-val">${tax}</span></div>
           <div class="detail-row"><span class="detail-label">Discount</span><span class="detail-val">${discount}</span></div>
+          <div class="detail-row"><span class="detail-label">Payment method</span><span class="detail-val" style="text-transform:capitalize">${payMethod}</span></div>
           <div class="detail-row"><span class="detail-label">Gift order</span><span class="detail-val">${isGift}</span></div>
           ${o.is_gift && o.gift_message ? `<div class="detail-row"><span class="detail-label">Gift message</span><span class="detail-val muted" style="max-width:160px;white-space:normal;text-align:right">${escHtml(giftMsg)}</span></div>` : ''}
           ${o.message_from_buyer ? `<div class="detail-row"><span class="detail-label">Buyer note</span><span class="detail-val muted" style="max-width:160px;white-space:normal;text-align:right">${escHtml(buyerMsg)}</span></div>` : ''}
