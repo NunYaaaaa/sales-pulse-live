@@ -321,13 +321,17 @@
     <div class="connect-card">
       <div class="connect-icon">🔐</div>
       <h2>Connect your Etsy shop</h2>
-      <p>Enter your Etsy API keystring and redirect URI, then authenticate with OAuth 2.0. We request read-only access — your shop data is never stored.</p>
+      <p>Enter your Etsy API keystring, shared secret, and redirect URI, then authenticate with OAuth 2.0. We request read-only access — your shop data is never stored.</p>
 
       <div id="error-banner"></div>
 
       <div class="config-row">
         <label>Etsy API Keystring</label>
-        <input type="text" id="api-key-input" placeholder="e.g. abc123xyz..." autocomplete="off" spellcheck="false"/>
+        <input type="text" id="api-key-input" placeholder="e.g. fc7fcjtiyixp5gh1e7dr6kkx" autocomplete="off" spellcheck="false"/>
+      </div>
+      <div class="config-row">
+        <label>Etsy Shared Secret</label>
+        <input type="text" id="shared-secret-input" placeholder="e.g. eher0jjh7n" autocomplete="off" spellcheck="false"/>
       </div>
       <div class="config-row">
         <label>Redirect URI (must match your Etsy app)</label>
@@ -458,8 +462,11 @@ async function startOAuth() {
   if (!apiKey)      { showError('Please enter your Etsy API keystring.'); return; }
   if (!redirectUri) { showError('Please enter a redirect URI.'); return; }
 
-  sessionStorage.setItem('spl_api_key',      apiKey);
-  sessionStorage.setItem('spl_redirect_uri', redirectUri);
+  const sharedSecret = document.getElementById('shared-secret-input').value.trim();
+  if (!sharedSecret) { showError('Please enter your Etsy shared secret.'); return; }
+  sessionStorage.setItem('spl_api_key',       apiKey);
+  sessionStorage.setItem('spl_shared_secret', sharedSecret);
+  sessionStorage.setItem('spl_redirect_uri',  redirectUri);
 
   const verifier  = await generateCodeVerifier();
   const challenge = await generateCodeChallenge(verifier);
@@ -591,7 +598,7 @@ function etsyFetch(path, token, apiKey) {
   return fetch(`${ETSY_API_BASE}${path}`, {
     headers: {
       'Authorization': `Bearer ${token}`,
-      'x-api-key':     apiKey,
+      'x-api-key':     apiKey + ':' + (sessionStorage.getItem('spl_shared_secret') || ''),
     }
   });
 }
@@ -789,8 +796,10 @@ function disconnect() {
   // Restore previous inputs if any
   const saved    = sessionStorage.getItem('spl_api_key');
   const savedUri = sessionStorage.getItem('spl_redirect_uri');
-  if (saved)    document.getElementById('api-key-input').value      = saved;
-  if (savedUri) document.getElementById('redirect-uri-input').value = savedUri;
+  if (saved)       document.getElementById('api-key-input').value           = saved;
+  const savedSecret = sessionStorage.getItem('spl_shared_secret');
+  if (savedSecret)  document.getElementById('shared-secret-input').value = savedSecret;
+  if (savedUri)     document.getElementById('redirect-uri-input').value  = savedUri;
 
   showConnect();
 })();
