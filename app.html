@@ -594,20 +594,7 @@ function renderKPIs() {
   document.getElementById('kpi-aov').textContent     = fmtMoney(aov);
   document.getElementById('order-count').textContent = `${count} order${count!==1?'s':''}`;
 
-  if (detailsLoaded) {
-    let totalFees = 0, totalNet = 0;
-    for (const o of allOrders) {
-      const d = detailCache[o.receipt_id];
-      if (d?.payment) {
-        totalFees += money(d.payment.amount_fees);
-        totalNet  += money(d.payment.amount_net);
-      }
-    }
-    document.getElementById('kpi-fees').textContent     = fmtMoney(totalFees);
-    document.getElementById('kpi-net').textContent      = fmtMoney(totalNet);
-    document.getElementById('kpi-fees-sub').textContent = 'Etsy transaction fees';
-    document.getElementById('kpi-net-sub').textContent  = 'after all fees';
-  }
+  // fees/net KPIs are set by renderFinances() from ledger data — don't overwrite here
 }
 
 // ─── TABLE ─────────────────────────────────────────────────────────────────
@@ -760,13 +747,16 @@ function renderDetailPanel(td, order, detail) {
         </div>
 
         <div class="detail-section">
-          <div class="detail-section-title">Payment details</div>
-          ${pay ? `
-            <div class="detail-row"><span class="detail-label">Gross</span><span class="detail-val">${gross}</span></div>
-            <div class="detail-row"><span class="detail-label">Etsy fees</span><span class="detail-val">${fees}</span></div>
-            <div class="detail-row"><span class="detail-label">Net payout</span><span class="detail-val">${net}</span></div>
-            <div class="detail-row"><span class="detail-label">Pay status</span><span class="detail-val">${payStatus}</span></div>
-          ` : '<span style="font-size:0.72rem;color:var(--muted2)">Payment data available after order ships &amp; settles</span>'}
+          <div class="detail-section-title">Order totals</div>
+          <div class="detail-row"><span class="detail-label">Item subtotal</span><span class="detail-val">${subtotal}</span></div>
+          <div class="detail-row"><span class="detail-label">Shipping</span><span class="detail-val">${shipping}</span></div>
+          <div class="detail-row"><span class="detail-label">Tax</span><span class="detail-val">${tax}</span></div>
+          ${o.discount_amt && money(o.discount_amt) > 0 ? `<div class="detail-row"><span class="detail-label">Discount</span><span class="detail-val red">−${fmtMoney(money(o.discount_amt))}</span></div>` : ''}
+          <div class="detail-row" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+            <span class="detail-label" style="font-weight:500">Grand total</span>
+            <span class="detail-val green" style="font-size:0.85rem">${fmtMoney(money(o.grandtotal))}</span>
+          </div>
+          <div style="margin-top:8px;font-size:0.65rem;color:var(--muted2);font-family:'DM Mono',monospace;line-height:1.6">Fee breakdown in Finances tab</div>
         </div>
 
         <div class="detail-section">
