@@ -502,29 +502,26 @@ async function loadAllDetails() {
   const total = allOrders.length;
   let done = 0;
 
-  // Fetch transactions + payment per order in parallel, batched to respect rate limits
+  // Fetch transactions only — payment endpoint not available for this shop
   for (const order of allOrders) {
     const rid = order.receipt_id;
     if (detailCache[rid]) { done++; continue; }
 
-    const [txResp, payResp] = await Promise.allSettled([
-      etsyFetch(`/application/shops/${shopId}/receipts/${rid}/transactions`, token, apiKey),
-      etsyFetch(`/application/shops/${shopId}/receipts/${rid}/payment`, token, apiKey),
-    ]);
-
-    const txData  = txResp.status==='fulfilled' && txResp.value.ok  ? await txResp.value.json()  : null;
-    const payData = payResp.status==='fulfilled' && payResp.value.ok ? await payResp.value.json() : null;
+    const txResp = await etsyFetch(
+      `/application/shops/${shopId}/receipts/${rid}/transactions`, token, apiKey
+    );
+    const txData = txResp.ok ? await txResp.json() : null;
 
     detailCache[rid] = {
       transactions: txData?.results || txData?.transaction || [],
-      payment:      Array.isArray(payData?.results) ? payData.results[0] : (payData && !payData.error ? payData : null),
+      payment: null,
     };
 
     done++;
-    const pct = Math.round((done / total) * 100);
+    const pct = Math.round((done / total) * 50); // first 50% is transactions
     fill.style.width  = `${pct}%`;
     ptext.textContent = `${pct}% (${done}/${total} orders)`;
-    await new Promise(r => setTimeout(r, 150));
+    await new Promise(r => setTimeout(r, 100));
   }
 
   // ── Phase 2: fetch ledger entries across 30-day windows ──
@@ -581,9 +578,9 @@ async function loadAllDetails() {
   prog.style.display = 'none';
   btn.textContent = '✓ Full details loaded';
 
+  renderFinances(); // must run first so KPI fees/net get populated
   renderKPIs();
   renderTable();
-  renderFinances();
 }
 
 // ─── KPIs ──────────────────────────────────────────────────────────────────
@@ -830,10 +827,15 @@ function renderFinances() {
     'PAYMENT_PROCESSING_FEE': 'Processing fee',
     'transaction':            'Transaction fee',
     'shipping_transaction':   'Shipping label',
-    'sales_tax':              'Sales tax',
-    'renew_sold_auto':        'Listing renewal',
-    'prolist':                'Promoted listing',
+    'sales_tax':              'Sales tax collected',
+    'renew_sold_auto':        'Listing renewal fee',
+    'prolist':                'Promoted listing fee',
     'listing':                'Listing fee',
+    'LISTING_FEE':            'Listing fee',
+    'refund':                 'Refund',
+    'deposit':                'Deposit',
+    'marketing':              'Marketing fee',
+    'offsite_ads':            'Offsite Ads fee',
   };
 
   const rows = sorted.map(e => {
