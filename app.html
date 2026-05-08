@@ -695,16 +695,14 @@ async function toggleDetail(tr, order) {
     const apiKey = sessionStorage.getItem('spl_api_key');
     const shopId = sessionStorage.getItem('spl_shop_id');
 
-    const [txResp, payResp] = await Promise.allSettled([
-      etsyFetch(`/application/shops/${shopId}/receipts/${rid}/transactions`, token, apiKey),
-      etsyFetch(`/application/shops/${shopId}/receipts/${rid}/payment`, token, apiKey),
-    ]);
-    const txData  = txResp.status==='fulfilled'  && txResp.value.ok  ? await txResp.value.json()  : null;
-    const payData = payResp.status==='fulfilled' && payResp.value.ok ? await payResp.value.json() : null;
+    const txResp = await etsyFetch(
+      `/application/shops/${shopId}/receipts/${rid}/transactions`, token, apiKey
+    );
+    const txData = txResp.ok ? await txResp.json() : null;
 
     detailCache[rid] = {
       transactions: txData?.results || txData?.transaction || [],
-      payment:      Array.isArray(payData?.results) ? payData.results[0] : (payData && !payData.error ? payData : null),
+      payment: null,
     };
   }
 
@@ -795,77 +793,76 @@ function renderFinances() {
     return;
   }
 
-  // Categorise entries
-  const GROSS_TYPES = ['PAYMENT_GROSS'];
-  const FEE_TYPES   = ['PAYMENT_PROCESSING_FEE','transaction','shipping_transaction','sales_tax','renew_sold_auto','prolist','listing','LISTING_FEE'];
-
+  // Sum up each category — amounts are in CENTS
   let totalGross = 0, totalFees = 0;
 
-  const typeMap = {};
+  const GROSS_TYPES = new Set(['PAYMENT_GROSS']);
+  const FEE_TYPES   = new Set([
+    'PAYMENT_PROCESSING_FEE','transaction','shipping_transaction',
+    'sales_tax','renew_sold_auto','prolist','listing','LISTING_FEE',
+  ]);
+
   for (const e of entries) {
-    const amt = e.amount / 100; // amounts are in cents
-    if (GROSS_TYPES.includes(e.type))  totalGross += amt;
-    if (FEE_TYPES.includes(e.type))    totalFees  += Math.abs(amt);
-    typeMap[e.type] = (typeMap[e.type] || 0) + amt;
+    const amt = e.amount; // still in cents, sum first then divide
+    if (GROSS_TYPES.has(e.type)) totalGross += amt;
+    if (FEE_TYPES.has(e.type))   totalFees  += amt; // fees are already negative
   }
 
-  const totalNet = totalGross + Object.values(typeMap)
-    .filter((_, i) => FEE_TYPES.includes(Object.keys(typeMap)[i]))
-    .reduce((s, v) => s + v, 0);
+  // Net = gross + fees (fees are negative so this subtracts them)
+  const totalNet = totalGross + totalFees;
 
-  // Recalc net properly
-  let netCalc = 0;
-  for (const e of entries) {
-    netCalc += e.amount / 100;
-  }
-
-  document.getElementById('fin-gross').textContent = fmtMoney(totalGross);
-  document.getElementById('fin-fees').textContent  = fmtMoney(totalFees);
-  document.getElementById('fin-net').textContent   = fmtMoney(netCalc);
+  document.getElementById('fin-gross').textContent = fmtMoney(totalGross / 100);
+  document.getElementById('fin-fees').textContent  = fmtMoney(Math.abs(totalFees / 100));
+  document.getElementById('fin-net').textContent   = fmtMoney(totalNet / 100);
   document.getElementById('fin-count').textContent = `${entries.length} entries`;
 
-  // Also update KPI net/fees
-  document.getElementById('kpi-fees').textContent     = fmtMoney(totalFees);
-  document.getElementById('kpi-net').textContent      = fmtMoney(netCalc);
+  // Update KPI cards
+  document.getElementById('kpi-fees').textContent     = fmtMoney(Math.abs(totalFees / 100));
+  document.getElementById('kpi-net').textContent      = fmtMoney(totalNet / 100);
   document.getElementById('kpi-fees-sub').textContent = 'from ledger';
-  document.getElementById('kpi-net-sub').textContent  = 'net from ledger';
+  document.getElementById('kpi-net-sub').textContent  = 'after all fees';
 
   // Sort entries newest first
   const sorted = [...entries].sort((a, b) => b.created_timestamp - a.created_timestamp);
 
   const typeLabel = {
-    'PAYMENT_GROSS':        'Payment received',
+    'PAYMENT_GROSS':          'Payment received',
     'PAYMENT_PROCESSING_FEE': 'Processing fee',
-    'transaction':          'Transaction fee',
-    'shipping_transaction': 'Shipping label',
-    'sales_tax':            'Sales tax',
-    'renew_sold_auto':      'Listing renewal',
-    'prolist':              'Promoted listing',
-    'listing':              'Listing fee',
+    'transaction':            'Transaction fee',
+    'shipping_transaction':   'Shipping label',
+    'sales_tax':              'Sales tax',
+    'renew_sold_auto':        'Listing renewal',
+    'prolist':                'Promoted listing',
+    'listing':                'Listing fee',
   };
 
   const rows = sorted.map(e => {
-    const amt     = e.amount / 100;
-    const isPos   = amt >= 0;
-    const date    = new Date(e.created_timestamp * 1000).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-    const label   = typeLabel[e.type] || e.description || e.type;
-    const refLink = e.reference_type === 'receipt' ? `<span class="td-mono td-muted">#${e.reference_id}</span>` : `<span style="color:var(--muted2);font-size:0.65rem">${e.reference_type}</span>`;
+    const amt   = e.amount / 100;
+    const isPos = amt >= 0;
+    const date  = new Date(e.created_timestamp * 1000).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+    const label = typeLabel[e.type] || e.description || e.type;
+
+    // Show receipt ID if reference is a receipt, otherwise show a readable ref type
+    const refHtml = e.reference_type === 'receipt'
+      ? `<span class="td-mono td-muted">#${e.reference_id}</span>`
+      : `<span style="color:var(--muted2);font-size:0.65rem;font-family:'DM Mono',monospace">${e.reference_type.replace(/_/g,' ')}</span>`;
+
     const amtHtml = isPos
       ? `<span style="color:var(--green);font-family:'Fraunces',serif;font-weight:700;font-size:0.9rem">+${fmtMoney(amt)}</span>`
       : `<span style="color:var(--red);font-family:'DM Mono',monospace;font-size:0.72rem">${fmtMoney(amt)}</span>`;
-    const bal     = fmtMoney(e.balance / 100);
+
+    const bal = fmtMoney(e.balance / 100);
 
     return `<tr>
       <td class="td-mono td-muted">${date}</td>
       <td>${label}</td>
-      <td>${refLink}</td>
+      <td>${refHtml}</td>
       <td>${amtHtml}</td>
       <td class="td-mono td-muted">${bal}</td>
     </tr>`;
   });
 
   document.getElementById('finances-tbody').innerHTML = rows.join('');
-  document.getElementById('fin-count').textContent = `${entries.length} entries`;
 }
 
 // ─── TABS ──────────────────────────────────────────────────────────────────
