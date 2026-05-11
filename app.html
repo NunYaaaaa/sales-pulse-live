@@ -440,10 +440,15 @@ async function loadDashboard() {
     if (!userId) throw new Error('User ID not found — please reconnect.');
     showLoading('Loading shop details…');
     const shopResp = await etsyFetch(`/application/users/${userId}/shops`, token, apiKey);
+    if (!shopResp.ok) {
+      const errBody = await shopResp.json().catch(() => ({}));
+      throw new Error(`Shop fetch failed (${shopResp.status}): ${errBody.error_description || errBody.error || shopResp.statusText}`);
+    }
     const shopData = await shopResp.json();
-    const shop     = shopData.results ? shopData.results[0] : shopData;
+    const shop     = (shopData.results && shopData.results[0]) || shopData;
     const shopId   = shop.shop_id;
     const shopName = shop.shop_name || 'Your Shop';
+    if (!shopId) throw new Error(`Shop ID missing from response. Raw: ${JSON.stringify(shopData).slice(0, 200)}`);
 
     document.getElementById('shop-name').textContent  = shopName;
     document.getElementById('shop-sub').textContent   = `Shop ID: ${shopId} · @${shopName.toLowerCase()}`;
