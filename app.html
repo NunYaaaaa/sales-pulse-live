@@ -815,22 +815,18 @@ function renderFinances() {
     return;
   }
 
-  // Sum up each category — amounts are in CENTS
+  // Sum by sign — positive entries are income (gross), negative are costs/fees.
+  // This is more robust than matching type strings, since Etsy can return
+  // type values not in any hardcoded list (e.g. "shipping_labels").
   let totalGross = 0, totalFees = 0;
 
-  const GROSS_TYPES = new Set(['PAYMENT_GROSS']);
-  const FEE_TYPES   = new Set([
-    'PAYMENT_PROCESSING_FEE','transaction','shipping_transaction',
-    'sales_tax','renew_sold_auto','prolist','listing','LISTING_FEE',
-  ]);
-
   for (const e of entries) {
-    const amt = e.amount; // still in cents, sum first then divide
-    if (GROSS_TYPES.has(e.type)) totalGross += amt;
-    if (FEE_TYPES.has(e.type))   totalFees  += amt; // fees are already negative
+    const amt = e.amount; // in cents; sum first, divide later
+    if (amt > 0) totalGross += amt;
+    else         totalFees  += amt; // negative, so adding subtracts
   }
 
-  // Net = gross + fees (fees are negative so this subtracts them)
+  // Net = gross + fees (fees are negative)
   const totalNet = totalGross + totalFees;
 
   document.getElementById('fin-gross').textContent = fmtMoney(totalGross / 100);
@@ -851,7 +847,8 @@ function renderFinances() {
     'PAYMENT_GROSS':          'Payment received',
     'PAYMENT_PROCESSING_FEE': 'Processing fee',
     'transaction':            'Transaction fee',
-    'shipping_transaction':   'Shipping label',
+    'shipping_transaction':   'Shipping transaction fee',
+    'shipping_labels':        'Shipping label',
     'sales_tax':              'Sales tax collected',
     'renew_sold_auto':        'Listing renewal fee',
     'prolist':                'Promoted listing fee',
