@@ -510,10 +510,11 @@ async function loadAllDetails() {
   btn.textContent = 'Loading…';
   prog.style.display = 'flex';
 
+  try {
   const total = allOrders.length;
   let done = 0;
 
-  // Fetch transactions only — payment endpoint not available for this shop
+  // ── Phase 1: fetch transactions (0–80%) ──
   for (const order of allOrders) {
     const rid = order.receipt_id;
     if (detailCache[rid]) { done++; continue; }
@@ -529,24 +530,32 @@ async function loadAllDetails() {
     };
 
     done++;
-    const pct = Math.round((done / total) * 50); // first 50% is transactions
+    const pct = total > 0 ? Math.round((done / total) * 80) : 80;
     fill.style.width  = `${pct}%`;
     ptext.textContent = `${pct}% (${done}/${total} orders)`;
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise(r => setTimeout(r, 150)); // respect rate limits
   }
 
-  // ── Phase 2: fetch ledger entries across 30-day windows ──
+  // ── Phase 2: fetch ledger entries across 30-day windows (80–100%) ──
   ptext.textContent = 'Fetching financial ledger…';
-  fill.style.width = '95%';
+  fill.style.width = '85%';
 
-  const now          = Math.floor(Date.now() / 1000);
-  const oldestOrder  = allOrders.length ? allOrders[allOrders.length - 1].create_timestamp : now;
-  const windowSize   = 30 * 24 * 60 * 60; // 31 day max
-  let ledgerEntries  = [];
-  let windowEnd      = now;
+  const now        = Math.floor(Date.now() / 1000);
+  const MAX_LOOKBACK = 365 * 24 * 60 * 60; // hard cap: 1 year back
 
-  while (windowEnd > oldestOrder) {
-    const windowStart = Math.max(windowEnd - windowSize, oldestOrder - 1);
+  // Find oldest valid timestamp — guard against undefined/NaN/0
+  const timestamps = allOrders.map(o => o.create_timestamp).filter(t => t && t > 0);
+  const oldestOrder = timestamps.length ? Math.min(...timestamps) : now - MAX_LOOKBACK;
+  const lookbackFloor = Math.max(oldestOrder, now - MAX_LOOKBACK);
+
+  const windowSize  = 30 * 24 * 60 * 60;
+  let ledgerEntries = [];
+  let windowEnd     = now;
+  let windowCount   = 0;
+  const maxWindows  = Math.ceil(MAX_LOOKBACK / windowSize) + 1; // safety cap
+
+  while (windowEnd > lookbackFloor && windowCount < maxWindows) {
+    const windowStart = Math.max(windowEnd - windowSize, lookbackFloor);
     const resp = await etsyFetch(
       `/application/shops/${shopId}/payment-account/ledger-entries?min_created=${windowStart}&max_created=${windowEnd}&limit=100&offset=0`,
       token, apiKey
@@ -554,7 +563,6 @@ async function loadAllDetails() {
     if (resp.ok) {
       const data = await resp.json();
       ledgerEntries = ledgerEntries.concat(data.results || []);
-      // If there are more than 100, paginate
       if ((data.results || []).length === 100) {
         let offset = 100;
         while (true) {
@@ -567,12 +575,13 @@ async function loadAllDetails() {
           ledgerEntries = ledgerEntries.concat(d2.results || []);
           if ((d2.results || []).length < 100) break;
           offset += 100;
-          await new Promise(r => setTimeout(r, 150));
+          await new Promise(r => setTimeout(r, 200));
         }
       }
     }
     windowEnd = windowStart;
-    await new Promise(r => setTimeout(r, 150));
+    windowCount++;
+    await new Promise(r => setTimeout(r, 200));
   }
 
   // Deduplicate by entry_id
@@ -586,12 +595,19 @@ async function loadAllDetails() {
   window._ledgerEntries = ledgerEntries;
 
   detailsLoaded = true;
+  fill.style.width = '100%';
   prog.style.display = 'none';
-  btn.textContent = '✓ Full details loaded';
+  btn.textContent = '\u2713 Full details loaded';
 
-  renderFinances(); // must run first so KPI fees/net get populated
+  renderFinances();
   renderKPIs();
-  renderTable();
+
+  } catch (err) {
+    prog.style.display = 'none';
+    btn.disabled = false;
+    btn.textContent = '\u26a1 Load full details';
+    showError('Detail load failed: ' + err.message);
+  }
 }
 
 // ─── KPIs ──────────────────────────────────────────────────────────────────
