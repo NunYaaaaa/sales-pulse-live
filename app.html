@@ -422,7 +422,8 @@ async function handleCallback(code, returnedState) {
     });
     if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error_description||`Token exchange failed (${resp.status})`); }
     const data = await resp.json();
-    sessionStorage.setItem('spl_token', data.access_token);
+    sessionStorage.setItem('spl_token',   data.access_token);
+    sessionStorage.setItem('spl_user_id', data.user_id);
     history.replaceState({}, '', window.location.pathname);
     await loadDashboard();
   } catch(e) { showConnect(); showError(`Token exchange error: ${e.message}`); }
@@ -435,7 +436,8 @@ async function loadDashboard() {
   if (!token) { showConnect(); return; }
   showLoading('Fetching your shop…');
   try {
-    const userId   = token.split('.')[0];
+    const userId = sessionStorage.getItem('spl_user_id');
+    if (!userId) throw new Error('User ID not found — please reconnect.');
     showLoading('Loading shop details…');
     const shopResp = await etsyFetch(`/application/users/${userId}/shops`, token, apiKey);
     const shopData = await shopResp.json();
