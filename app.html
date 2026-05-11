@@ -277,8 +277,8 @@
 
   <!-- TABS -->
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('orders')">Order History</button>
-    <button class="tab-btn" onclick="switchTab('finances')">Finances</button>
+    <button class="tab-btn active" onclick="switchTab('orders', this)">Order History</button>
+    <button class="tab-btn" onclick="switchTab('finances', this)">Finances</button>
   </div>
 
   <!-- ORDERS TAB -->
@@ -885,11 +885,11 @@ function renderFinances() {
 }
 
 // ─── TABS ──────────────────────────────────────────────────────────────────
-function switchTab(name) {
+function switchTab(name, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById(`tab-${name}`).classList.add('active');
-  event.target.classList.add('active');
+  btn.classList.add('active');
   if (name === 'finances' && detailsLoaded) renderFinances();
 }
 
