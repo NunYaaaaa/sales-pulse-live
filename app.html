@@ -706,15 +706,23 @@ async function toggleDetail(tr, order) {
     const apiKey = sessionStorage.getItem('spl_api_key');
     const shopId = sessionStorage.getItem('spl_shop_id');
 
-    const txResp = await etsyFetch(
-      `/application/shops/${shopId}/receipts/${rid}/transactions`, token, apiKey
-    );
-    const txData = txResp.ok ? await txResp.json() : null;
+    try {
+      const txResp = await etsyFetch(
+        `/application/shops/${shopId}/receipts/${rid}/transactions`, token, apiKey
+      );
+      const txData = txResp.ok ? await txResp.json() : null;
+      if (!txResp.ok) throw new Error(`${txResp.status} ${txResp.statusText}`);
 
-    detailCache[rid] = {
-      transactions: txData?.results || txData?.transaction || [],
-      payment: null,
-    };
+      detailCache[rid] = {
+        transactions: txData?.results || txData?.transaction || [],
+        payment: null,
+      };
+    } catch (err) {
+      td.innerHTML = `<div class="detail-inner"><div class="detail-loading" style="color:var(--orange)">⚠ Failed to load details: ${escHtml(err.message)} — click to retry.</div></div>`;
+      tr.classList.remove('expanded');
+      expandedRow = null;
+      return;
+    }
   }
 
   renderDetailPanel(td, order, detailCache[rid]);
