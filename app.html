@@ -1002,10 +1002,10 @@ function getStatus(o) {
 }
 function statusClass(s) {
   const sl = (s||'').toLowerCase();
-  if (sl==='paid'||sl==='completed') return 's-paid';
-  if (sl==='shipped')                return 's-shipped';
-  if (sl==='open')                   return 's-open';
-  return 's-other';
+  if (sl==='paid'||sl==='complete'||sl==='completed') return 's-paid';
+  if (sl==='shipped')                                  return 's-shipped';
+  if (sl==='open')                                     return 's-open';
+  return 's-other'; // covers: canceled, unknown, etc.
 }
 
 function showError(msg) {
