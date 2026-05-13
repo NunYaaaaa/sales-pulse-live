@@ -319,18 +319,22 @@
       <div class="kpi-card">
         <div class="kpi-label">Total Fees</div>
         <div class="kpi-val red" id="fin-fees">—</div>
-        <div class="kpi-sub">Etsy's cut</div>
+        <div class="kpi-sub">txn + processing + shipping</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Total Net</div>
         <div class="kpi-val green" id="fin-net">—</div>
-        <div class="kpi-sub">your earnings</div>
+        <div class="kpi-sub">gross minus all fees</div>
       </div>
     </div>
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">Payment Breakdown</div>
-        <div class="panel-count" id="fin-count">load full details to see</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button class="export-btn export-csv"  id="fin-export-csv"  onclick="exportFinancesCSV()"  disabled title="Load full details first">↓ CSV</button>
+          <button class="export-btn export-json" id="fin-export-json" onclick="exportFinancesJSON()" disabled title="Load full details first">↓ JSON</button>
+          <div class="panel-count" id="fin-count">load full details to see</div>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
@@ -598,6 +602,10 @@ async function loadAllDetails() {
   fill.style.width = '100%';
   prog.style.display = 'none';
   btn.textContent = '\u2713 Full details loaded';
+  document.getElementById('fin-export-csv').disabled  = false;
+  document.getElementById('fin-export-json').disabled = false;
+  document.getElementById('fin-export-csv').title  = '';
+  document.getElementById('fin-export-json').title = '';
 
   renderFinances();
   renderKPIs();
@@ -815,18 +823,28 @@ function renderFinances() {
     return;
   }
 
-  // Sum by sign — positive entries are income (gross), negative are costs/fees.
-  // This is more robust than matching type strings, since Etsy can return
-  // type values not in any hardcoded list (e.g. "shipping_labels").
+  // How Etsy's ledger works:
+  //   PAYMENT_GROSS  = what the buyer paid (gross revenue including shipping + tax)
+  //   Negative entries = fees Etsy deducted (transaction, processing, shipping labels, etc.)
+  //   sales_tax      = positive pass-through to tax authority — NOT your revenue
+  //   DISBURSE / deposit = payout to your bank — NOT revenue, just movement of funds
+  //
+  // So: Gross = sum of PAYMENT_GROSS entries
+  //     Fees  = sum of all negative entries
+  //     Net   = Gross + Fees  (fees are negative, so this subtracts them)
+  const GROSS_TYPES  = new Set(['PAYMENT_GROSS']);
+  // Types that are positive but should NOT count as gross revenue
+  const SKIP_TYPES   = new Set(['sales_tax', 'deposit', 'DISBURSE', 'DISBURSE2']);
   let totalGross = 0, totalFees = 0;
 
   for (const e of entries) {
-    const amt = e.amount; // in cents; sum first, divide later
-    if (amt > 0) totalGross += amt;
-    else         totalFees  += amt; // negative, so adding subtracts
+    const amt = e.amount; // in cents
+    if (GROSS_TYPES.has(e.type))  { totalGross += amt; }
+    else if (SKIP_TYPES.has(e.type)) { /* pass-throughs — exclude from both */ }
+    else if (amt < 0)             { totalFees  += amt; }
+    // any other positive entries (refund reversals etc.) are also skipped
   }
 
-  // Net = gross + fees (fees are negative)
   const totalNet = totalGross + totalFees;
 
   document.getElementById('fin-gross').textContent = fmtMoney(totalGross / 100);
@@ -837,8 +855,8 @@ function renderFinances() {
   // Update KPI cards
   document.getElementById('kpi-fees').textContent     = fmtMoney(Math.abs(totalFees / 100));
   document.getElementById('kpi-net').textContent      = fmtMoney(totalNet / 100);
-  document.getElementById('kpi-fees-sub').textContent = 'from ledger';
-  document.getElementById('kpi-net-sub').textContent  = 'after all fees';
+  document.getElementById('kpi-fees-sub').textContent = 'txn + processing + shipping';
+  document.getElementById('kpi-net-sub').textContent  = 'gross minus all fees';
 
   // Sort entries newest first
   const sorted = [...entries].sort((a, b) => b.created_timestamp - a.created_timestamp);
@@ -981,6 +999,62 @@ function exportJSON() {
   });
   download('orders_export.json', JSON.stringify(data,null,2), 'application/json');
 }
+
+function exportFinancesCSV() {
+  const entries = window._ledgerEntries || [];
+  if (!entries.length) { alert('No ledger data to export. Load full details first.'); return; }
+  const typeLabel = {
+    'PAYMENT_GROSS':'Payment received','PAYMENT_PROCESSING_FEE':'Processing fee',
+    'transaction':'Transaction fee','shipping_transaction':'Shipping transaction fee',
+    'shipping_labels':'Shipping label','sales_tax':'Sales tax collected',
+    'renew_sold_auto':'Listing renewal fee','prolist':'Promoted listing fee',
+    'listing':'Listing fee','LISTING_FEE':'Listing fee','refund':'Refund',
+    'deposit':'Deposit','marketing':'Marketing fee','offsite_ads':'Offsite Ads fee',
+  };
+  const sorted = [...entries].sort((a,b) => b.created_timestamp - a.created_timestamp);
+  const headers = ['Date','Type','Description','Reference Type','Reference ID','Amount (USD)','Balance (USD)'];
+  const rows = sorted.map(e => [
+    new Date(e.created_timestamp*1000).toISOString().slice(0,10),
+    e.type||'',
+    typeLabel[e.type] || e.description || e.type || '',
+    e.reference_type||'',
+    e.reference_id||'',
+    (e.amount/100).toFixed(2),
+    (e.balance/100).toFixed(2),
+  ]);
+  const csv = [headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}`).join(',')).join('
+');
+  download('finances_export.csv', csv, 'text/csv');
+}
+
+function exportFinancesJSON() {
+  const entries = window._ledgerEntries || [];
+  if (!entries.length) { alert('No ledger data to export. Load full details first.'); return; }
+  const sorted = [...entries].sort((a,b) => b.created_timestamp - a.created_timestamp);
+  const data = sorted.map(e => ({
+    date:           new Date(e.created_timestamp*1000).toISOString(),
+    type:           e.type||null,
+    description:    e.description||null,
+    reference_type: e.reference_type||null,
+    reference_id:   e.reference_id||null,
+    amount_usd:     e.amount/100,
+    balance_usd:    e.balance/100,
+  }));
+  download('finances_export.json', JSON.stringify(data,null,2), 'application/json');
+}
+
+  const sorted = [...entries].sort((a,b) => b.created_timestamp - a.created_timestamp);\
+  const data = sorted.map(e => ({\
+    date:           new Date(e.created_timestamp*1000).toISOString(),\
+    type:           e.type||null,\
+    description:    e.description||null,\
+    reference_type: e.reference_type||null,\
+    reference_id:   e.reference_id||null,\
+    amount_usd:     e.amount/100,\
+    balance_usd:    e.balance/100,\
+  }));\
+  download('finances_export.json', JSON.stringify(data,null,2), 'application/json');\
+}\
 
 function download(filename, content, type) {
   const a = document.createElement('a');
