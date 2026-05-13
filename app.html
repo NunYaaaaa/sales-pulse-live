@@ -1022,8 +1022,7 @@ function exportFinancesCSV() {
     (e.amount/100).toFixed(2),
     (e.balance/100).toFixed(2),
   ]);
-  const csv = [headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}`).join(',')).join('
-');
+  const csv = [headers,...rows].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
   download('finances_export.csv', csv, 'text/csv');
 }
 
@@ -1043,18 +1042,6 @@ function exportFinancesJSON() {
   download('finances_export.json', JSON.stringify(data,null,2), 'application/json');
 }
 
-  const sorted = [...entries].sort((a,b) => b.created_timestamp - a.created_timestamp);\
-  const data = sorted.map(e => ({\
-    date:           new Date(e.created_timestamp*1000).toISOString(),\
-    type:           e.type||null,\
-    description:    e.description||null,\
-    reference_type: e.reference_type||null,\
-    reference_id:   e.reference_id||null,\
-    amount_usd:     e.amount/100,\
-    balance_usd:    e.balance/100,\
-  }));\
-  download('finances_export.json', JSON.stringify(data,null,2), 'application/json');\
-}\
 
 function download(filename, content, type) {
   const a = document.createElement('a');
