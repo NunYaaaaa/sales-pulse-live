@@ -139,83 +139,97 @@
 
     .amount-pos { color:var(--green); font-family:'Fraunces',serif; font-weight:700; font-size:0.9rem; }
 
-    /* DETAIL PANEL (expanded row) */
-    tbody tr.detail-row td { padding:0; overflow:visible; }
+  /* DETAIL PANEL */
+  tbody tr.detail-row { border-bottom:1px solid var(--border); }
+  tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; }
 
-    .detail-inner {
-      background:var(--cream);
-      border-top:2px solid var(--border2);
-      animation: detailOpen 0.2s ease;
-    }
-    @keyframes detailOpen { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+  .detail-inner {
+    background:var(--cream);
+    border-top:2px solid var(--border2);
+    animation:detailOpen 0.18s ease;
+  }
+  @keyframes detailOpen { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
 
-    /* top strip: order summary pills */
-    .detail-summary {
-      display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-      padding:0.85rem 1.5rem;
-      border-bottom:1px solid var(--border);
-      background:var(--offwhite);
-    }
-    .detail-pill {
-      display:flex; flex-direction:column; gap:2px;
-      padding:0.5rem 0.9rem;
-      background:var(--cream); border:1px solid var(--border);
-      border-radius:10px; min-width:90px;
-    }
-    .detail-pill-label { font-family:'DM Mono',monospace; font-size:0.55rem; letter-spacing:0.09em; text-transform:uppercase; color:var(--muted2); }
-    .detail-pill-val { font-family:'Fraunces',serif; font-size:1rem; font-weight:700; letter-spacing:-0.02em; color:var(--ink); }
-    .detail-pill-val.green { color:var(--green); }
-    .detail-pill-val.red   { color:var(--red); }
-    .detail-pill-val.orange { color:var(--orange); }
-    .detail-pill-sep { width:1px; height:36px; background:var(--border); flex-shrink:0; margin:0 4px; }
+  /* summary bar */
+  .detail-summary {
+    display:flex; align-items:stretch; overflow-x:auto;
+    border-bottom:1px solid var(--border);
+    background:var(--offwhite);
+  }
+  .detail-stat {
+    display:flex; flex-direction:column; justify-content:center; gap:2px;
+    padding:0.75rem 1.1rem;
+    border-right:1px solid var(--border);
+    white-space:nowrap; flex-shrink:0;
+  }
+  .detail-stat:last-child { border-right:none; }
+  .detail-stat-label {
+    font-family:'DM Mono',monospace; font-size:0.54rem;
+    letter-spacing:0.1em; text-transform:uppercase; color:var(--muted2);
+  }
+  .detail-stat-val {
+    font-family:'Fraunces',serif; font-size:1rem;
+    font-weight:700; letter-spacing:-0.02em; color:var(--ink);
+  }
+  .detail-stat-val.green { color:var(--green); }
+  .detail-stat-val.red   { color:var(--red); }
+  .detail-stat-sep {
+    width:1px; background:var(--border2); margin:0.5rem 0.25rem; flex-shrink:0;
+  }
 
-    /* body: two columns side by side */
-    .detail-body {
-      display:grid;
-      grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);
-      gap:0;
-    }
-    @media(max-width:700px){ .detail-body{grid-template-columns:1fr} }
+  /* body */
+  .detail-body { display:flex; align-items:flex-start; }
+  .detail-col-info {
+    flex:0 0 240px;
+    padding:1rem 1.25rem;
+    border-right:1px solid var(--border);
+    display:flex; flex-direction:column; gap:3px;
+  }
+  .detail-col-items { flex:1 1 0; min-width:0; overflow:hidden; }
 
-    .detail-col {
-      padding:1.1rem 1.5rem;
-      display:flex; flex-direction:column; gap:5px;
-    }
-    .detail-col + .detail-col { border-left:1px solid var(--border); }
-    @media(max-width:700px){ .detail-col + .detail-col { border-left:none; border-top:1px solid var(--border); } }
+  .detail-section-title {
+    font-family:'DM Mono',monospace; font-size:0.55rem;
+    letter-spacing:0.1em; text-transform:uppercase; color:var(--muted2);
+    padding-bottom:5px; margin-bottom:5px;
+    border-bottom:1px solid var(--border);
+  }
+  .detail-kv {
+    display:flex; justify-content:space-between; align-items:baseline;
+    gap:8px; padding:2px 0;
+  }
+  .detail-kv-label {
+    font-size:0.75rem; color:var(--muted); font-weight:300;
+    white-space:nowrap; flex-shrink:0;
+  }
+  .detail-kv-val {
+    font-family:'DM Mono',monospace; font-size:0.72rem;
+    color:var(--ink); text-align:right;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .detail-kv-val.green { color:var(--green); }
+  .detail-kv-val.red   { color:var(--red); }
+  .detail-kv-val.muted { color:var(--muted2); }
+  .detail-note {
+    margin-top:6px; padding-top:6px; border-top:1px solid var(--border);
+    font-size:0.75rem; color:var(--muted); line-height:1.6; font-weight:300;
+    white-space:normal;
+  }
 
-    .detail-section-title {
-      font-family:'DM Mono',monospace; font-size:0.56rem; letter-spacing:0.11em;
-      text-transform:uppercase; color:var(--muted2);
-      margin-bottom:6px; padding-bottom:5px;
-      border-bottom:1px solid var(--border);
-    }
-    .detail-row { display:flex; justify-content:space-between; align-items:baseline; gap:12px; min-height:22px; }
-    .detail-label { font-size:0.76rem; color:var(--muted); font-weight:300; white-space:nowrap; flex-shrink:0; }
-    .detail-val {
-      font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--ink);
-      text-align:right; word-break:break-word;
-    }
-    .detail-val.green  { color:var(--green); font-weight:500; }
-    .detail-val.red    { color:var(--red); }
-    .detail-val.muted  { color:var(--muted2); }
-    .detail-divider { height:1px; background:var(--border); margin:6px 0; }
+  /* line items */
+  .line-items { width:100%; border-collapse:collapse; }
+  .line-items th {
+    font-family:'DM Mono',monospace; font-size:0.55rem; letter-spacing:0.08em;
+    text-transform:uppercase; color:var(--muted2);
+    padding:6px 1rem; text-align:left;
+    border-bottom:1px solid var(--border); background:var(--paper);
+  }
+  .line-items td { padding:8px 1rem; color:var(--ink); border-bottom:1px solid var(--border); vertical-align:middle; }
+  .line-items tr:last-child td { border-bottom:none; }
+  .line-items .li-title { font-size:0.82rem; }
+  .line-items .li-sku { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted2); }
+  .line-items .li-num { text-align:right; font-family:'DM Mono',monospace; font-size:0.75rem; white-space:nowrap; }
 
-    /* LINE ITEMS inside detail */
-    .line-items { width:100%; border-collapse:collapse; font-size:0.78rem; }
-    .line-items th {
-      font-family:'DM Mono',monospace; font-size:0.56rem; letter-spacing:0.08em;
-      text-transform:uppercase; color:var(--muted2);
-      padding:5px 8px; text-align:left; border-bottom:1px solid var(--border);
-      background:var(--paper);
-    }
-    .line-items td { padding:7px 8px; color:var(--ink); border-bottom:1px solid var(--border); vertical-align:middle; }
-    .line-items tr:last-child td { border-bottom:none; }
-    .line-items .li-title { max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .line-items .li-num { text-align:right; font-family:'DM Mono',monospace; font-size:0.72rem; white-space:nowrap; }
-    .line-items .li-sku { color:var(--muted2); font-family:'DM Mono',monospace; font-size:0.65rem; }
-
-    .detail-loading { display:flex; align-items:center; gap:8px; font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--muted2); padding:1.25rem 1.5rem; }
+  .detail-loading { display:flex; align-items:center; gap:8px; font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--muted2); padding:1.25rem 1.5rem; }
 
     /* PAGINATION */
     .pagination { display:flex; align-items:center; gap:8px; padding:0.75rem 1.25rem; border-top:1px solid var(--border); flex-wrap:wrap; }
@@ -827,136 +841,83 @@ function renderDetailPanel(td, order, detail) {
   const pay = detail?.payment;
   const txs = detail?.transactions || [];
 
-  // — money values —
   const grandtotal = money(o.grandtotal);
+  const subtotal   = money(o.subtotal);
   const shipping   = money(o.total_shipping_cost);
   const tax        = money(o.total_tax_cost);
-  const subtotal   = money(o.subtotal);
   const discount   = money(o.discount_amt);
-  const netAmt     = pay ? money(pay.amount_net)   : null;
-  const feesAmt    = pay ? money(pay.amount_fees)  : null;
-  const grossAmt   = pay ? money(pay.amount_gross) : null;
+  const netAmt     = pay ? money(pay.amount_net)  : null;
+  const feesAmt    = pay ? money(pay.amount_fees) : null;
 
-  // — other fields —
   const addr      = [o.city, o.state, o.country_iso].filter(Boolean).join(', ') || '—';
   const payMethod = o.payment_method ? escHtml(o.payment_method.replace(/_/g,' ')) : '—';
   const payStatus = escHtml(pay?.status || '—');
-  const isGift    = o.is_gift ? 'Yes' : 'No';
 
-  // — top summary strip —
-  const summaryHTML = `
-    <div class="detail-summary">
-      <div class="detail-pill">
-        <span class="detail-pill-label">Grand Total</span>
-        <span class="detail-pill-val">${fmtMoney(grandtotal)}</span>
-      </div>
-      <div class="detail-pill-sep"></div>
-      <div class="detail-pill">
-        <span class="detail-pill-label">Subtotal</span>
-        <span class="detail-pill-val">${fmtMoney(subtotal)}</span>
-      </div>
-      <div class="detail-pill">
-        <span class="detail-pill-label">Shipping</span>
-        <span class="detail-pill-val">${fmtMoney(shipping)}</span>
-      </div>
-      <div class="detail-pill">
-        <span class="detail-pill-label">Tax</span>
-        <span class="detail-pill-val">${fmtMoney(tax)}</span>
-      </div>
-      ${discount > 0 ? `<div class="detail-pill">
-        <span class="detail-pill-label">Discount</span>
-        <span class="detail-pill-val red">−${fmtMoney(discount)}</span>
-      </div>` : ''}
-      ${pay ? `
-        <div class="detail-pill-sep"></div>
-        <div class="detail-pill">
-          <span class="detail-pill-label">Etsy Fees</span>
-          <span class="detail-pill-val red">−${fmtMoney(Math.abs(feesAmt))}</span>
-        </div>
-        <div class="detail-pill">
-          <span class="detail-pill-label">Net Earnings</span>
-          <span class="detail-pill-val green">${fmtMoney(netAmt)}</span>
-        </div>
-      ` : ''}
+  // summary bar
+  const stats = [
+    { label:'Grand Total', val:fmtMoney(grandtotal), cls:'' },
+    { label:'Subtotal',    val:fmtMoney(subtotal),   cls:'' },
+    { label:'Shipping',    val:fmtMoney(shipping),   cls:'' },
+    { label:'Tax',         val:fmtMoney(tax),        cls:'' },
+    ...(discount > 0 ? [{ label:'Discount', val:`−${fmtMoney(discount)}`, cls:'red' }] : []),
+    ...(pay ? [
+      { sep:true },
+      { label:'Etsy Fees',    val:`−${fmtMoney(Math.abs(feesAmt))}`, cls:'red' },
+      { label:'Net Earnings', val:fmtMoney(netAmt),                  cls:'green' },
+    ] : []),
+  ];
+
+  const summaryHTML = `<div class="detail-summary">${
+    stats.map(s => s.sep
+      ? `<div class="detail-stat-sep"></div>`
+      : `<div class="detail-stat">
+           <span class="detail-stat-label">${s.label}</span>
+           <span class="detail-stat-val ${s.cls}">${s.val}</span>
+         </div>`
+    ).join('')
+  }</div>`;
+
+  // left col: order info
+  const infoHTML = `
+    <div class="detail-col-info">
+      <div class="detail-section-title">Order info</div>
+      <div class="detail-kv"><span class="detail-kv-label">Payment</span><span class="detail-kv-val" style="text-transform:capitalize">${payMethod}</span></div>
+      ${pay ? `<div class="detail-kv"><span class="detail-kv-label">Pay status</span><span class="detail-kv-val" style="text-transform:capitalize">${payStatus}</span></div>` : ''}
+      <div class="detail-kv"><span class="detail-kv-label">Ship to</span><span class="detail-kv-val muted" title="${escHtml(addr)}">${escHtml(addr)}</span></div>
+      <div class="detail-kv"><span class="detail-kv-label">Gift order</span><span class="detail-kv-val">${o.is_gift ? 'Yes' : 'No'}</span></div>
+      ${o.message_from_buyer ? `<div class="detail-note"><strong style="font-size:0.7rem;font-weight:500;color:var(--ink)">Buyer note</strong><br>${escHtml(o.message_from_buyer)}</div>` : ''}
+      ${o.is_gift && o.gift_message ? `<div class="detail-note"><strong style="font-size:0.7rem;font-weight:500;color:var(--ink)">Gift message</strong><br>${escHtml(o.gift_message)}</div>` : ''}
     </div>`;
 
-  // — left column: order details —
-  const leftHTML = `
-    <div class="detail-col">
-      <div class="detail-section-title">Order details</div>
-      <div class="detail-row">
-        <span class="detail-label">Payment method</span>
-        <span class="detail-val" style="text-transform:capitalize">${payMethod}</span>
-      </div>
-      ${pay ? `<div class="detail-row">
-        <span class="detail-label">Payment status</span>
-        <span class="detail-val" style="text-transform:capitalize">${payStatus}</span>
-      </div>` : ''}
-      <div class="detail-row">
-        <span class="detail-label">Ship to</span>
-        <span class="detail-val muted">${escHtml(addr)}</span>
-      </div>
-      <div class="detail-row">
-        <span class="detail-label">Gift order</span>
-        <span class="detail-val">${isGift}</span>
-      </div>
-      ${o.is_gift && o.gift_message ? `
-        <div class="detail-row">
-          <span class="detail-label">Gift message</span>
-          <span class="detail-val muted" style="white-space:normal;max-width:55%">${escHtml(o.gift_message)}</span>
-        </div>` : ''}
-      ${o.message_from_buyer ? `
-        <div class="detail-divider"></div>
-        <div class="detail-section-title">Buyer note</div>
-        <p style="font-size:0.78rem;color:var(--muted);line-height:1.65;font-weight:300">${escHtml(o.message_from_buyer)}</p>
-      ` : ''}
-    </div>`;
-
-  // — right column: line items —
-  const lineItemsHTML = txs.length ? `
-    <table class="line-items">
-      <thead>
-        <tr>
-          <th>Item</th>
-          <th style="text-align:center">Qty</th>
-          <th class="li-num">Each</th>
-          <th class="li-num">Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${txs.map(t => {
+  // right col: line items
+  const itemsHTML = txs.length
+    ? `<table class="line-items">
+        <thead><tr><th>Item</th><th style="text-align:center">Qty</th><th class="li-num">Each</th><th class="li-num">Total</th></tr></thead>
+        <tbody>${txs.map(t => {
           const each  = t.price ? money(t.price) : null;
           const qty   = t.quantity || 1;
           const total = each !== null ? each * qty : null;
           return `<tr>
             <td>
-              <div class="li-title" title="${escHtml(t.title||'')}">${escHtml(t.title||'—')}</div>
+              <div class="li-title">${escHtml(t.title || '—')}</div>
               ${t.sku ? `<div class="li-sku">SKU: ${escHtml(t.sku)}</div>` : ''}
             </td>
             <td style="text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:0.72rem">${qty}</td>
             <td class="li-num">${each !== null ? fmtMoney(each) : '—'}</td>
-            <td class="li-num" style="color:var(--ink);font-weight:500">${total !== null ? fmtMoney(total) : '—'}</td>
+            <td class="li-num" style="font-weight:500">${total !== null ? fmtMoney(total) : '—'}</td>
           </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-  ` : `<p style="font-size:0.75rem;color:var(--muted2);font-family:'DM Mono',monospace;padding:0.5rem 0">No line item data available.</p>`;
-
-  const rightHTML = `
-    <div class="detail-col">
-      <div class="detail-section-title">Line items</div>
-      ${lineItemsHTML}
-    </div>`;
+        }).join('')}</tbody>
+       </table>`
+    : `<p style="padding:1rem 1.25rem;font-size:0.75rem;color:var(--muted2);font-family:'DM Mono',monospace">No line item data.</p>`;
 
   td.innerHTML = `
     <div class="detail-inner">
       ${summaryHTML}
       <div class="detail-body">
-        ${leftHTML}
-        ${rightHTML}
+        ${infoHTML}
+        <div class="detail-col-items">${itemsHTML}</div>
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
 // ─── FINANCES TAB ──────────────────────────────────────────────────────────
