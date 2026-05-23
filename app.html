@@ -139,97 +139,104 @@
 
     .amount-pos { color:var(--green); font-family:'Fraunces',serif; font-weight:700; font-size:0.9rem; }
 
-  /* DETAIL PANEL */
-  tbody tr.detail-row { border-bottom:1px solid var(--border); }
-  tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; }
+    /* DETAIL PANEL */
+    tbody tr.detail-row { border-bottom:1px solid var(--border); }
+    tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; }
 
-  .detail-inner {
-    background:var(--cream);
-    border-top:2px solid var(--border2);
-    animation:detailOpen 0.18s ease;
-  }
-  @keyframes detailOpen { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+    .detail-inner {
+      background:var(--cream);
+      border-top:2px solid var(--border2);
+      animation:detailOpen 0.18s ease;
+    }
+    @keyframes detailOpen { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
 
-  /* summary bar */
-  .detail-summary {
-    display:flex; align-items:stretch; overflow-x:auto;
-    border-bottom:1px solid var(--border);
-    background:var(--offwhite);
-  }
-  .detail-stat {
-    display:flex; flex-direction:column; justify-content:center; gap:2px;
-    padding:0.75rem 1.1rem;
-    border-right:1px solid var(--border);
-    white-space:nowrap; flex-shrink:0;
-  }
-  .detail-stat:last-child { border-right:none; }
-  .detail-stat-label {
-    font-family:'DM Mono',monospace; font-size:0.54rem;
-    letter-spacing:0.1em; text-transform:uppercase; color:var(--muted2);
-  }
-  .detail-stat-val {
-    font-family:'Fraunces',serif; font-size:1rem;
-    font-weight:700; letter-spacing:-0.02em; color:var(--ink);
-  }
-  .detail-stat-val.green { color:var(--green); }
-  .detail-stat-val.red   { color:var(--red); }
-  .detail-stat-sep {
-    width:1px; background:var(--border2); margin:0.5rem 0.25rem; flex-shrink:0;
-  }
+    .detail-summary {
+      display:flex; align-items:stretch; overflow-x:auto;
+      border-bottom:1px solid var(--border);
+      background:var(--offwhite);
+    }
+    .detail-stat {
+      display:flex; flex-direction:column; justify-content:center; gap:2px;
+      padding:0.75rem 1.1rem;
+      border-right:1px solid var(--border);
+      white-space:nowrap; flex-shrink:0;
+    }
+    .detail-stat:last-child { border-right:none; }
+    .detail-stat-label {
+      font-family:'DM Mono',monospace; font-size:0.54rem;
+      letter-spacing:0.1em; text-transform:uppercase; color:var(--muted2);
+    }
+    .detail-stat-val {
+      font-family:'Fraunces',serif; font-size:1rem;
+      font-weight:700; letter-spacing:-0.02em; color:var(--ink);
+    }
+    .detail-stat-val.green { color:var(--green); }
+    .detail-stat-val.red   { color:var(--red); }
+    .detail-stat-sep {
+      width:1px; background:var(--border2); margin:0.5rem 0.25rem; flex-shrink:0;
+    }
 
-  /* body */
-  .detail-body { display:flex; align-items:flex-start; }
-  .detail-col-info {
-    flex:0 0 240px;
-    padding:1rem 1.25rem;
-    border-right:1px solid var(--border);
-    display:flex; flex-direction:column; gap:3px;
-  }
-  .detail-col-items { flex:1 1 0; min-width:0; overflow:hidden; }
+    .detail-body { display:flex; align-items:flex-start; }
+    .detail-col-info {
+      flex:0 0 240px;
+      padding:1rem 1.25rem;
+      border-right:1px solid var(--border);
+      display:flex; flex-direction:column; gap:3px;
+    }
+    .detail-col-items { flex:1 1 0; min-width:0; overflow:hidden; }
 
-  .detail-section-title {
-    font-family:'DM Mono',monospace; font-size:0.55rem;
-    letter-spacing:0.1em; text-transform:uppercase; color:var(--muted2);
-    padding-bottom:5px; margin-bottom:5px;
-    border-bottom:1px solid var(--border);
-  }
-  .detail-kv {
-    display:flex; justify-content:space-between; align-items:baseline;
-    gap:8px; padding:2px 0;
-  }
-  .detail-kv-label {
-    font-size:0.75rem; color:var(--muted); font-weight:300;
-    white-space:nowrap; flex-shrink:0;
-  }
-  .detail-kv-val {
-    font-family:'DM Mono',monospace; font-size:0.72rem;
-    color:var(--ink); text-align:right;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
-  .detail-kv-val.green { color:var(--green); }
-  .detail-kv-val.red   { color:var(--red); }
-  .detail-kv-val.muted { color:var(--muted2); }
-  .detail-note {
-    margin-top:6px; padding-top:6px; border-top:1px solid var(--border);
-    font-size:0.75rem; color:var(--muted); line-height:1.6; font-weight:300;
-    white-space:normal;
-  }
+    .detail-section-title {
+      font-family:'DM Mono',monospace; font-size:0.55rem;
+      letter-spacing:0.1em; text-transform:uppercase; color:var(--muted2);
+      padding-bottom:5px; margin-bottom:5px;
+      border-bottom:1px solid var(--border);
+    }
+    .detail-kv {
+      display:flex; justify-content:space-between; align-items:baseline;
+      gap:8px; padding:2px 0;
+    }
+    .detail-kv-label {
+      font-size:0.75rem; color:var(--muted); font-weight:300;
+      white-space:nowrap; flex-shrink:0;
+    }
+    .detail-kv-val {
+      font-family:'DM Mono',monospace; font-size:0.72rem;
+      color:var(--ink); text-align:right;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .detail-kv-val.green { color:var(--green); }
+    .detail-kv-val.red   { color:var(--red); }
+    .detail-kv-val.muted { color:var(--muted2); }
+    .detail-note {
+      margin-top:6px; padding-top:6px; border-top:1px solid var(--border);
+      font-size:0.75rem; color:var(--muted); line-height:1.6; font-weight:300;
+      white-space:normal;
+    }
 
-  /* line items */
-  .line-items { width:100%; border-collapse:collapse; }
-  .line-items th {
-    font-family:'DM Mono',monospace; font-size:0.55rem; letter-spacing:0.08em;
-    text-transform:uppercase; color:var(--muted2);
-    padding:6px 1rem; text-align:left;
-    border-bottom:1px solid var(--border); background:var(--paper);
-  }
-  .line-items td { padding:8px 1rem; color:var(--ink); border-bottom:1px solid var(--border); vertical-align:middle; }
-  .line-items tr:last-child td { border-bottom:none; }
-  .line-items .li-title { font-size:0.82rem; }
-  .line-items .li-sku { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted2); }
-  .line-items .li-num { text-align:right; font-family:'DM Mono',monospace; font-size:0.75rem; white-space:nowrap; }
+    .line-items { width:100%; border-collapse:collapse; }
+    .line-items th {
+      font-family:'DM Mono',monospace; font-size:0.55rem; letter-spacing:0.08em;
+      text-transform:uppercase; color:var(--muted2);
+      padding:6px 1rem; text-align:left;
+      border-bottom:1px solid var(--border); background:var(--paper);
+    }
+    .line-items td { padding:8px 1rem; color:var(--ink); border-bottom:1px solid var(--border); vertical-align:middle; }
+    .line-items tr:last-child td { border-bottom:none; }
+    .line-items .li-title { font-size:0.82rem; }
+    .line-items .li-sku { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted2); }
+    .line-items .li-num { text-align:right; font-family:'DM Mono',monospace; font-size:0.75rem; white-space:nowrap; }
 
-  .detail-loading { display:flex; align-items:center; gap:8px; font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--muted2); padding:1.25rem 1.5rem; }
+    .detail-loading { display:flex; align-items:center; gap:8px; font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--muted2); padding:1.25rem 1.5rem; }
+
+    /* FEE BREAKDOWN note banner */
+    .fee-note {
+      display:flex; align-items:flex-start; gap:10px;
+      background:var(--gold-bg); border:1px solid var(--gold-bd);
+      border-radius:10px; padding:0.75rem 1rem; margin-bottom:1.25rem;
+      font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--gold);
+      line-height:1.7;
+    }
+    .fee-note-icon { flex-shrink:0; margin-top:1px; }
 
     /* PAGINATION */
     .pagination { display:flex; align-items:center; gap:8px; padding:0.75rem 1.25rem; border-top:1px solid var(--border); flex-wrap:wrap; }
@@ -242,6 +249,19 @@
     /* LEDGER TAB */
     .ledger-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:1.5rem; }
     @media(max-width:600px){ .ledger-summary{grid-template-columns:1fr 1fr} }
+
+    /* LEDGER TYPE BADGE */
+    .ledger-type-badge {
+      font-family:'DM Mono',monospace; font-size:0.56rem; letter-spacing:0.04em;
+      padding:2px 7px; border-radius:999px; border:1px solid;
+      white-space:nowrap;
+    }
+    .lt-revenue  { background:var(--green-bg);  border-color:var(--green-bd);  color:var(--green); }
+    .lt-fee      { background:var(--red-bg);     border-color:var(--red-bd);    color:var(--red); }
+    .lt-refund   { background:var(--gold-bg);    border-color:var(--gold-bd);   color:var(--gold); }
+    .lt-payout   { background:var(--purple-bg);  border-color:var(--purple-bd); color:var(--purple); }
+    .lt-tax      { background:var(--paper);      border-color:var(--border2);   color:var(--muted2); }
+    .lt-other    { background:var(--paper);      border-color:var(--border2);   color:var(--muted); }
   </style>
 </head>
 <body>
@@ -318,12 +338,12 @@
   <!-- KPIs -->
   <div class="kpi-row">
     <div class="kpi-card">
-      <div class="kpi-label">Total Revenue</div>
+      <div class="kpi-label">Total Gross</div>
       <div class="kpi-val" id="kpi-revenue">—</div>
-      <div class="kpi-sub">gross (buyer paid)</div>
+      <div class="kpi-sub">buyer payments incl. shipping + tax</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Etsy Fees</div>
+      <div class="kpi-label">Total Fees</div>
       <div class="kpi-val red" id="kpi-fees">—</div>
       <div class="kpi-sub" id="kpi-fees-sub">load full details</div>
     </div>
@@ -381,28 +401,39 @@
   <div class="tab-panel" id="tab-finances">
     <div class="ledger-summary">
       <div class="kpi-card">
-        <div class="kpi-label">Total Gross</div>
+        <div class="kpi-label">Total Gross Revenue</div>
         <div class="kpi-val" id="fin-gross">—</div>
-        <div class="kpi-sub">buyer payments</div>
+        <div class="kpi-sub">buyer payments (incl. shipping + tax)</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Total Fees</div>
         <div class="kpi-val red" id="fin-fees">—</div>
-        <div class="kpi-sub">txn + processing + shipping</div>
+        <div class="kpi-sub">txn + processing + ads + listing + shipping labels</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Total Net</div>
+        <div class="kpi-label">Net Earnings</div>
         <div class="kpi-val green" id="fin-net">—</div>
         <div class="kpi-sub">gross minus all fees</div>
       </div>
     </div>
     <div class="panel">
       <div class="panel-header">
-        <div class="panel-title">Payment Breakdown</div>
+        <div class="panel-title">Payment Ledger</div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <button class="export-btn export-csv"  id="fin-export-csv"  onclick="exportFinancesCSV()"  disabled title="Load full details first">↓ CSV</button>
           <button class="export-btn export-json" id="fin-export-json" onclick="exportFinancesJSON()" disabled title="Load full details first">↓ JSON</button>
           <div class="panel-count" id="fin-count">load full details to see</div>
+        </div>
+      </div>
+      <div style="padding:1rem 1.25rem 0">
+        <div class="fee-note">
+          <span class="fee-note-icon">ℹ️</span>
+          <span>
+            <strong>How Etsy's ledger works:</strong> Gross = all positive sale entries.
+            Fees = transaction, processing, listing, offsite ads, shipping label costs — all negative entries.
+            Sales tax and payouts (DISBURSE) are pass-throughs and excluded from both totals.
+            Refunds reduce gross and partially refund fees.
+          </span>
         </div>
       </div>
       <div class="table-wrap">
@@ -410,14 +441,15 @@
           <thead>
             <tr>
               <th>Date</th>
+              <th>Type</th>
               <th>Description</th>
               <th>Reference</th>
               <th>Amount</th>
-              <th>Balance</th>
+              <th>Running Balance</th>
             </tr>
           </thead>
           <tbody id="finances-tbody">
-            <tr><td colspan="5" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">Click "Load full details" to fetch ledger data.</td></tr>
+            <tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">Click "⚡ Load full details" to fetch ledger data.</td></tr>
           </tbody>
         </table>
       </div>
@@ -433,6 +465,91 @@ const ETSY_TOKEN_URL = `${WORKER_BASE}/token`;
 const ETSY_API_BASE  = WORKER_BASE;
 const SCOPES         = 'transactions_r listings_r shops_r';
 const PAGE_SIZE      = 25;
+
+// ─── LEDGER TAXONOMY ───────────────────────────────────────────────────────
+// How each ledger entry type should be categorised for financial reporting.
+// Source: Etsy Open API v3 GitHub discussions + observed real data.
+const LEDGER_TAXONOMY = {
+  // ── REVENUE: positive credits that represent actual sales ──
+  revenue: new Set([
+    'PAYMENT_GROSS',   // explicit gross sale marker used by some shops
+    'sale',            // generic sale credit
+    'transaction',     // sometimes used as a sale credit (positive amount)
+  ]),
+  // ── FEES: costs Etsy charges the seller ──
+  fees: new Set([
+    'PAYMENT_PROCESSING_FEE',    // card processing fee
+    'transaction',               // transaction fee (negative amount — 6.5% of sale)
+    'transaction_quantity',      // per-quantity transaction fee
+    'shipping_transaction',      // shipping transaction fee
+    'shipping_labels',           // postage purchased through Etsy
+    'offsite_ads_fee',           // Offsite Ads fee
+    'prolist',                   // Promoted Listings / Etsy Ads
+    'listing',                   // listing fee ($0.20)
+    'LISTING_FEE',
+    'renew_sold_auto',            // auto-renew on sale
+    'renew_sold',
+    'renew_expired',
+    'listing_private',
+    'auto_renew_expired',
+    'marketing',                 // other marketing fees
+    'gift_wrap_fees',
+  ]),
+  // ── REFUNDS: reduce gross; Etsy also partially refunds fees ──
+  refunds: new Set([
+    'REFUND',
+    'transaction_refund',
+    'transaction_quantity_refund',
+    'listing_refund',
+    'shipping_transaction_refund',
+    'offsite_ads_fee_refund',
+    'renew_sold_auto_refund',
+    'listing_private_refund',
+    'shipping_label_refund',
+  ]),
+  // ── PASS-THROUGHS: excluded from both gross and fees ──
+  passthrough: new Set([
+    'sales_tax',    // collected on behalf of tax authority — not your money
+    'DISBURSE',     // payout to your bank — just a fund movement
+    'DISBURSE2',
+    'deposit',
+  ]),
+};
+
+// Human-readable labels for every known ledger type
+const LEDGER_LABEL = {
+  'PAYMENT_GROSS':              'Payment received',
+  'PAYMENT_PROCESSING_FEE':    'Card processing fee',
+  'transaction':                'Transaction fee / sale',
+  'transaction_quantity':       'Per-qty transaction fee',
+  'shipping_transaction':       'Shipping transaction fee',
+  'shipping_labels':            'Shipping label cost',
+  'offsite_ads_fee':            'Offsite Ads fee',
+  'offsite_ads_fee_refund':     'Offsite Ads fee refund',
+  'prolist':                    'Etsy Ads (Promoted Listing)',
+  'listing':                    'Listing fee',
+  'LISTING_FEE':                'Listing fee',
+  'renew_sold_auto':            'Auto-renew on sale',
+  'renew_sold':                 'Renewal on sale',
+  'renew_expired':              'Renewal (expired listing)',
+  'listing_private':            'Private listing fee',
+  'auto_renew_expired':         'Auto-renew (expired)',
+  'marketing':                  'Marketing fee',
+  'gift_wrap_fees':             'Gift wrap fee',
+  'sales_tax':                  'Sales tax collected',
+  'REFUND':                     'Refund',
+  'transaction_refund':         'Transaction fee refund',
+  'transaction_quantity_refund':'Qty transaction fee refund',
+  'listing_refund':             'Listing fee refund',
+  'shipping_transaction_refund':'Shipping txn fee refund',
+  'renew_sold_auto_refund':     'Auto-renew fee refund',
+  'listing_private_refund':     'Private listing fee refund',
+  'shipping_label_refund':      'Shipping label refund',
+  'DISBURSE':                   'Payout to bank',
+  'DISBURSE2':                  'Payout to bank',
+  'deposit':                    'Deposit',
+  'sale':                       'Sale',
+};
 
 // ─── STATE ─────────────────────────────────────────────────────────────────
 let allOrders    = [];
@@ -495,8 +612,6 @@ async function handleCallback(code, returnedState) {
     });
     if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error_description||`Token exchange failed (${resp.status})`); }
     const data = await resp.json();
-    // Etsy access tokens are formatted as "{user_id}.{token_body}"
-    // There is no separate user_id field in the response.
     const userId = data.access_token ? data.access_token.split('.')[0] : null;
     if (!userId || !/^\d+$/.test(userId)) throw new Error('Could not parse user ID from access token. Token format may have changed.');
     sessionStorage.setItem('spl_token',   data.access_token);
@@ -557,9 +672,9 @@ async function fetchOrders(shopId, token, apiKey) {
     const data  = await resp.json();
     const batch = data.results || [];
     orders = orders.concat(batch);
-    if (batch.length < BATCH) break; // reached last page
+    if (batch.length < BATCH) break;
     offset += BATCH;
-    await new Promise(r => setTimeout(r, 150)); // respect rate limits
+    await new Promise(r => setTimeout(r, 150));
   }
   return orders;
 }
@@ -574,7 +689,7 @@ function etsyFetch(path, token, apiKey) {
   });
 }
 
-// ─── LOAD FULL DETAILS (on-demand batch) ────────────────────────────────────
+// ─── LOAD FULL DETAILS ──────────────────────────────────────────────────────
 async function loadAllDetails() {
   const token  = sessionStorage.getItem('spl_token');
   const apiKey = sessionStorage.getItem('spl_api_key');
@@ -585,115 +700,113 @@ async function loadAllDetails() {
   const ptext  = document.getElementById('progress-text');
 
   try {
-  btn.disabled = true;
-  btn.textContent = 'Loading…';
-  prog.style.display = 'flex';
+    btn.disabled = true;
+    btn.textContent = 'Loading…';
+    prog.style.display = 'flex';
 
-  const total = allOrders.length;
-  let done = 0;
+    const total = allOrders.length;
+    let done = 0;
 
-  // ── Phase 1: fetch transactions (0–80%) ──
-  for (const order of allOrders) {
-    const rid = order.receipt_id;
-    if (detailCache[rid]) { done++; continue; }
+    // ── Phase 1: fetch transactions + payment per receipt (0–80%) ──
+    for (const order of allOrders) {
+      const rid = order.receipt_id;
+      if (detailCache[rid]) { done++; continue; }
 
-    const txResp = await etsyFetch(
-      `/application/shops/${shopId}/receipts/${rid}/transactions`, token, apiKey
-    );
-    const txData = txResp.ok ? await txResp.json() : null;
+      const txResp = await etsyFetch(
+        `/application/shops/${shopId}/receipts/${rid}/transactions`, token, apiKey
+      );
+      const txData = txResp.ok ? await txResp.json() : null;
 
-    // Fix #7: fetch payment object in batch too
-    let payment = null;
-    const payResp = await etsyFetch(
-      `/application/shops/${shopId}/receipts/${rid}/payments`, token, apiKey
-    );
-    if (payResp.ok) {
-      const payData = await payResp.json();
-      const pays = payData.results || payData.payments || (Array.isArray(payData) ? payData : null);
-      payment = pays?.[0] || null;
+      // Fetch the payment object for this receipt
+      let payment = null;
+      const payResp = await etsyFetch(
+        `/application/shops/${shopId}/receipts/${rid}/payments`, token, apiKey
+      );
+      if (payResp.ok) {
+        const payData = await payResp.json();
+        const pays = payData.results || payData.payments || (Array.isArray(payData) ? payData : null);
+        payment = pays?.[0] || null;
+      }
+
+      detailCache[rid] = {
+        transactions: txData?.results || txData?.transaction || [],
+        payment,
+      };
+
+      done++;
+      const pct = total > 0 ? Math.round((done / total) * 80) : 80;
+      fill.style.width  = `${pct}%`;
+      ptext.textContent = `${pct}% (${done}/${total} orders)`;
+      await new Promise(r => setTimeout(r, 150));
     }
 
-    detailCache[rid] = {
-      transactions: txData?.results || txData?.transaction || [],
-      payment,
-    };
+    // ── Phase 2: fetch ledger in 30-day windows (80–100%) ──
+    ptext.textContent = 'Fetching financial ledger…';
+    fill.style.width = '85%';
 
-    done++;
-    const pct = total > 0 ? Math.round((done / total) * 80) : 80;
-    fill.style.width  = `${pct}%`;
-    ptext.textContent = `${pct}% (${done}/${total} orders)`;
-    await new Promise(r => setTimeout(r, 150)); // respect rate limits
-  }
+    const now          = Math.floor(Date.now() / 1000);
+    const MAX_LOOKBACK = 365 * 24 * 60 * 60;
 
-  // ── Phase 2: fetch ledger entries across 30-day windows (80–100%) ──
-  ptext.textContent = 'Fetching financial ledger…';
-  fill.style.width = '85%';
+    const timestamps  = allOrders.map(o => o.create_timestamp).filter(t => t && t > 0);
+    const oldestOrder = timestamps.length ? Math.min(...timestamps) : now - MAX_LOOKBACK;
+    const lookbackFloor = Math.max(oldestOrder, now - MAX_LOOKBACK);
 
-  const now        = Math.floor(Date.now() / 1000);
-  const MAX_LOOKBACK = 365 * 24 * 60 * 60; // hard cap: 1 year back
+    const windowSize  = 30 * 24 * 60 * 60;
+    let ledgerEntries = [];
+    let windowEnd     = now;
+    let windowCount   = 0;
+    const maxWindows  = Math.ceil(MAX_LOOKBACK / windowSize) + 1;
 
-  // Find oldest valid timestamp — guard against undefined/NaN/0
-  const timestamps = allOrders.map(o => o.create_timestamp).filter(t => t && t > 0);
-  const oldestOrder = timestamps.length ? Math.min(...timestamps) : now - MAX_LOOKBACK;
-  const lookbackFloor = Math.max(oldestOrder, now - MAX_LOOKBACK);
-
-  const windowSize  = 30 * 24 * 60 * 60;
-  let ledgerEntries = [];
-  let windowEnd     = now;
-  let windowCount   = 0;
-  const maxWindows  = Math.ceil(MAX_LOOKBACK / windowSize) + 1; // safety cap
-
-  while (windowEnd > lookbackFloor && windowCount < maxWindows) {
-    const windowStart = Math.max(windowEnd - windowSize, lookbackFloor);
-    const resp = await etsyFetch(
-      `/application/shops/${shopId}/payment-account/ledger-entries?min_created=${windowStart}&max_created=${windowEnd}&limit=100&offset=0`,
-      token, apiKey
-    );
-    if (resp.ok) {
-      const data = await resp.json();
-      ledgerEntries = ledgerEntries.concat(data.results || []);
-      if ((data.results || []).length === 100) {
-        let offset = 100;
-        while (true) {
-          const r2 = await etsyFetch(
-            `/application/shops/${shopId}/payment-account/ledger-entries?min_created=${windowStart}&max_created=${windowEnd}&limit=100&offset=${offset}`,
-            token, apiKey
-          );
-          if (!r2.ok) break;
-          const d2 = await r2.json();
-          ledgerEntries = ledgerEntries.concat(d2.results || []);
-          if ((d2.results || []).length < 100) break;
-          offset += 100;
-          await new Promise(r => setTimeout(r, 200));
+    while (windowEnd > lookbackFloor && windowCount < maxWindows) {
+      const windowStart = Math.max(windowEnd - windowSize, lookbackFloor);
+      const resp = await etsyFetch(
+        `/application/shops/${shopId}/payment-account/ledger-entries?min_created=${windowStart}&max_created=${windowEnd}&limit=100&offset=0`,
+        token, apiKey
+      );
+      if (resp.ok) {
+        const data = await resp.json();
+        ledgerEntries = ledgerEntries.concat(data.results || []);
+        if ((data.results || []).length === 100) {
+          let offset = 100;
+          while (true) {
+            const r2 = await etsyFetch(
+              `/application/shops/${shopId}/payment-account/ledger-entries?min_created=${windowStart}&max_created=${windowEnd}&limit=100&offset=${offset}`,
+              token, apiKey
+            );
+            if (!r2.ok) break;
+            const d2 = await r2.json();
+            ledgerEntries = ledgerEntries.concat(d2.results || []);
+            if ((d2.results || []).length < 100) break;
+            offset += 100;
+            await new Promise(r => setTimeout(r, 200));
+          }
         }
       }
+      windowEnd = windowStart;
+      windowCount++;
+      await new Promise(r => setTimeout(r, 200));
     }
-    windowEnd = windowStart;
-    windowCount++;
-    await new Promise(r => setTimeout(r, 200));
-  }
 
-  // Deduplicate by entry_id
-  const seen = new Set();
-  ledgerEntries = ledgerEntries.filter(e => {
-    if (seen.has(e.entry_id)) return false;
-    seen.add(e.entry_id); return true;
-  });
+    // Deduplicate by entry_id
+    const seen = new Set();
+    ledgerEntries = ledgerEntries.filter(e => {
+      if (seen.has(e.entry_id)) return false;
+      seen.add(e.entry_id); return true;
+    });
 
-  // Store on window for renderFinances
-  window._ledgerEntries = ledgerEntries;
+    window._ledgerEntries = ledgerEntries;
 
-  detailsLoaded = true;
-  fill.style.width = '100%';
-  prog.style.display = 'none';
-  btn.textContent = '\u2713 Full details loaded';
-  document.getElementById('fin-export-csv').disabled  = false;
-  document.getElementById('fin-export-json').disabled = false;
-  document.getElementById('fin-export-csv').title  = '';
-  document.getElementById('fin-export-json').title = '';
+    detailsLoaded = true;
+    fill.style.width = '100%';
+    prog.style.display = 'none';
+    btn.textContent = '✓ Full details loaded';
+    document.getElementById('fin-export-csv').disabled  = false;
+    document.getElementById('fin-export-json').disabled = false;
+    document.getElementById('fin-export-csv').title  = '';
+    document.getElementById('fin-export-json').title = '';
 
-  renderFinances();
-  renderKPIs();
+    renderFinances();
+    renderKPIs();
 
   } catch (err) {
     prog.style.display = 'none';
@@ -703,21 +816,159 @@ async function loadAllDetails() {
   }
 }
 
+// ─── FINANCE CALCULATIONS ──────────────────────────────────────────────────
+/**
+ * Categorise a single ledger entry using the taxonomy above.
+ *
+ * Rules (applied in order):
+ *  1. Pass-throughs (sales_tax, DISBURSE, DISBURSE2, deposit) → 'passthrough'
+ *  2. Explicit refund types → 'refund'
+ *  3. Explicit fee types with negative amount → 'fee'
+ *  4. Explicit revenue types with positive amount → 'revenue'
+ *  5. Any other positive amount → 'revenue'
+ *  6. Any other negative amount → 'fee'
+ */
+function categoriseEntry(e) {
+  const t   = e.type || '';
+  const amt = e.amount; // in cents, may be negative
+
+  if (LEDGER_TAXONOMY.passthrough.has(t)) return 'passthrough';
+  if (LEDGER_TAXONOMY.refunds.has(t))     return 'refund';
+  if (LEDGER_TAXONOMY.fees.has(t) && amt < 0) return 'fee';
+  if (LEDGER_TAXONOMY.revenue.has(t) && amt > 0) return 'revenue';
+  // Fallback by sign
+  if (amt > 0) return 'revenue';
+  if (amt < 0) return 'fee';
+  return 'passthrough'; // zero-value entries
+}
+
+/**
+ * Compute totals from ledger entries.
+ * Returns { grossCents, feesCents, netCents, refundGrossCents, refundFeesCents }
+ *
+ * Etsy's refund entries are *negative* debits on the revenue side (the buyer
+ * gets money back) and *positive* credits on the fee side (Etsy partially
+ * refunds fees). We treat both correctly by always adding the raw amount.
+ */
+function computeLedgerTotals(entries) {
+  let grossCents = 0, feesCents = 0, refundGrossCents = 0, refundFeesCents = 0;
+
+  for (const e of entries) {
+    const cat = categoriseEntry(e);
+    const amt = e.amount;
+
+    if (cat === 'revenue')     { grossCents += amt; }
+    else if (cat === 'fee')    { feesCents  += amt; } // amt is negative → increases total fee magnitude
+    else if (cat === 'refund') {
+      // Refund entries can be either negative (buyer refund reducing gross)
+      // or positive (fee partial-refund crediting fees back).
+      if (amt < 0) { refundGrossCents += amt; } // reduces gross
+      else         { refundFeesCents  += amt; } // reduces fee burden
+    }
+    // passthroughs: skip
+  }
+
+  // Merge refund adjustments into the main buckets
+  const adjGrossCents = grossCents + refundGrossCents;     // net revenue after refunds
+  const adjFeesCents  = feesCents  + refundFeesCents;      // net fees after refund credits (still negative)
+  const netCents      = adjGrossCents + adjFeesCents;      // fees are negative, so this subtracts them
+
+  return { grossCents: adjGrossCents, feesCents: adjFeesCents, netCents, refundGrossCents, refundFeesCents };
+}
+
 // ─── KPIs ──────────────────────────────────────────────────────────────────
 function renderKPIs() {
-  const gross = allOrders.reduce((s,o) => s + money(o.grandtotal), 0);
+  // Gross from receipts (what the buyer paid, including shipping + tax)
+  const gross = allOrders.reduce((s, o) => s + money(o.grandtotal), 0);
   const count = allOrders.length;
   const aov   = count ? gross / count : 0;
 
   document.getElementById('kpi-revenue').textContent = fmtMoney(gross);
   document.getElementById('kpi-orders').textContent  = count;
   document.getElementById('kpi-aov').textContent     = fmtMoney(aov);
-  document.getElementById('order-count').textContent = `${count} order${count!==1?'s':''}`;
+  document.getElementById('order-count').textContent = `${count} order${count !== 1 ? 's' : ''}`;
 
-  // fees/net KPIs are set by renderFinances() from ledger data — don't overwrite here
+  if (detailsLoaded && window._ledgerEntries) {
+    const { grossCents, feesCents, netCents } = computeLedgerTotals(window._ledgerEntries);
+    document.getElementById('kpi-fees').textContent     = fmtMoney(Math.abs(feesCents / 100));
+    document.getElementById('kpi-net').textContent      = fmtMoney(netCents / 100);
+    document.getElementById('kpi-fees-sub').textContent = 'txn + processing + ads + listing + labels';
+    document.getElementById('kpi-net-sub').textContent  = 'gross minus all fees';
+  }
 }
 
-// ─── TABLE ─────────────────────────────────────────────────────────────────
+// ─── FINANCES TAB ──────────────────────────────────────────────────────────
+function renderFinances() {
+  if (!detailsLoaded) return;
+
+  const entries = window._ledgerEntries || [];
+  if (!entries.length) {
+    document.getElementById('finances-tbody').innerHTML =
+      `<tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">No ledger entries found for this date range.</td></tr>`;
+    document.getElementById('fin-count').textContent = '0 entries';
+    return;
+  }
+
+  const { grossCents, feesCents, netCents } = computeLedgerTotals(entries);
+
+  document.getElementById('fin-gross').textContent = fmtMoney(grossCents / 100);
+  document.getElementById('fin-fees').textContent  = fmtMoney(Math.abs(feesCents / 100));
+  document.getElementById('fin-net').textContent   = fmtMoney(netCents / 100);
+  document.getElementById('fin-count').textContent = `${entries.length} entries`;
+
+  // Sort newest first
+  const sorted = [...entries].sort((a, b) => b.created_timestamp - a.created_timestamp);
+
+  const rows = sorted.map(e => {
+    const cat   = categoriseEntry(e);
+    const amt   = e.amount / 100;
+    const bal   = e.balance / 100;
+    const isPos = amt >= 0;
+    const date  = new Date(e.created_timestamp * 1000).toLocaleDateString('en-US', {
+      month:'short', day:'numeric', year:'numeric'
+    });
+
+    const label = escHtml(LEDGER_LABEL[e.type] || e.description || e.type || '');
+
+    // Type badge
+    const badgeClass = {
+      revenue:     'lt-revenue',
+      fee:         'lt-fee',
+      refund:      'lt-refund',
+      passthrough: cat === 'passthrough' && (e.type === 'DISBURSE' || e.type === 'DISBURSE2') ? 'lt-payout' : 'lt-tax',
+    }[cat] || 'lt-other';
+    const badgeLabel = { revenue:'sale', fee:'fee', refund:'refund', passthrough: (e.type||'').startsWith('DISBURSE') || e.type==='deposit' ? 'payout' : 'pass-through' }[cat] || cat;
+    const typeBadge = `<span class="ledger-type-badge ${badgeClass}">${badgeLabel}</span>`;
+
+    // Reference cell
+    const refHtml = e.reference_type === 'receipt'
+      ? `<span class="td-mono td-muted">#${e.reference_id}</span>`
+      : `<span style="color:var(--muted2);font-size:0.65rem;font-family:'DM Mono',monospace">${escHtml((e.reference_type || '—').replace(/_/g, ' '))}</span>`;
+
+    // Amount cell — colour-coded by category
+    let amtStyle;
+    if      (cat === 'revenue')     amtStyle = `color:var(--green);font-family:'Fraunces',serif;font-weight:700;font-size:0.9rem`;
+    else if (cat === 'fee')         amtStyle = `color:var(--red);font-family:'DM Mono',monospace;font-size:0.72rem`;
+    else if (cat === 'refund')      amtStyle = `color:var(--gold);font-family:'DM Mono',monospace;font-size:0.72rem`;
+    else                            amtStyle = `color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem`;
+
+    const amtPrefix = isPos ? '+' : '';
+    const amtHtml = `<span style="${amtStyle}">${amtPrefix}${fmtMoney(amt)}</span>`;
+
+    return `<tr>
+      <td class="td-mono td-muted">${date}</td>
+      <td>${typeBadge}</td>
+      <td>${label}</td>
+      <td>${refHtml}</td>
+      <td>${amtHtml}</td>
+      <td class="td-mono td-muted">${fmtMoney(bal)}</td>
+    </tr>`;
+  });
+
+  document.getElementById('finances-tbody').innerHTML = rows.join('');
+}
+
+// ─── ORDER TABLE ────────────────────────────────────────────────────────────
 function renderTable() {
   const tbody = document.getElementById('orders-tbody');
   const start = (currentPage - 1) * PAGE_SIZE;
@@ -731,18 +982,18 @@ function renderTable() {
   tbody.innerHTML = '';
   page.forEach(o => {
     const rid    = o.receipt_id;
-    const date   = o.create_timestamp ? new Date(o.create_timestamp*1000).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+    const date   = o.create_timestamp ? new Date(o.create_timestamp * 1000).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '—';
     const buyer  = escHtml(o.name || o.buyer_user_id || '—');
     const items  = o.transaction_count || (o.transactions?.length) || '—';
     const gross  = o.grandtotal ? fmtMoney(money(o.grandtotal)) : '—';
     const status = getStatus(o);
-    // Main order row
+
     const tr = document.createElement('tr');
     tr.className = 'order-row';
     tr.dataset.rid = rid;
     tr.innerHTML = `
       <td class="td-mono td-muted" style="width:24px"><span class="expand-icon">▶</span></td>
-      <td class="td-mono td-muted">#${rid||'—'}</td>
+      <td class="td-mono td-muted">#${rid || '—'}</td>
       <td class="td-mono td-muted">${date}</td>
       <td>${buyer}</td>
       <td class="td-mono" style="color:var(--muted)">${items}</td>
@@ -752,7 +1003,6 @@ function renderTable() {
     tr.onclick = () => toggleDetail(tr, o);
     tbody.appendChild(tr);
 
-    // Detail row (hidden by default)
     const dtr = document.createElement('tr');
     dtr.className = 'detail-row';
     dtr.id = `detail-${rid}`;
@@ -771,7 +1021,6 @@ async function toggleDetail(tr, order) {
   const dtr    = document.getElementById(`detail-${rid}`);
   const isOpen = dtr.style.display !== 'none';
 
-  // Close previously open row
   if (expandedRow && expandedRow !== tr) {
     expandedRow.classList.remove('expanded');
     const prevDtr = document.getElementById(`detail-${expandedRow.dataset.rid}`);
@@ -791,7 +1040,6 @@ async function toggleDetail(tr, order) {
 
   const td = dtr.querySelector('td');
 
-  // Show loading state if not cached
   if (!detailCache[rid]) {
     td.innerHTML = `<div class="detail-inner"><div class="detail-loading"><span class="mini-spinner"></span> Fetching order details…</div></div>`;
 
@@ -800,21 +1048,15 @@ async function toggleDetail(tr, order) {
     const shopId = sessionStorage.getItem('spl_shop_id');
 
     try {
-      // Fix #1: check status before consuming body
-      const txResp = await etsyFetch(
-        `/application/shops/${shopId}/receipts/${rid}/transactions`, token, apiKey
-      );
+      const txResp = await etsyFetch(`/application/shops/${shopId}/receipts/${rid}/transactions`, token, apiKey);
       if (!txResp.ok) {
         const errBody = await txResp.json().catch(() => ({}));
         throw new Error(`${txResp.status}: ${errBody.error || txResp.statusText}`);
       }
       const txData = await txResp.json();
 
-      // Fix #7: also fetch the payment object for this receipt
       let payment = null;
-      const payResp = await etsyFetch(
-        `/application/shops/${shopId}/receipts/${rid}/payments`, token, apiKey
-      );
+      const payResp = await etsyFetch(`/application/shops/${shopId}/receipts/${rid}/payments`, token, apiKey);
       if (payResp.ok) {
         const payData = await payResp.json();
         const pays = payData.results || payData.payments || (Array.isArray(payData) ? payData : null);
@@ -826,7 +1068,7 @@ async function toggleDetail(tr, order) {
         payment,
       };
     } catch (err) {
-      td.innerHTML = `<div class="detail-inner"><div class="detail-loading" style="color:var(--orange)">⚠ Failed to load details: ${escHtml(err.message)} — click to retry.</div></div>`;
+      td.innerHTML = `<div class="detail-inner"><div class="detail-loading" style="color:var(--orange)">⚠ Failed to load details: ${escHtml(err.message)}</div></div>`;
       tr.classList.remove('expanded');
       expandedRow = null;
       return;
@@ -834,6 +1076,21 @@ async function toggleDetail(tr, order) {
   }
 
   renderDetailPanel(td, order, detailCache[rid]);
+}
+
+/**
+ * Pick the best available amount from a payment object.
+ * Priority: adjusted (post-refund) → posted (post-shipment) → amount (pre-shipment estimate)
+ */
+function bestPaymentAmount(pay, field) {
+  // field is 'gross', 'fees', or 'net'
+  const adjusted = pay[`adjusted_${field}`];
+  const posted   = pay[`posted_${field}`];
+  const amount   = pay[`amount_${field}`];
+  // Use adjusted if it's non-null (means a refund happened)
+  if (adjusted && adjusted.amount != null) return money(adjusted);
+  if (posted   && posted.amount   != null) return money(posted);
+  return money(amount);
 }
 
 function renderDetailPanel(td, order, detail) {
@@ -846,24 +1103,30 @@ function renderDetailPanel(td, order, detail) {
   const shipping   = money(o.total_shipping_cost);
   const tax        = money(o.total_tax_cost);
   const discount   = money(o.discount_amt);
-  const netAmt     = pay ? money(pay.amount_net)  : null;
-  const feesAmt    = pay ? money(pay.amount_fees) : null;
+
+  // Use best available figures from the payment object
+  const netAmt  = pay ? bestPaymentAmount(pay, 'net')  : null;
+  const feesAmt = pay ? bestPaymentAmount(pay, 'fees') : null;
+  // Note: payment.amount_fees is only the CARD PROCESSING fee.
+  // Total Etsy fees only appear in the ledger — we display a note about this.
+  const hasRefund = pay && pay.adjusted_gross && pay.adjusted_gross.amount != null;
 
   const addr      = [o.city, o.state, o.country_iso].filter(Boolean).join(', ') || '—';
-  const payMethod = o.payment_method ? escHtml(o.payment_method.replace(/_/g,' ')) : '—';
+  const payMethod = o.payment_method ? escHtml(o.payment_method.replace(/_/g, ' ')) : '—';
   const payStatus = escHtml(pay?.status || '—');
 
-  // summary bar
   const stats = [
     { label:'Grand Total', val:fmtMoney(grandtotal), cls:'' },
     { label:'Subtotal',    val:fmtMoney(subtotal),   cls:'' },
     { label:'Shipping',    val:fmtMoney(shipping),   cls:'' },
     { label:'Tax',         val:fmtMoney(tax),        cls:'' },
     ...(discount > 0 ? [{ label:'Discount', val:`−${fmtMoney(discount)}`, cls:'red' }] : []),
+    ...(hasRefund ? [{ label:'⚠ Refunded', val:'(see adjusted)', cls:'red' }] : []),
     ...(pay ? [
       { sep:true },
-      { label:'Etsy Fees',    val:`−${fmtMoney(Math.abs(feesAmt))}`, cls:'red' },
-      { label:'Net Earnings', val:fmtMoney(netAmt),                  cls:'green' },
+      // Note: this is ONLY the card processing fee, not all Etsy fees
+      { label:'Processing Fee', val:`−${fmtMoney(Math.abs(feesAmt))}`, cls:'red' },
+      { label:'Net (after proc. fee)', val:fmtMoney(netAmt), cls:'green' },
     ] : []),
   ];
 
@@ -877,19 +1140,19 @@ function renderDetailPanel(td, order, detail) {
     ).join('')
   }</div>`;
 
-  // left col: order info
   const infoHTML = `
     <div class="detail-col-info">
       <div class="detail-section-title">Order info</div>
       <div class="detail-kv"><span class="detail-kv-label">Payment</span><span class="detail-kv-val" style="text-transform:capitalize">${payMethod}</span></div>
       ${pay ? `<div class="detail-kv"><span class="detail-kv-label">Pay status</span><span class="detail-kv-val" style="text-transform:capitalize">${payStatus}</span></div>` : ''}
+      ${hasRefund ? `<div class="detail-kv"><span class="detail-kv-label">Refunded</span><span class="detail-kv-val red">Yes</span></div>` : ''}
       <div class="detail-kv"><span class="detail-kv-label">Ship to</span><span class="detail-kv-val muted" title="${escHtml(addr)}">${escHtml(addr)}</span></div>
       <div class="detail-kv"><span class="detail-kv-label">Gift order</span><span class="detail-kv-val">${o.is_gift ? 'Yes' : 'No'}</span></div>
+      ${pay ? `<div class="detail-note" style="font-size:0.68rem;color:var(--muted2)">⚠ Processing fee only. Full transaction + ad fees appear in the Finances tab.</div>` : ''}
       ${o.message_from_buyer ? `<div class="detail-note"><strong style="font-size:0.7rem;font-weight:500;color:var(--ink)">Buyer note</strong><br>${escHtml(o.message_from_buyer)}</div>` : ''}
       ${o.is_gift && o.gift_message ? `<div class="detail-note"><strong style="font-size:0.7rem;font-weight:500;color:var(--ink)">Gift message</strong><br>${escHtml(o.gift_message)}</div>` : ''}
     </div>`;
 
-  // right col: line items
   const itemsHTML = txs.length
     ? `<table class="line-items">
         <thead><tr><th>Item</th><th style="text-align:center">Qty</th><th class="li-num">Each</th><th class="li-num">Total</th></tr></thead>
@@ -908,7 +1171,7 @@ function renderDetailPanel(td, order, detail) {
           </tr>`;
         }).join('')}</tbody>
        </table>`
-    : `<p style="padding:1rem 1.25rem;font-size:0.75rem;color:var(--muted2);font-family:'DM Mono',monospace">No line item data.</p>`;
+    : `<p style="padding:1rem 1.25rem;font-size:0.75rem;color:var(--muted2);font-family:'DM Mono',monospace">No line item data available.</p>`;
 
   td.innerHTML = `
     <div class="detail-inner">
@@ -918,101 +1181,6 @@ function renderDetailPanel(td, order, detail) {
         <div class="detail-col-items">${itemsHTML}</div>
       </div>
     </div>`;
-}
-
-// ─── FINANCES TAB ──────────────────────────────────────────────────────────
-function renderFinances() {
-  if (!detailsLoaded) return;
-
-  const entries = window._ledgerEntries || [];
-  if (!entries.length) {
-    document.getElementById('finances-tbody').innerHTML =
-      `<tr><td colspan="5" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">No ledger entries found.</td></tr>`;
-    return;
-  }
-
-  // How Etsy's ledger works:
-  //   PAYMENT_GROSS  = what the buyer paid (gross revenue including shipping + tax)
-  //   Negative entries = fees Etsy deducted (transaction, processing, shipping labels, etc.)
-  //   sales_tax      = positive pass-through to tax authority — NOT your revenue
-  //   DISBURSE / deposit = payout to your bank — NOT revenue, just movement of funds
-  //
-  // So: Gross = sum of PAYMENT_GROSS entries
-  //     Fees  = sum of all negative entries
-  //     Net   = Gross + Fees  (fees are negative, so this subtracts them)
-  const GROSS_TYPES  = new Set(['PAYMENT_GROSS']);
-  // Types that are positive but should NOT count as gross revenue
-  const SKIP_TYPES   = new Set(['sales_tax', 'deposit', 'DISBURSE', 'DISBURSE2']);
-  let totalGross = 0, totalFees = 0;
-
-  for (const e of entries) {
-    const amt = e.amount; // in cents
-    if (GROSS_TYPES.has(e.type))  { totalGross += amt; }
-    else if (SKIP_TYPES.has(e.type)) { /* pass-throughs — exclude from both */ }
-    else if (amt < 0)             { totalFees  += amt; }
-    // any other positive entries (refund reversals etc.) are also skipped
-  }
-
-  const totalNet = totalGross + totalFees;
-
-  document.getElementById('fin-gross').textContent = fmtMoney(totalGross / 100);
-  document.getElementById('fin-fees').textContent  = fmtMoney(Math.abs(totalFees / 100));
-  document.getElementById('fin-net').textContent   = fmtMoney(totalNet / 100);
-  document.getElementById('fin-count').textContent = `${entries.length} entries`;
-
-  // Update KPI cards
-  document.getElementById('kpi-fees').textContent     = fmtMoney(Math.abs(totalFees / 100));
-  document.getElementById('kpi-net').textContent      = fmtMoney(totalNet / 100);
-  document.getElementById('kpi-fees-sub').textContent = 'txn + processing + shipping';
-  document.getElementById('kpi-net-sub').textContent  = 'gross minus all fees';
-
-  // Sort entries newest first
-  const sorted = [...entries].sort((a, b) => b.created_timestamp - a.created_timestamp);
-
-  const typeLabel = {
-    'PAYMENT_GROSS':          'Payment received',
-    'PAYMENT_PROCESSING_FEE': 'Processing fee',
-    'transaction':            'Transaction fee',
-    'shipping_transaction':   'Shipping transaction fee',
-    'shipping_labels':        'Shipping label',
-    'sales_tax':              'Sales tax collected',
-    'renew_sold_auto':        'Listing renewal fee',
-    'prolist':                'Promoted listing fee',
-    'listing':                'Listing fee',
-    'LISTING_FEE':            'Listing fee',
-    'refund':                 'Refund',
-    'deposit':                'Deposit',
-    'marketing':              'Marketing fee',
-    'offsite_ads':            'Offsite Ads fee',
-  };
-
-  const rows = sorted.map(e => {
-    const amt   = e.amount / 100;
-    const isPos = amt >= 0;
-    const date  = new Date(e.created_timestamp * 1000).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
-    const label = escHtml(typeLabel[e.type] || e.description || e.type || '');
-
-    // Show receipt ID if reference is a receipt, otherwise show a readable ref type
-    const refHtml = e.reference_type === 'receipt'
-      ? `<span class="td-mono td-muted">#${e.reference_id}</span>`
-      : `<span style="color:var(--muted2);font-size:0.65rem;font-family:'DM Mono',monospace">${escHtml((e.reference_type || '').replace(/_/g,' '))}</span>`;
-
-    const amtHtml = isPos
-      ? `<span style="color:var(--green);font-family:'Fraunces',serif;font-weight:700;font-size:0.9rem">+${fmtMoney(amt)}</span>`
-      : `<span style="color:var(--red);font-family:'DM Mono',monospace;font-size:0.72rem">${fmtMoney(amt)}</span>`;
-
-    const bal = fmtMoney(e.balance / 100);
-
-    return `<tr>
-      <td class="td-mono td-muted">${date}</td>
-      <td>${label}</td>
-      <td>${refHtml}</td>
-      <td>${amtHtml}</td>
-      <td class="td-mono td-muted">${bal}</td>
-    </tr>`;
-  });
-
-  document.getElementById('finances-tbody').innerHTML = rows.join('');
 }
 
 // ─── TABS ──────────────────────────────────────────────────────────────────
@@ -1030,49 +1198,51 @@ function renderPagination() {
   const pg = document.getElementById('pagination');
   if (totalPages <= 1) { pg.innerHTML = ''; return; }
 
-  let html = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>← Prev</button>`;
-  for (let i=1; i<=totalPages; i++) {
-    if (i===1||i===totalPages||Math.abs(i-currentPage)<=1)
-      html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
-    else if (Math.abs(i-currentPage)===2)
+  let html = `<button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>← Prev</button>`;
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1)
+      html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+    else if (Math.abs(i - currentPage) === 2)
       html += `<span style="color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.7rem">…</span>`;
   }
-  html += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>Next →</button>`;
+  html += `<button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next →</button>`;
   html += `<span class="page-info">Page ${currentPage} of ${totalPages}</span>`;
   pg.innerHTML = html;
 }
 
 function goPage(n) {
   const totalPages = Math.ceil(allOrders.length / PAGE_SIZE);
-  if (n<1||n>totalPages) return;
+  if (n < 1 || n > totalPages) return;
   expandedRow = null;
   currentPage = n;
   renderTable();
-  document.querySelector('.panel').scrollIntoView({behavior:'smooth',block:'start'});
+  document.querySelector('.panel').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 // ─── EXPORTS ───────────────────────────────────────────────────────────────
 function exportCSV() {
-  const headers = ['Receipt ID','Date','Buyer','Items','Payment Method','Status','Gross (USD)','Shipping','Tax','Discount','Net (USD)','Fees (USD)'];
+  const headers = ['Receipt ID','Date','Buyer','Items','Payment Method','Status','Gross (USD)','Shipping','Tax','Discount','Processing Fee (USD)','Net after proc. fee (USD)','Refunded'];
   const rows = allOrders.map(o => {
     const d   = detailCache[o.receipt_id];
     const pay = d?.payment;
+    const hasRefund = pay && pay.adjusted_gross && pay.adjusted_gross.amount != null;
     return [
-      o.receipt_id||'',
-      o.create_timestamp ? new Date(o.create_timestamp*1000).toISOString().slice(0,10) : '',
-      o.name||o.buyer_user_id||'',
-      o.transaction_count||(o.transactions?.length)||'',
-      o.payment_method||'',
+      o.receipt_id || '',
+      o.create_timestamp ? new Date(o.create_timestamp * 1000).toISOString().slice(0, 10) : '',
+      o.name || o.buyer_user_id || '',
+      o.transaction_count || (o.transactions?.length) || '',
+      o.payment_method || '',
       getStatus(o),
       money(o.grandtotal).toFixed(2),
       money(o.total_shipping_cost).toFixed(2),
       money(o.total_tax_cost).toFixed(2),
       money(o.discount_amt).toFixed(2),
-      pay ? money(pay.amount_net).toFixed(2) : '',
-      pay ? money(pay.amount_fees).toFixed(2) : '',
+      pay ? Math.abs(bestPaymentAmount(pay, 'fees')).toFixed(2) : '',
+      pay ? bestPaymentAmount(pay, 'net').toFixed(2) : '',
+      hasRefund ? 'Yes' : 'No',
     ];
   });
-  const csv = [headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
   download('orders_export.csv', csv, 'text/csv');
 }
 
@@ -1080,93 +1250,96 @@ function exportJSON() {
   const data = allOrders.map(o => {
     const d   = detailCache[o.receipt_id];
     const pay = d?.payment;
+    const hasRefund = pay && pay.adjusted_gross && pay.adjusted_gross.amount != null;
     return {
-      receipt_id:    o.receipt_id,
-      date:          o.create_timestamp ? new Date(o.create_timestamp*1000).toISOString() : null,
-      buyer:         o.name||o.buyer_user_id||null,
-      item_count:    o.transaction_count||(o.transactions?.length)||null,
-      payment_method:o.payment_method||null,
-      status:        getStatus(o),
-      is_gift:       o.is_gift||false,
-      gift_message:  o.gift_message||null,
-      ship_to:       [o.city,o.state,o.country_iso].filter(Boolean).join(', ')||null,
-      gross_usd:     money(o.grandtotal),
-      shipping_usd:  money(o.total_shipping_cost),
-      tax_usd:       money(o.total_tax_cost),
-      discount_usd:  money(o.discount_amt),
-      net_usd:       pay ? money(pay.amount_net) : null,
-      fees_usd:      pay ? money(pay.amount_fees) : null,
-      pay_status:    pay?.status||null,
-      line_items:    (d?.transactions||[]).map(t=>({
-        title:    t.title||null,
-        sku:      t.sku||null,
-        quantity: t.quantity||1,
+      receipt_id:         o.receipt_id,
+      date:               o.create_timestamp ? new Date(o.create_timestamp * 1000).toISOString() : null,
+      buyer:              o.name || o.buyer_user_id || null,
+      item_count:         o.transaction_count || (o.transactions?.length) || null,
+      payment_method:     o.payment_method || null,
+      status:             getStatus(o),
+      is_gift:            o.is_gift || false,
+      gift_message:       o.gift_message || null,
+      ship_to:            [o.city, o.state, o.country_iso].filter(Boolean).join(', ') || null,
+      gross_usd:          money(o.grandtotal),
+      shipping_usd:       money(o.total_shipping_cost),
+      tax_usd:            money(o.total_tax_cost),
+      discount_usd:       money(o.discount_amt),
+      processing_fee_usd: pay ? Math.abs(bestPaymentAmount(pay, 'fees')) : null,
+      net_after_proc_fee: pay ? bestPaymentAmount(pay, 'net') : null,
+      refunded:           hasRefund,
+      pay_status:         pay?.status || null,
+      line_items: (d?.transactions || []).map(t => ({
+        title:    t.title || null,
+        sku:      t.sku || null,
+        quantity: t.quantity || 1,
         price:    t.price ? money(t.price) : null,
       })),
     };
   });
-  download('orders_export.json', JSON.stringify(data,null,2), 'application/json');
+  download('orders_export.json', JSON.stringify(data, null, 2), 'application/json');
 }
 
 function exportFinancesCSV() {
   const entries = window._ledgerEntries || [];
   if (!entries.length) { alert('No ledger data to export. Load full details first.'); return; }
-  const typeLabel = {
-    'PAYMENT_GROSS':'Payment received','PAYMENT_PROCESSING_FEE':'Processing fee',
-    'transaction':'Transaction fee','shipping_transaction':'Shipping transaction fee',
-    'shipping_labels':'Shipping label','sales_tax':'Sales tax collected',
-    'renew_sold_auto':'Listing renewal fee','prolist':'Promoted listing fee',
-    'listing':'Listing fee','LISTING_FEE':'Listing fee','refund':'Refund',
-    'deposit':'Deposit','marketing':'Marketing fee','offsite_ads':'Offsite Ads fee',
-  };
-  const sorted = [...entries].sort((a,b) => b.created_timestamp - a.created_timestamp);
-  const headers = ['Date','Type','Description','Reference Type','Reference ID','Amount (USD)','Balance (USD)'];
+  const sorted = [...entries].sort((a, b) => b.created_timestamp - a.created_timestamp);
+  const headers = ['Date','Category','Type','Description','Reference Type','Reference ID','Amount (USD)','Running Balance (USD)'];
   const rows = sorted.map(e => [
-    new Date(e.created_timestamp*1000).toISOString().slice(0,10),
-    e.type||'',
-    typeLabel[e.type] || e.description || e.type || '',
-    e.reference_type||'',
-    e.reference_id||'',
-    (e.amount/100).toFixed(2),
-    (e.balance/100).toFixed(2),
+    new Date(e.created_timestamp * 1000).toISOString().slice(0, 10),
+    categoriseEntry(e),
+    e.type || '',
+    LEDGER_LABEL[e.type] || e.description || e.type || '',
+    e.reference_type || '',
+    e.reference_id || '',
+    (e.amount / 100).toFixed(2),
+    (e.balance / 100).toFixed(2),
   ]);
-  const csv = [headers,...rows].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const csv = [headers, ...rows].map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
   download('finances_export.csv', csv, 'text/csv');
 }
 
 function exportFinancesJSON() {
   const entries = window._ledgerEntries || [];
   if (!entries.length) { alert('No ledger data to export. Load full details first.'); return; }
-  const sorted = [...entries].sort((a,b) => b.created_timestamp - a.created_timestamp);
-  const data = sorted.map(e => ({
-    date:           new Date(e.created_timestamp*1000).toISOString(),
-    type:           e.type||null,
-    description:    e.description||null,
-    reference_type: e.reference_type||null,
-    reference_id:   e.reference_id||null,
-    amount_usd:     e.amount/100,
-    balance_usd:    e.balance/100,
-  }));
-  download('finances_export.json', JSON.stringify(data,null,2), 'application/json');
+  const sorted = [...entries].sort((a, b) => b.created_timestamp - a.created_timestamp);
+  const { grossCents, feesCents, netCents } = computeLedgerTotals(entries);
+  const data = {
+    summary: {
+      gross_usd: grossCents / 100,
+      fees_usd:  Math.abs(feesCents / 100),
+      net_usd:   netCents / 100,
+    },
+    entries: sorted.map(e => ({
+      date:           new Date(e.created_timestamp * 1000).toISOString(),
+      category:       categoriseEntry(e),
+      type:           e.type || null,
+      description:    LEDGER_LABEL[e.type] || e.description || null,
+      reference_type: e.reference_type || null,
+      reference_id:   e.reference_id || null,
+      amount_usd:     e.amount / 100,
+      balance_usd:    e.balance / 100,
+    })),
+  };
+  download('finances_export.json', JSON.stringify(data, null, 2), 'application/json');
 }
-
 
 function download(filename, content, type) {
   const a = document.createElement('a');
-  a.href  = URL.createObjectURL(new Blob([content],{type}));
+  a.href  = URL.createObjectURL(new Blob([content], { type }));
   a.download = filename; a.click();
 }
 
 // ─── UTILS ─────────────────────────────────────────────────────────────────
 function money(obj) {
   if (!obj) return 0;
-  return (obj.amount||0) / (obj.divisor||100);
+  return (obj.amount || 0) / (obj.divisor || 100);
 }
 function fmtMoney(n) {
-  return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n);
+  return new Intl.NumberFormat('en-US', { style:'currency', currency:'USD' }).format(n);
 }
 function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 function getStatus(o) {
   if (o.status)      return o.status;
@@ -1175,42 +1348,43 @@ function getStatus(o) {
   return 'open';
 }
 function statusClass(s) {
-  const sl = (s||'').toLowerCase();
-  if (sl==='paid')                        return 's-paid';
-  if (sl==='completed'||sl==='complete')  return 's-completed';
-  if (sl==='shipped')                     return 's-shipped';
-  if (sl==='open'||sl==='payment processing') return 's-open';
-  return 's-other'; // covers: canceled, unknown, etc.
+  const sl = (s || '').toLowerCase();
+  if (sl === 'paid')                          return 's-paid';
+  if (sl === 'completed' || sl === 'complete') return 's-completed';
+  if (sl === 'shipped')                       return 's-shipped';
+  if (sl === 'open' || sl === 'payment processing') return 's-open';
+  return 's-other';
 }
 
 function showError(msg) {
   const el = document.getElementById('error-banner');
-  el.style.display='block'; el.textContent='⚠ '+msg;
+  el.style.display = 'block'; el.textContent = '⚠ ' + msg;
 }
 function showConnect() {
-  document.getElementById('connect-screen').style.display='flex';
-  document.getElementById('loading-screen').style.display='none';
-  document.getElementById('dashboard').style.display='none';
-  document.getElementById('live-badge').style.display='none';
-  document.getElementById('disconnect-btn').style.display='none';
+  document.getElementById('connect-screen').style.display = 'flex';
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display      = 'none';
+  document.getElementById('live-badge').style.display     = 'none';
+  document.getElementById('disconnect-btn').style.display = 'none';
 }
 function showLoading(msg) {
-  document.getElementById('loading-text').textContent=msg||'Loading…';
-  document.getElementById('connect-screen').style.display='none';
-  document.getElementById('loading-screen').style.display='flex';
-  document.getElementById('dashboard').style.display='none';
+  document.getElementById('loading-text').textContent     = msg || 'Loading…';
+  document.getElementById('connect-screen').style.display = 'none';
+  document.getElementById('loading-screen').style.display = 'flex';
+  document.getElementById('dashboard').style.display      = 'none';
 }
 function showDashboard() {
-  document.getElementById('connect-screen').style.display='none';
-  document.getElementById('loading-screen').style.display='none';
-  document.getElementById('dashboard').style.display='block';
-  document.getElementById('live-badge').style.display='flex';
-  document.getElementById('disconnect-btn').style.display='block';
+  document.getElementById('connect-screen').style.display = 'none';
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display      = 'block';
+  document.getElementById('live-badge').style.display     = 'flex';
+  document.getElementById('disconnect-btn').style.display = 'block';
 }
 function disconnect() {
-  sessionStorage.clear(); allOrders=[]; detailCache={}; detailsLoaded=false;
+  sessionStorage.clear(); allOrders = []; detailCache = {}; detailsLoaded = false;
+  window._ledgerEntries = null;
   showConnect();
-  document.getElementById('error-banner').style.display='none';
+  document.getElementById('error-banner').style.display = 'none';
 }
 
 // ─── BOOT ──────────────────────────────────────────────────────────────────
@@ -1220,7 +1394,7 @@ function disconnect() {
   const state  = params.get('state');
   const error  = params.get('error');
 
-  if (error) { showConnect(); showError(`Etsy declined the request: ${params.get('error_description')||error}`); return; }
+  if (error) { showConnect(); showError(`Etsy declined the request: ${params.get('error_description') || error}`); return; }
   if (code && state) { await handleCallback(code, state); return; }
 
   const token = sessionStorage.getItem('spl_token');
