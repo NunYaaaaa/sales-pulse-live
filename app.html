@@ -381,6 +381,39 @@
     .fee-donut-tooltip.visible { opacity:1; }
 
 
+
+    /* ── SKELETONS ────────────────────────────────────────── */
+    @keyframes shimmer {
+      0%   { background-position: -600px 0; }
+      100% { background-position:  600px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, var(--border) 25%, var(--paper) 50%, var(--border) 75%);
+      background-size: 600px 100%;
+      animation: shimmer 1.4s infinite linear;
+      border-radius: 6px;
+      display: inline-block;
+    }
+    .skeleton-kpi-val  { height: 2rem;  width: 80px; }
+    .skeleton-kpi-sub  { height: 0.75rem; width: 100px; margin-top: 6px; }
+    .skeleton-row      { height: 1rem;  width: 100%; margin-bottom: 8px; border-radius: 4px; }
+    .skeleton-row.short { width: 60%; }
+    .skeleton-row.med   { width: 80%; }
+
+    /* Inline fetch status pill in dash header */
+    .fetch-status {
+      display: none; align-items: center; gap: 6px;
+      font-family: 'DM Mono', monospace; font-size: 0.6rem;
+      letter-spacing: 0.06em; color: var(--muted2);
+    }
+    .fetch-status.visible { display: flex; }
+    .fetch-status-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      border: 1.5px solid var(--orange); border-top-color: transparent;
+      animation: spin 0.7s linear infinite; flex-shrink: 0;
+    }
+    .fetch-status-dot.done { border: 1.5px solid var(--green); animation: none; }
+
     /* ── ORDER CHARTS ─────────────────────────────────────── */
     .order-charts-grid {
       display:grid; grid-template-columns:1fr 1fr;
@@ -517,10 +550,16 @@
       <div class="dash-shop-name" id="shop-name">—</div>
       <div class="dash-shop-sub" id="shop-sub">Loading…</div>
     </div>
-    <div class="dash-actions">
-      <button id="load-details-btn" onclick="loadAllDetails()">⚡ Load full details</button>
-      <button class="export-btn export-csv"  onclick="exportCSV()">↓ CSV</button>
-      <button class="export-btn export-json" onclick="exportJSON()">↓ JSON</button>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      <div class="dash-actions">
+        <div class="fetch-status" id="fetch-status">
+          <div class="fetch-status-dot" id="fetch-status-dot"></div>
+          <span id="fetch-status-text">Loading…</span>
+        </div>
+        <button id="load-details-btn" onclick="loadAllDetails()" style="display:none">⚡ Load full details</button>
+        <button class="export-btn export-csv"  onclick="exportCSV()">↓ CSV</button>
+        <button class="export-btn export-json" onclick="exportJSON()">↓ JSON</button>
+      </div>
     </div>
   </div>
 
@@ -979,16 +1018,19 @@ async function resetAndReload() {
   const shopId = sessionStorage.getItem('spl_shop_id');
   if (!token || !shopId) return;
 
-  showLoading('Fetching orders for selected period…');
+  showSkeletons();   // skeleton while re-fetching
   try {
     allOrders = await fetchOrders(shopId, token, apiKey);
     renderKPIs();
     renderTable();
     renderOrderCharts();
-    showDashboard();
+    setFetchStatus(`${allOrders.length} orders loaded`, false);
+    // Re-run full details for new date range in background
+    setFetchStatus('Loading financial details…');
+    await loadAllDetails(true);
   } catch(e) {
+    setFetchStatus('Reload failed', true);
     showError('Reload failed: ' + e.message);
-    showDashboard();
   }
 }
 
@@ -1060,11 +1102,13 @@ async function loadDashboard() {
   const token  = sessionStorage.getItem('spl_token');
   const apiKey = sessionStorage.getItem('spl_api_key');
   if (!token) { showConnect(); return; }
-  showLoading('Fetching your shop…');
+
+  // ── Step 1: fetch shop info (fast — just one call) ──────────────────────
+  showLoading('Connecting to your shop…');
+  let shopId, shopName;
   try {
     const userId = sessionStorage.getItem('spl_user_id');
     if (!userId) throw new Error('User ID not found — please reconnect.');
-    showLoading('Loading shop details…');
     const shopResp = await etsyFetch(`/application/users/${userId}/shops`, token, apiKey);
     if (!shopResp.ok) {
       const errBody = await shopResp.json().catch(() => ({}));
@@ -1072,33 +1116,92 @@ async function loadDashboard() {
     }
     const shopData = await shopResp.json();
     const shop     = (shopData.results && shopData.results[0]) || shopData;
-    const shopId   = shop.shop_id;
-    const shopName = shop.shop_name || 'Your Shop';
-    if (!shopId) throw new Error(`Shop ID missing from response. Raw: ${JSON.stringify(shopData).slice(0, 200)}`);
-
-    document.getElementById('shop-name').textContent  = shopName;
-    document.getElementById('shop-sub').textContent   = `Shop ID: ${shopId} · @${shopName.toLowerCase()}`;
+    shopId   = shop.shop_id;
+    shopName = shop.shop_name || 'Your Shop';
+    if (!shopId) throw new Error(`Shop ID missing. Raw: ${JSON.stringify(shopData).slice(0, 200)}`);
     sessionStorage.setItem('spl_shop_id',   shopId);
     sessionStorage.setItem('spl_shop_name', shopName);
+  } catch(e) {
+    showConnect();
+    showError(`Could not connect: ${e.message}`);
+    return;
+  }
 
-    showLoading('Fetching orders…');
-    // Default to last 30 days on first connect (matches the active preset chip)
-    if (filterFrom === null && filterTo === null) {
-      filterFrom = dateStrToTs(daysAgoStr(30), false);
-      filterTo   = dateStrToTs(todayStr(),     true);
-      document.getElementById('filter-from').value = daysAgoStr(30);
-      document.getElementById('filter-to').value   = todayStr();
-    }
+  // ── Step 2: show dashboard shell immediately ─────────────────────────────
+  document.getElementById('shop-name').textContent = shopName;
+  document.getElementById('shop-sub').textContent  = `Shop ID: ${shopId} · @${shopName.toLowerCase()}`;
+
+  // Default date filter
+  if (filterFrom === null && filterTo === null) {
+    filterFrom = dateStrToTs(daysAgoStr(30), false);
+    filterTo   = dateStrToTs(todayStr(),     true);
+    document.getElementById('filter-from').value = daysAgoStr(30);
+    document.getElementById('filter-to').value   = todayStr();
+  }
+
+  showSkeletons();   // paint placeholder UI immediately
+  showDashboard();   // flip to dashboard view
+
+  // ── Step 3: load orders in background ───────────────────────────────────
+  backgroundLoad(shopId, token, apiKey);
+}
+
+/** Show skeleton placeholders so the page looks alive before data arrives */
+function showSkeletons() {
+  // KPI cards
+  ['kpi-revenue','kpi-fees','kpi-net','kpi-orders','kpi-aov'].forEach(id => {
+    document.getElementById(id).innerHTML = '<span class="skeleton skeleton-kpi-val"></span>';
+  });
+  document.getElementById('kpi-fees-sub').innerHTML  = '<span class="skeleton skeleton-kpi-sub"></span>';
+  document.getElementById('kpi-net-sub').innerHTML   = '<span class="skeleton skeleton-kpi-sub"></span>';
+
+  // Table body
+  const tbody = document.getElementById('orders-tbody');
+  tbody.innerHTML = Array(8).fill(0).map(() => `
+    <tr style="border-bottom:1px solid var(--border)">
+      <td colspan="7" style="padding:0.85rem 1.25rem">
+        <span class="skeleton skeleton-row ${['med','short','med','','short','med',''][Math.floor(Math.random()*7)]}"></span>
+      </td>
+    </tr>`).join('');
+
+  // Order count
+  document.getElementById('order-count').textContent = '…';
+
+  // Status pill
+  setFetchStatus('Loading orders…', false);
+}
+
+/** Update the inline status pill in the header */
+function setFetchStatus(msg, done = false) {
+  const pill = document.getElementById('fetch-status');
+  const dot  = document.getElementById('fetch-status-dot');
+  const txt  = document.getElementById('fetch-status-text');
+  pill.classList.add('visible');
+  dot.className  = 'fetch-status-dot' + (done ? ' done' : '');
+  txt.textContent = msg;
+  if (done) setTimeout(() => pill.classList.remove('visible'), 3000);
+}
+
+/** Fetch orders then auto-trigger full details — all in background */
+async function backgroundLoad(shopId, token, apiKey) {
+  // Phase A: orders
+  try {
+    setFetchStatus('Loading orders…');
     allOrders = await fetchOrders(shopId, token, apiKey);
     renderKPIs();
     currentPage = 1;
     renderTable();
     renderOrderCharts();
-    showDashboard();
+    setFetchStatus(`${allOrders.length} orders loaded`, false);
   } catch(e) {
-    showConnect();
-    showError(`Error loading data: ${e.message}. Your token may have expired — please reconnect.`);
+    setFetchStatus('Order fetch failed', true);
+    showError(`Orders failed: ${e.message}`);
+    return;
   }
+
+  // Phase B: auto-load full details (transactions + ledger) in background
+  setFetchStatus('Loading financial details…');
+  await loadAllDetails(true /* background */);
 }
 
 async function fetchOrders(shopId, token, apiKey) {
@@ -1112,7 +1215,7 @@ async function fetchOrders(shopId, token, apiKey) {
   const dateQS = dateParams.length ? '&' + dateParams.join('&') : '';
 
   while (true) {
-    showLoading(`Fetching orders… (${orders.length} loaded)`);
+    // (progress reported via setFetchStatus)
     const resp = await etsyFetch(
       `/application/shops/${shopId}/receipts?limit=${BATCH}&offset=${offset}&was_paid=true${dateQS}`,
       token, apiKey
@@ -1167,7 +1270,7 @@ async function etsyFetch(path, token, apiKey, { maxRetries = 5 } = {}) {
 }
 
 // ─── LOAD FULL DETAILS ──────────────────────────────────────────────────────
-async function loadAllDetails() {
+async function loadAllDetails(background = false) {
   const token  = sessionStorage.getItem('spl_token');
   const apiKey = sessionStorage.getItem('spl_api_key');
   const shopId = sessionStorage.getItem('spl_shop_id');
@@ -1177,9 +1280,11 @@ async function loadAllDetails() {
   const ptext  = document.getElementById('progress-text');
 
   try {
-    btn.disabled = true;
-    btn.textContent = 'Loading…';
-    prog.style.display = 'flex';
+    if (!background) {
+      btn.disabled = true;
+      btn.textContent = 'Loading…';
+      prog.style.display = 'flex';
+    }
 
     const total = allOrders.length;
     let done = 0;
@@ -1225,8 +1330,8 @@ async function loadAllDetails() {
     }
 
     // ── Phase 2: fetch ledger in 30-day windows (80–100%) ──
-    ptext.textContent = 'Fetching financial ledger…';
-    fill.style.width = '85%';
+    if (!background) { ptext.textContent = 'Fetching financial ledger…'; fill.style.width = '85%'; }
+    else setFetchStatus('Fetching ledger…');
 
     const now          = Math.floor(Date.now() / 1000);
     const MAX_LOOKBACK = 365 * 24 * 60 * 60;
@@ -1286,9 +1391,11 @@ async function loadAllDetails() {
     window._ledgerEntries = ledgerEntries;
 
     detailsLoaded = true;
-    fill.style.width = '100%';
-    prog.style.display = 'none';
-    btn.textContent = '✓ Full details loaded';
+    if (!background) {
+      fill.style.width = '100%';
+      prog.style.display = 'none';
+      btn.textContent = '✓ Full details loaded';
+    }
     document.getElementById('fin-export-csv').disabled  = false;
     document.getElementById('fin-export-json').disabled = false;
     document.getElementById('fin-export-csv').title  = '';
@@ -1297,11 +1404,20 @@ async function loadAllDetails() {
     renderFinances();
     renderKPIs();
     renderOrderCharts(); // refresh top products now we have line items
+    if (background) setFetchStatus('All data loaded ✓', true);
 
   } catch (err) {
-    prog.style.display = 'none';
-    btn.disabled = false;
-    btn.textContent = '⚡ Load full details';
+    if (!background) {
+      prog.style.display = 'none';
+      btn.disabled = false;
+      btn.textContent = '⚡ Load full details';
+    } else {
+      // Background failure — surface the manual button so user can retry
+      btn.style.display = '';
+      btn.disabled = false;
+      btn.textContent = '⚡ Load full details';
+      setFetchStatus('Detail load failed — retry manually', true);
+    }
     showError('Detail load failed: ' + err.message);
   }
 }
@@ -2471,6 +2587,8 @@ function disconnect() {
   document.getElementById('filter-from').value = '';
   document.getElementById('filter-to').value   = '';
   document.getElementById('filter-active-badge').classList.remove('visible');
+  document.getElementById('fetch-status').classList.remove('visible');
+  document.getElementById('load-details-btn').style.display = 'none';
   showConnect();
   document.getElementById('error-banner').style.display = 'none';
 }
