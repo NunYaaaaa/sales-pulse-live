@@ -309,6 +309,77 @@
     }
     .filter-clear-x:hover { opacity:1; }
 
+
+    /* FEE BREAKDOWN CHART */
+    .fee-chart-panel {
+      background:var(--offwhite); border:1px solid var(--border);
+      border-radius:16px; overflow:hidden; margin-bottom:1.5rem;
+    }
+    .fee-chart-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:1rem 1.25rem; border-bottom:1px solid var(--border);
+    }
+    .fee-chart-title {
+      font-family:'Fraunces',serif; font-size:0.95rem; font-weight:700;
+      letter-spacing:-0.01em; color:var(--ink);
+    }
+    .fee-chart-total {
+      font-family:'Fraunces',serif; font-size:1.1rem; font-weight:700;
+      letter-spacing:-0.02em; color:var(--red);
+    }
+    .fee-chart-body {
+      display:grid; grid-template-columns:220px 1fr;
+      gap:0; align-items:center;
+    }
+    @media(max-width:640px){ .fee-chart-body{ grid-template-columns:1fr; } }
+
+    /* Donut */
+    .fee-donut-wrap {
+      display:flex; flex-direction:column; align-items:center;
+      justify-content:center; padding:1.5rem 1rem;
+      border-right:1px solid var(--border);
+      position:relative;
+    }
+    @media(max-width:640px){ .fee-donut-wrap{ border-right:none; border-bottom:1px solid var(--border); } }
+    .fee-donut-svg { width:160px; height:160px; transform:rotate(-90deg); }
+    .fee-donut-center {
+      position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      text-align:center; pointer-events:none;
+    }
+    .fee-donut-center-val {
+      font-family:'Fraunces',serif; font-size:1.1rem; font-weight:700;
+      letter-spacing:-0.03em; color:var(--ink); display:block;
+    }
+    .fee-donut-center-lbl {
+      font-family:'DM Mono',monospace; font-size:0.52rem;
+      letter-spacing:0.08em; text-transform:uppercase; color:var(--muted2);
+    }
+
+    /* Bar list */
+    .fee-bars-wrap { padding:1.25rem 1.5rem; display:flex; flex-direction:column; gap:10px; }
+    .fee-bar-row {
+      display:grid; grid-template-columns:140px 1fr 70px;
+      align-items:center; gap:10px; cursor:pointer; border-radius:8px;
+      padding:4px 6px; transition:background 0.15s;
+    }
+    .fee-bar-row:hover { background:var(--paper); }
+    .fee-bar-row.highlighted { background:var(--paper); }
+    .fee-bar-label { font-size:0.78rem; font-weight:400; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .fee-bar-track { height:8px; background:var(--border); border-radius:999px; overflow:hidden; }
+    .fee-bar-fill  { height:100%; border-radius:999px; transition:width 0.5s cubic-bezier(.4,0,.2,1), opacity 0.2s; }
+    .fee-bar-val   { font-family:'Fraunces',serif; font-size:0.88rem; font-weight:700; color:var(--ink); text-align:right; white-space:nowrap; }
+    .fee-bar-pct   { font-family:'DM Mono',monospace; font-size:0.58rem; color:var(--muted2); text-align:right; }
+
+    /* Donut segment hover tooltip */
+    .fee-donut-tooltip {
+      position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
+      background:var(--ink); color:var(--cream);
+      font-family:'DM Mono',monospace; font-size:0.6rem;
+      padding:4px 10px; border-radius:6px; white-space:nowrap;
+      pointer-events:none; opacity:0; transition:opacity 0.15s;
+    }
+    .fee-donut-tooltip.visible { opacity:1; }
+
     /* LEDGER TYPE BADGE */
     .ledger-type-badge {
       font-family:'DM Mono',monospace; font-size:0.56rem; letter-spacing:0.04em;
@@ -499,6 +570,28 @@
         <div class="kpi-sub">gross minus all fees</div>
       </div>
     </div>
+
+    <!-- FEE BREAKDOWN CHART -->
+    <div class="fee-chart-panel" id="fee-chart-panel" style="display:none">
+      <div class="fee-chart-header">
+        <div class="fee-chart-title">Etsy Fee Breakdown</div>
+        <div class="fee-chart-total" id="fee-chart-total">—</div>
+      </div>
+      <div class="fee-chart-body">
+        <!-- Donut -->
+        <div class="fee-donut-wrap">
+          <svg class="fee-donut-svg" viewBox="0 0 160 160" id="fee-donut-svg"></svg>
+          <div class="fee-donut-center" id="fee-donut-center">
+            <span class="fee-donut-center-val" id="fee-donut-center-val">—</span>
+            <span class="fee-donut-center-lbl" id="fee-donut-center-lbl">total fees</span>
+          </div>
+          <div class="fee-donut-tooltip" id="fee-donut-tooltip"></div>
+        </div>
+        <!-- Bar list -->
+        <div class="fee-bars-wrap" id="fee-bars-wrap"></div>
+      </div>
+    </div>
+
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">Payment Ledger</div>
@@ -1164,6 +1257,202 @@ function renderKPIs() {
   }
 }
 
+
+// ─── FEE BREAKDOWN CHART ────────────────────────────────────────────────────
+const FEE_GROUPS = [
+  { key:'shipping_labels',       label:'Shipping Labels',    color:'#d4622a' },
+  { key:'prolist',               label:'Etsy Ads',           color:'#5a3d9e' },
+  { key:'transaction',           label:'Transaction Fees',   color:'#3a7d4c' },
+  { key:'PAYMENT_PROCESSING_FEE',label:'Processing Fees',    color:'#b8860b' },
+  { key:'shipping_transaction',  label:'Shipping Txn Fees',  color:'#2563eb' },
+  { key:'renew_sold_auto',       label:'Listing Renewals',   color:'#db2777' },
+  { key:'offsite_ads_fee',       label:'Offsite Ads',        color:'#0891b2' },
+  { key:'listing',               label:'Listing Fees',       color:'#65a30d' },
+  { key:'LISTING_FEE',           label:'Listing Fees',       color:'#65a30d' },
+  { key:'marketing',             label:'Marketing',          color:'#7c3aed' },
+  { key:'gift_wrap_fees',        label:'Gift Wrap',          color:'#be185d' },
+  { key:'buyer_fee',             label:'Buyer Fees',         color:'#92400e' },
+  { key:'auto_renew_expired',    label:'Expired Renewals',   color:'#6b7280' },
+];
+const FEE_OTHER_COLOR = '#a89e90';
+
+function renderFeeChart(entries) {
+  const panel = document.getElementById('fee-chart-panel');
+
+  // Tally absolute fee amounts by type key
+  const tally = {};
+  let totalFeesCents = 0;
+
+  for (const e of entries) {
+    const cat = categoriseEntry(e);
+    if (cat !== 'fee') continue;
+
+    const t_key = e.ledger_type || e.type || e.description || 'other';
+    const cents  = Math.abs(e.amount); // store as positive
+    tally[t_key] = (tally[t_key] || 0) + cents;
+    totalFeesCents += cents;
+  }
+
+  if (totalFeesCents === 0) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+
+  // Build ordered groups — merge known keys, bucket the rest into "Other"
+  const rows = [];
+  const seenKeys = new Set();
+
+  for (const g of FEE_GROUPS) {
+    // Merge LISTING_FEE into listing row
+    if (g.key === 'LISTING_FEE') {
+      if (tally['LISTING_FEE']) {
+        tally['listing'] = (tally['listing'] || 0) + tally['LISTING_FEE'];
+      }
+      continue;
+    }
+    if (tally[g.key]) {
+      rows.push({ label: g.label, cents: tally[g.key], color: g.color, key: g.key });
+      seenKeys.add(g.key);
+    }
+  }
+  seenKeys.add('LISTING_FEE');
+
+  // Everything else → Other
+  let otherCents = 0;
+  for (const [k, v] of Object.entries(tally)) {
+    if (!seenKeys.has(k)) otherCents += v;
+  }
+  if (otherCents > 0) rows.push({ label:'Other', cents: otherCents, color: FEE_OTHER_COLOR, key:'other' });
+
+  // Sort by amount desc
+  rows.sort((a, b) => b.cents - a.cents);
+
+  const total = totalFeesCents;
+  document.getElementById('fee-chart-total').textContent = fmtMoney(total / 100);
+  document.getElementById('fee-donut-center-val').textContent = fmtMoney(total / 100);
+
+  // ── Draw donut ──
+  const svg    = document.getElementById('fee-donut-svg');
+  const cx = 80, cy = 80, r = 62, strokeW = 22;
+  const circumference = 2 * Math.PI * r;
+
+  // Build segments
+  let offset = 0;
+  const segments = rows.map((row, i) => {
+    const frac  = row.cents / total;
+    const dash  = frac * circumference;
+    const gap   = circumference - dash;
+    const seg   = { ...row, frac, dash, gap, offset };
+    offset += dash;
+    return seg;
+  });
+
+  svg.innerHTML = segments.map((seg, i) => `
+    <circle
+      class="donut-seg"
+      data-idx="${i}"
+      cx="${cx}" cy="${cy}" r="${r}"
+      fill="none"
+      stroke="${seg.color}"
+      stroke-width="${strokeW}"
+      stroke-dasharray="${seg.dash.toFixed(3)} ${seg.gap.toFixed(3)}"
+      stroke-dashoffset="${-seg.offset.toFixed(3)}"
+      style="cursor:pointer;transition:stroke-width 0.18s,opacity 0.18s"
+    />
+  `).join('') + `<circle cx="${cx}" cy="${cy}" r="${r - strokeW/2 - 2}" fill="var(--offwhite)"/>`;
+
+  // Donut segment hover
+  const tooltip  = document.getElementById('fee-donut-tooltip');
+  const centerVal = document.getElementById('fee-donut-center-val');
+  const centerLbl = document.getElementById('fee-donut-center-lbl');
+  const barRows   = document.getElementById('fee-bars-wrap');
+
+  function highlightIdx(idx) {
+    svg.querySelectorAll('.donut-seg').forEach((el, i) => {
+      el.style.strokeWidth = i === idx ? (strokeW + 6) : strokeW;
+      el.style.opacity     = idx === null || i === idx ? '1' : '0.35';
+    });
+    barRows.querySelectorAll('.fee-bar-row').forEach((el, i) => {
+      el.classList.toggle('highlighted', i === idx);
+    });
+    if (idx !== null) {
+      const s = segments[idx];
+      centerVal.textContent = fmtMoney(s.cents / 100);
+      centerLbl.textContent = s.label;
+      tooltip.textContent   = `${s.label}: ${(s.frac * 100).toFixed(1)}%`;
+      tooltip.classList.add('visible');
+    } else {
+      centerVal.textContent = fmtMoney(total / 100);
+      centerLbl.textContent = 'total fees';
+      tooltip.classList.remove('visible');
+    }
+  }
+
+  svg.querySelectorAll('.donut-seg').forEach((el, i) => {
+    el.addEventListener('mouseenter', () => highlightIdx(i));
+    el.addEventListener('mouseleave', () => highlightIdx(null));
+  });
+
+  // ── Draw bar rows ──
+  const maxCents = rows[0].cents;
+  barRows.innerHTML = rows.map((row, i) => {
+    const pct    = (row.cents / total * 100).toFixed(1);
+    const barPct = (row.cents / maxCents * 100).toFixed(1);
+    return `
+      <div class="fee-bar-row" data-idx="${i}"
+           onmouseenter="feeBarHover(${i})"
+           onmouseleave="feeBarHover(null)">
+        <div class="fee-bar-label" title="${escHtml(row.label)}">${escHtml(row.label)}</div>
+        <div class="fee-bar-track">
+          <div class="fee-bar-fill" style="width:0%;background:${row.color}"
+               data-target="${barPct}"></div>
+        </div>
+        <div>
+          <div class="fee-bar-val">${fmtMoney(row.cents / 100)}</div>
+          <div class="fee-bar-pct">${pct}%</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Animate bars in
+  requestAnimationFrame(() => {
+    barRows.querySelectorAll('.fee-bar-fill').forEach(el => {
+      el.style.width = el.dataset.target + '%';
+    });
+  });
+
+  // Store segments on window for cross-reference from bar hover
+  window._feeSegments = segments;
+}
+
+function feeBarHover(idx) {
+  const svg     = document.getElementById('fee-donut-svg');
+  const segs    = window._feeSegments || [];
+  const strokeW = 22;
+  const tooltip  = document.getElementById('fee-donut-tooltip');
+  const centerVal = document.getElementById('fee-donut-center-val');
+  const centerLbl = document.getElementById('fee-donut-center-lbl');
+
+  svg.querySelectorAll('.donut-seg').forEach((el, i) => {
+    el.style.strokeWidth = i === idx ? (strokeW + 6) : strokeW;
+    el.style.opacity     = idx === null || i === idx ? '1' : '0.35';
+  });
+  document.querySelectorAll('.fee-bar-row').forEach((el, i) => {
+    el.classList.toggle('highlighted', i === idx);
+  });
+
+  if (idx !== null && segs[idx]) {
+    const s = segs[idx];
+    centerVal.textContent = fmtMoney(s.cents / 100);
+    centerLbl.textContent = s.label;
+    tooltip.textContent   = `${s.label}: ${(s.frac * 100).toFixed(1)}%`;
+    tooltip.classList.add('visible');
+  } else {
+    const total = segs.reduce((s, r) => s + r.cents, 0);
+    centerVal.textContent = fmtMoney(total / 100);
+    centerLbl.textContent = 'total fees';
+    tooltip.classList.remove('visible');
+  }
+}
+
 // ─── FINANCES TAB ──────────────────────────────────────────────────────────
 function renderFinances() {
   if (!detailsLoaded) return;
@@ -1177,6 +1466,9 @@ function renderFinances() {
   }
 
   const { grossCents, feesCents, netCents } = computeLedgerTotals(entries);
+
+  // Render fee breakdown chart
+  renderFeeChart(entries);
 
   document.getElementById('fin-gross').textContent = fmtMoney(grossCents / 100);
   document.getElementById('fin-fees').textContent  = fmtMoney(Math.abs(feesCents / 100));
