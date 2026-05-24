@@ -393,11 +393,11 @@
     <span class="date-filter-label">Period</span>
     <div class="preset-chips">
       <button class="preset-chip" onclick="applyPreset('7d',  this)">7 days</button>
-      <button class="preset-chip" onclick="applyPreset('30d', this)">30 days</button>
+      <button class="preset-chip active" onclick="applyPreset('30d', this)">30 days</button>
       <button class="preset-chip" onclick="applyPreset('90d', this)">90 days</button>
       <button class="preset-chip" onclick="applyPreset('ytd', this)">Year to date</button>
       <button class="preset-chip" onclick="applyPreset('1y',  this)">12 months</button>
-      <button class="preset-chip active" onclick="applyPreset('all', this)">All time</button>
+      <button class="preset-chip" onclick="applyPreset('all', this)">All time</button>
     </div>
     <div class="date-filter-sep"></div>
     <div class="date-range-inputs">
@@ -852,6 +852,13 @@ async function loadDashboard() {
     sessionStorage.setItem('spl_shop_name', shopName);
 
     showLoading('Fetching orders…');
+    // Default to last 30 days on first connect (matches the active preset chip)
+    if (filterFrom === null && filterTo === null) {
+      filterFrom = dateStrToTs(daysAgoStr(30), false);
+      filterTo   = dateStrToTs(todayStr(),     true);
+      document.getElementById('filter-from').value = daysAgoStr(30);
+      document.getElementById('filter-to').value   = todayStr();
+    }
     allOrders = await fetchOrders(shopId, token, apiKey);
     renderKPIs();
     currentPage = 1;
@@ -1607,9 +1614,9 @@ function showDashboard() {
 function disconnect() {
   sessionStorage.clear(); allOrders = []; detailCache = {}; detailsLoaded = false;
   window._ledgerEntries = null; filterFrom = null; filterTo = null;
-  // Reset filter bar UI
-  document.querySelectorAll('.preset-chip').forEach((c, i, arr) => {
-    c.classList.toggle('active', i === arr.length - 1); // activate "All time"
+  // Reset filter bar UI back to 30d default
+  document.querySelectorAll('.preset-chip').forEach((c, i) => {
+    c.classList.toggle('active', i === 1); // index 1 = "30 days"
   });
   document.getElementById('filter-from').value = '';
   document.getElementById('filter-to').value   = '';
