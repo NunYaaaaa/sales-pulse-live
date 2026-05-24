@@ -897,14 +897,42 @@ async function fetchOrders(shopId, token, apiKey) {
   return orders;
 }
 
-function etsyFetch(path, token, apiKey) {
+// ─── HTTP HELPERS ───────────────────────────────────────────────────────────
+/**
+ * Fetch with automatic retry on 429 Too Many Requests.
+ * Waits for the Retry-After header (seconds) if present, otherwise uses
+ * exponential backoff starting at 2 s, capped at 30 s.
+ * Non-429 errors are returned as-is for the caller to handle.
+ */
+async function etsyFetch(path, token, apiKey, { maxRetries = 5 } = {}) {
   const sharedSecret = sessionStorage.getItem('spl_shared_secret') || '';
-  return fetch(`${ETSY_API_BASE}${path}`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'x-api-key':     `${apiKey}:${sharedSecret}`,
-    }
-  });
+  const url = `${ETSY_API_BASE}${path}`;
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'x-api-key':     `${apiKey}:${sharedSecret}`,
+  };
+
+  let attempt = 0;
+  let delay   = 2000; // ms
+
+  while (true) {
+    const resp = await fetch(url, { headers });
+
+    if (resp.status !== 429) return resp; // success or non-rate-limit error
+
+    attempt++;
+    if (attempt > maxRetries) return resp; // give up, let caller handle
+
+    // Honour Retry-After if the server sends it (value is in seconds)
+    const retryAfter = resp.headers.get('Retry-After');
+    const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : delay;
+
+    console.warn(`[etsyFetch] 429 on ${path} — waiting ${waitMs}ms (attempt ${attempt}/${maxRetries})`);
+    await new Promise(r => setTimeout(r, waitMs));
+
+    // Exponential backoff for next attempt, capped at 30 s
+    delay = Math.min(delay * 2, 30_000);
+  }
 }
 
 // ─── LOAD FULL DETAILS ──────────────────────────────────────────────────────
@@ -930,12 +958,14 @@ async function loadAllDetails() {
       const rid = order.receipt_id;
       if (detailCache[rid]) { done++; continue; }
 
+      // Transactions — retry handled inside etsyFetch
       const txResp = await etsyFetch(
         `/application/shops/${shopId}/receipts/${rid}/transactions`, token, apiKey
       );
       const txData = txResp.ok ? await txResp.json() : null;
 
-      // Fetch the payment object for this receipt
+      // Payments — 404 is normal for non-Etsy-Payments orders (cash, check, etc.)
+      // Any other non-2xx is logged but not fatal.
       let payment = null;
       const payResp = await etsyFetch(
         `/application/shops/${shopId}/receipts/${rid}/payments`, token, apiKey
@@ -944,7 +974,11 @@ async function loadAllDetails() {
         const payData = await payResp.json();
         const pays = payData.results || payData.payments || (Array.isArray(payData) ? payData : null);
         payment = pays?.[0] || null;
+      } else if (payResp.status !== 404) {
+        // Unexpected error — log but keep going
+        console.warn(`[loadAllDetails] payments ${rid}: HTTP ${payResp.status}`);
       }
+      // 404 → payment stays null (order paid outside Etsy Payments)
 
       detailCache[rid] = {
         transactions: txData?.results || txData?.transaction || [],
@@ -955,7 +989,8 @@ async function loadAllDetails() {
       const pct = total > 0 ? Math.round((done / total) * 80) : 80;
       fill.style.width  = `${pct}%`;
       ptext.textContent = `${pct}% (${done}/${total} orders)`;
-      await new Promise(r => setTimeout(r, 150));
+      // 300 ms between receipts keeps us comfortably under Etsy's rate limit
+      await new Promise(r => setTimeout(r, 300));
     }
 
     // ── Phase 2: fetch ledger in 30-day windows (80–100%) ──
@@ -1284,6 +1319,9 @@ async function toggleDetail(tr, order) {
         const payData = await payResp.json();
         const pays = payData.results || payData.payments || (Array.isArray(payData) ? payData : null);
         payment = pays?.[0] || null;
+      } else if (payResp.status !== 404) {
+        // 404 = no Etsy Payments record (off-platform payment) — silently skip
+        console.warn(`[toggleDetail] payments ${rid}: HTTP ${payResp.status}`);
       }
 
       detailCache[rid] = {
