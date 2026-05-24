@@ -581,6 +581,8 @@ const LEDGER_TAXONOMY = {
   // ── REFUNDS: reduce gross; Etsy also partially refunds fees ──
   refunds: new Set([
     'REFUND',
+    'REFUND_GROSS',
+    'REFUND_PROCESSING_FEE',
     'transaction_refund',
     'transaction_quantity_refund',
     'listing_refund',
@@ -589,6 +591,7 @@ const LEDGER_TAXONOMY = {
     'renew_sold_auto_refund',
     'listing_private_refund',
     'shipping_label_refund',
+    'sales_tax_refund',
   ]),
   // ── PASS-THROUGHS: excluded from both gross and fees ──
   passthrough: new Set([
@@ -621,6 +624,10 @@ const LEDGER_LABEL = {
   'gift_wrap_fees':             'Gift wrap fee',
   'sales_tax':                  'Sales tax collected',
   'REFUND':                     'Refund',
+  'REFUND_GROSS':               'Refund (buyer)',
+  'REFUND_PROCESSING_FEE':      'Processing fee refund',
+  'buyer_fee':                  'Buyer fee',
+  'sales_tax_refund':           'Sales tax refund',
   'transaction_refund':         'Transaction fee refund',
   'transaction_quantity_refund':'Qty transaction fee refund',
   'listing_refund':             'Listing fee refund',
@@ -1087,7 +1094,9 @@ async function loadAllDetails() {
  *  6. Any other negative amount → 'fee'
  */
 function categoriseEntry(e) {
-  const t   = e.type || '';
+  // The Etsy API uses 'ledger_type' as the field name.
+  // 'type' and 'description' are kept as fallbacks for forward-compat.
+  const t   = e.ledger_type || e.type || e.description || '';
   const amt = e.amount; // in cents, may be negative
 
   if (LEDGER_TAXONOMY.passthrough.has(t)) return 'passthrough';
@@ -1186,16 +1195,17 @@ function renderFinances() {
       month:'short', day:'numeric', year:'numeric'
     });
 
-    const label = escHtml(LEDGER_LABEL[e.type] || e.description || e.type || '');
+    const t_key  = e.ledger_type || e.type || e.description || '';
+    const label = escHtml(LEDGER_LABEL[t_key] || e.description || t_key || '');
 
     // Type badge
     const badgeClass = {
       revenue:     'lt-revenue',
       fee:         'lt-fee',
       refund:      'lt-refund',
-      passthrough: cat === 'passthrough' && (e.type === 'DISBURSE' || e.type === 'DISBURSE2') ? 'lt-payout' : 'lt-tax',
+      passthrough: cat === 'passthrough' && (t_key === 'DISBURSE' || t_key === 'DISBURSE2') ? 'lt-payout' : 'lt-tax',
     }[cat] || 'lt-other';
-    const badgeLabel = { revenue:'sale', fee:'fee', refund:'refund', passthrough: (e.type||'').startsWith('DISBURSE') || e.type==='deposit' ? 'payout' : 'pass-through' }[cat] || cat;
+    const badgeLabel = { revenue:'sale', fee:'fee', refund:'refund', passthrough: t_key.startsWith('DISBURSE') || t_key === 'deposit' ? 'payout' : 'pass-through' }[cat] || cat;
     const typeBadge = `<span class="ledger-type-badge ${badgeClass}">${badgeLabel}</span>`;
 
     // Reference cell
@@ -1549,8 +1559,8 @@ function exportFinancesCSV() {
   const rows = sorted.map(e => [
     new Date(e.created_timestamp * 1000).toISOString().slice(0, 10),
     categoriseEntry(e),
-    e.type || '',
-    LEDGER_LABEL[e.type] || e.description || e.type || '',
+    e.ledger_type || e.type || '',
+    LEDGER_LABEL[e.ledger_type || e.type] || e.description || e.ledger_type || e.type || '',
     e.reference_type || '',
     e.reference_id || '',
     (e.amount / 100).toFixed(2),
@@ -1574,8 +1584,8 @@ function exportFinancesJSON() {
     entries: sorted.map(e => ({
       date:           new Date(e.created_timestamp * 1000).toISOString(),
       category:       categoriseEntry(e),
-      type:           e.type || null,
-      description:    LEDGER_LABEL[e.type] || e.description || null,
+      type:           e.ledger_type || e.type || null,
+      description:    LEDGER_LABEL[e.ledger_type || e.type] || e.description || null,
       reference_type: e.reference_type || null,
       reference_id:   e.reference_id || null,
       amount_usd:     e.amount / 100,
