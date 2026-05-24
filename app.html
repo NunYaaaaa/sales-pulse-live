@@ -250,6 +250,65 @@
     .ledger-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:1.5rem; }
     @media(max-width:600px){ .ledger-summary{grid-template-columns:1fr 1fr} }
 
+    /* DATE FILTER BAR */
+    .date-filter-bar {
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      background:var(--offwhite); border:1px solid var(--border);
+      border-radius:14px; padding:0.75rem 1.1rem;
+      margin-bottom:1.5rem;
+    }
+    .date-filter-label {
+      font-family:'DM Mono',monospace; font-size:0.6rem;
+      letter-spacing:0.1em; text-transform:uppercase; color:var(--muted2);
+      flex-shrink:0;
+    }
+    .preset-chips { display:flex; gap:6px; flex-wrap:wrap; }
+    .preset-chip {
+      font-family:'DM Mono',monospace; font-size:0.62rem; letter-spacing:0.04em;
+      padding:0.28rem 0.75rem; border-radius:999px;
+      border:1px solid var(--border2); background:var(--cream);
+      color:var(--muted); cursor:pointer; transition:all 0.15s;
+      white-space:nowrap;
+    }
+    .preset-chip:hover { border-color:var(--orange-bd); color:var(--orange); }
+    .preset-chip.active {
+      background:var(--ink); border-color:var(--ink); color:var(--cream);
+    }
+    .date-filter-sep {
+      width:1px; height:20px; background:var(--border2); flex-shrink:0;
+    }
+    .date-range-inputs { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .date-range-inputs input[type="date"] {
+      font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--ink);
+      background:var(--cream); border:1px solid var(--border2);
+      border-radius:8px; padding:0.3rem 0.6rem; outline:none;
+      transition:border-color 0.2s; cursor:pointer;
+    }
+    .date-range-inputs input[type="date"]:focus { border-color:var(--orange-bd); }
+    .date-range-dash {
+      font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted2);
+    }
+    .apply-btn {
+      font-family:'DM Mono',monospace; font-size:0.62rem; letter-spacing:0.05em;
+      padding:0.3rem 0.85rem; border-radius:999px;
+      background:var(--orange); border:none; color:var(--cream);
+      cursor:pointer; transition:opacity 0.2s; white-space:nowrap;
+    }
+    .apply-btn:hover { opacity:0.82; }
+    .filter-active-badge {
+      display:none; align-items:center; gap:5px;
+      font-family:'DM Mono',monospace; font-size:0.6rem;
+      color:var(--orange); background:var(--orange-bg);
+      border:1px solid var(--orange-bd); padding:3px 10px;
+      border-radius:999px; margin-left:auto;
+    }
+    .filter-active-badge.visible { display:flex; }
+    .filter-clear-x {
+      cursor:pointer; font-size:0.7rem; line-height:1;
+      opacity:0.7; transition:opacity 0.15s;
+    }
+    .filter-clear-x:hover { opacity:1; }
+
     /* LEDGER TYPE BADGE */
     .ledger-type-badge {
       font-family:'DM Mono',monospace; font-size:0.56rem; letter-spacing:0.04em;
@@ -326,6 +385,30 @@
       <button id="load-details-btn" onclick="loadAllDetails()">⚡ Load full details</button>
       <button class="export-btn export-csv"  onclick="exportCSV()">↓ CSV</button>
       <button class="export-btn export-json" onclick="exportJSON()">↓ JSON</button>
+    </div>
+  </div>
+
+  <!-- DATE FILTER BAR -->
+  <div class="date-filter-bar" id="date-filter-bar" style="display:none">
+    <span class="date-filter-label">Period</span>
+    <div class="preset-chips">
+      <button class="preset-chip" onclick="applyPreset('7d',  this)">7 days</button>
+      <button class="preset-chip" onclick="applyPreset('30d', this)">30 days</button>
+      <button class="preset-chip" onclick="applyPreset('90d', this)">90 days</button>
+      <button class="preset-chip" onclick="applyPreset('ytd', this)">Year to date</button>
+      <button class="preset-chip" onclick="applyPreset('1y',  this)">12 months</button>
+      <button class="preset-chip active" onclick="applyPreset('all', this)">All time</button>
+    </div>
+    <div class="date-filter-sep"></div>
+    <div class="date-range-inputs">
+      <input type="date" id="filter-from" title="From date"/>
+      <span class="date-range-dash">→</span>
+      <input type="date" id="filter-to"   title="To date"/>
+      <button class="apply-btn" onclick="applyCustomRange()">Apply</button>
+    </div>
+    <div class="filter-active-badge" id="filter-active-badge">
+      <span id="filter-active-label">Filtered</span>
+      <span class="filter-clear-x" onclick="applyPreset('all', document.querySelector('.preset-chip:last-child'))" title="Clear filter">✕</span>
     </div>
   </div>
 
@@ -558,6 +641,127 @@ let currentPage  = 1;
 let detailsLoaded = false;
 let expandedRow   = null;
 
+// Date filter — unix timestamps (seconds). null = no bound.
+let filterFrom = null;   // inclusive lower bound
+let filterTo   = null;   // inclusive upper bound (end of day)
+
+// ─── DATE FILTER ────────────────────────────────────────────────────────────
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+function daysAgoStr(n) {
+  const d = new Date(); d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+function ytdStr() {
+  return new Date().getFullYear() + '-01-01';
+}
+
+/**
+ * Set filterFrom / filterTo from a date string (YYYY-MM-DD) or null.
+ * "from" is start of that day (00:00:00 UTC).
+ * "to"   is end of that day (23:59:59 UTC).
+ */
+function dateStrToTs(str, isEnd = false) {
+  if (!str) return null;
+  const d = new Date(str + (isEnd ? 'T23:59:59Z' : 'T00:00:00Z'));
+  return Math.floor(d.getTime() / 1000);
+}
+
+function applyPreset(preset, el) {
+  // Deactivate all chips, activate this one
+  document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+
+  const today = todayStr();
+  let from = null, to = null;
+
+  if (preset === '7d')  { from = daysAgoStr(7);  to = today; }
+  if (preset === '30d') { from = daysAgoStr(30); to = today; }
+  if (preset === '90d') { from = daysAgoStr(90); to = today; }
+  if (preset === 'ytd') { from = ytdStr();        to = today; }
+  if (preset === '1y')  { from = daysAgoStr(365); to = today; }
+  if (preset === 'all') { from = null; to = null; }
+
+  // Sync the date inputs to match
+  document.getElementById('filter-from').value = from || '';
+  document.getElementById('filter-to').value   = to   || '';
+
+  setDateFilter(from, to);
+}
+
+function applyCustomRange() {
+  const from = document.getElementById('filter-from').value;
+  const to   = document.getElementById('filter-to').value;
+
+  if (from && to && from > to) {
+    showError('Date range error: "From" must be before "To".'); return;
+  }
+
+  // Deactivate preset chips when custom range is applied
+  document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+  setDateFilter(from || null, to || null);
+}
+
+function setDateFilter(fromStr, toStr) {
+  filterFrom = dateStrToTs(fromStr, false);
+  filterTo   = dateStrToTs(toStr,   true);
+
+  // Update active badge
+  const badge = document.getElementById('filter-active-badge');
+  const label = document.getElementById('filter-active-label');
+  if (filterFrom || filterTo) {
+    const parts = [];
+    if (fromStr) parts.push(fromStr);
+    parts.push('→');
+    if (toStr) parts.push(toStr); else parts.push('now');
+    label.textContent = parts.join(' ');
+    badge.classList.add('visible');
+  } else {
+    badge.classList.remove('visible');
+  }
+
+  // If we already have data, re-fetch within the new range
+  if (allOrders.length > 0 || detailsLoaded) {
+    resetAndReload();
+  }
+}
+
+async function resetAndReload() {
+  // Clear all cached data so the new range is fetched fresh
+  allOrders    = [];
+  detailCache  = {};
+  detailsLoaded = false;
+  window._ledgerEntries = null;
+  currentPage   = 1;
+  expandedRow   = null;
+
+  // Reset "Load full details" button
+  const btn = document.getElementById('load-details-btn');
+  btn.disabled = false;
+  btn.textContent = '⚡ Load full details';
+  document.getElementById('fin-export-csv').disabled  = true;
+  document.getElementById('fin-export-json').disabled = true;
+  document.getElementById('finances-tbody').innerHTML =
+    `<tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">Click "⚡ Load full details" to fetch ledger data.</td></tr>`;
+
+  const token  = sessionStorage.getItem('spl_token');
+  const apiKey = sessionStorage.getItem('spl_api_key');
+  const shopId = sessionStorage.getItem('spl_shop_id');
+  if (!token || !shopId) return;
+
+  showLoading('Fetching orders for selected period…');
+  try {
+    allOrders = await fetchOrders(shopId, token, apiKey);
+    renderKPIs();
+    renderTable();
+    showDashboard();
+  } catch(e) {
+    showError('Reload failed: ' + e.message);
+    showDashboard();
+  }
+}
+
 // ─── PKCE ──────────────────────────────────────────────────────────────────
 function base64URLEncode(buf) {
   return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
@@ -662,10 +866,17 @@ async function loadDashboard() {
 async function fetchOrders(shopId, token, apiKey) {
   let orders = [], offset = 0;
   const BATCH = 100;
+
+  // Build date filter query params (Etsy uses unix timestamps)
+  const dateParams = [];
+  if (filterFrom) dateParams.push(`min_created=${filterFrom}`);
+  if (filterTo)   dateParams.push(`max_created=${filterTo}`);
+  const dateQS = dateParams.length ? '&' + dateParams.join('&') : '';
+
   while (true) {
     showLoading(`Fetching orders… (${orders.length} loaded)`);
     const resp = await etsyFetch(
-      `/application/shops/${shopId}/receipts?limit=${BATCH}&offset=${offset}&was_paid=true`,
+      `/application/shops/${shopId}/receipts?limit=${BATCH}&offset=${offset}&was_paid=true${dateQS}`,
       token, apiKey
     );
     if (!resp.ok) break;
@@ -747,18 +958,23 @@ async function loadAllDetails() {
     const now          = Math.floor(Date.now() / 1000);
     const MAX_LOOKBACK = 365 * 24 * 60 * 60;
 
-    const timestamps  = allOrders.map(o => o.create_timestamp).filter(t => t && t > 0);
-    const oldestOrder = timestamps.length ? Math.min(...timestamps) : now - MAX_LOOKBACK;
-    const lookbackFloor = Math.max(oldestOrder, now - MAX_LOOKBACK);
+    // Respect the active date filter for ledger too.
+    // If a filterFrom is set, use it; otherwise go back to the oldest order or 1 year.
+    const timestamps    = allOrders.map(o => o.create_timestamp).filter(t => t && t > 0);
+    const oldestOrder   = timestamps.length ? Math.min(...timestamps) : now - MAX_LOOKBACK;
+    const ledgerFloor   = filterFrom
+      ? Math.max(filterFrom, now - MAX_LOOKBACK)
+      : Math.max(oldestOrder, now - MAX_LOOKBACK);
+    const ledgerCeiling = filterTo ? Math.min(filterTo, now) : now;
 
     const windowSize  = 30 * 24 * 60 * 60;
     let ledgerEntries = [];
-    let windowEnd     = now;
+    let windowEnd     = ledgerCeiling;
     let windowCount   = 0;
     const maxWindows  = Math.ceil(MAX_LOOKBACK / windowSize) + 1;
 
-    while (windowEnd > lookbackFloor && windowCount < maxWindows) {
-      const windowStart = Math.max(windowEnd - windowSize, lookbackFloor);
+    while (windowEnd > ledgerFloor && windowCount < maxWindows) {
+      const windowStart = Math.max(windowEnd - windowSize, ledgerFloor);
       const resp = await etsyFetch(
         `/application/shops/${shopId}/payment-account/ledger-entries?min_created=${windowStart}&max_created=${windowEnd}&limit=100&offset=0`,
         token, apiKey
@@ -1364,6 +1580,7 @@ function showConnect() {
   document.getElementById('connect-screen').style.display = 'flex';
   document.getElementById('loading-screen').style.display = 'none';
   document.getElementById('dashboard').style.display      = 'none';
+  document.getElementById('date-filter-bar').style.display = 'none';
   document.getElementById('live-badge').style.display     = 'none';
   document.getElementById('disconnect-btn').style.display = 'none';
 }
@@ -1372,17 +1589,31 @@ function showLoading(msg) {
   document.getElementById('connect-screen').style.display = 'none';
   document.getElementById('loading-screen').style.display = 'flex';
   document.getElementById('dashboard').style.display      = 'none';
+  document.getElementById('date-filter-bar').style.display = 'none';
 }
 function showDashboard() {
   document.getElementById('connect-screen').style.display = 'none';
   document.getElementById('loading-screen').style.display = 'none';
   document.getElementById('dashboard').style.display      = 'block';
+  document.getElementById('date-filter-bar').style.display = 'flex';
   document.getElementById('live-badge').style.display     = 'flex';
   document.getElementById('disconnect-btn').style.display = 'block';
+
+  // Initialise date inputs to sensible defaults on first show
+  if (!document.getElementById('filter-to').value) {
+    document.getElementById('filter-to').value = todayStr();
+  }
 }
 function disconnect() {
   sessionStorage.clear(); allOrders = []; detailCache = {}; detailsLoaded = false;
-  window._ledgerEntries = null;
+  window._ledgerEntries = null; filterFrom = null; filterTo = null;
+  // Reset filter bar UI
+  document.querySelectorAll('.preset-chip').forEach((c, i, arr) => {
+    c.classList.toggle('active', i === arr.length - 1); // activate "All time"
+  });
+  document.getElementById('filter-from').value = '';
+  document.getElementById('filter-to').value   = '';
+  document.getElementById('filter-active-badge').classList.remove('visible');
   showConnect();
   document.getElementById('error-banner').style.display = 'none';
 }
