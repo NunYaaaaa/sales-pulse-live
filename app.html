@@ -1093,6 +1093,8 @@ async function handleCallback(code, returnedState) {
     sessionStorage.setItem('spl_token',   data.access_token);
     sessionStorage.setItem('spl_user_id', userId);
     history.replaceState({}, '', window.location.pathname);
+    // Brief pause after OAuth — Worker rate-limit window resets every second
+    await new Promise(r => setTimeout(r, 1200));
     await loadDashboard();
   } catch(e) { showConnect(); showError(`Token exchange error: ${e.message}`); }
 }
@@ -1176,6 +1178,7 @@ function setFetchStatus(msg, done = false) {
   const pill = document.getElementById('fetch-status');
   const dot  = document.getElementById('fetch-status-dot');
   const txt  = document.getElementById('fetch-status-text');
+  if (!pill) return; // dashboard not shown yet
   pill.classList.add('visible');
   dot.className  = 'fetch-status-dot' + (done ? ' done' : '');
   txt.textContent = msg;
@@ -1226,7 +1229,7 @@ async function fetchOrders(shopId, token, apiKey) {
     orders = orders.concat(batch);
     if (batch.length < BATCH) break;
     offset += BATCH;
-    await new Promise(r => setTimeout(r, 150));
+    await new Promise(r => setTimeout(r, 500)); // 500ms between batches avoids Worker rate limits
   }
   return orders;
 }
@@ -1238,7 +1241,7 @@ async function fetchOrders(shopId, token, apiKey) {
  * exponential backoff starting at 2 s, capped at 30 s.
  * Non-429 errors are returned as-is for the caller to handle.
  */
-async function etsyFetch(path, token, apiKey, { maxRetries = 5 } = {}) {
+async function etsyFetch(path, token, apiKey, { maxRetries = 8 } = {}) {
   const sharedSecret = sessionStorage.getItem('spl_shared_secret') || '';
   const url = `${ETSY_API_BASE}${path}`;
   const headers = {
@@ -1247,7 +1250,7 @@ async function etsyFetch(path, token, apiKey, { maxRetries = 5 } = {}) {
   };
 
   let attempt = 0;
-  let delay   = 2000; // ms
+  let delay   = 5000; // ms — Workers need more breathing room than raw Etsy API
 
   while (true) {
     const resp = await fetch(url, { headers });
@@ -1257,15 +1260,26 @@ async function etsyFetch(path, token, apiKey, { maxRetries = 5 } = {}) {
     attempt++;
     if (attempt > maxRetries) return resp; // give up, let caller handle
 
-    // Honour Retry-After if the server sends it (value is in seconds)
-    const retryAfter = resp.headers.get('Retry-After');
-    const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : delay;
+    // Check several possible rate-limit headers (Workers may forward any of these)
+    const retryAfter  = resp.headers.get('Retry-After');           // seconds
+    const resetHeader = resp.headers.get('X-RateLimit-Reset');     // unix timestamp
+    const resetMs     = resetHeader ? (parseInt(resetHeader,10)*1000 - Date.now()) : null;
 
-    console.warn(`[etsyFetch] 429 on ${path} — waiting ${waitMs}ms (attempt ${attempt}/${maxRetries})`);
+    let waitMs;
+    if (retryAfter)          waitMs = parseInt(retryAfter, 10) * 1000;
+    else if (resetMs > 0)    waitMs = resetMs + 500;
+    else                     waitMs = delay;
+
+    // Add ±20% jitter so burst retries don't all land at once
+    const jitter = waitMs * 0.2 * (Math.random() - 0.5);
+    waitMs = Math.max(1000, Math.round(waitMs + jitter));
+
+    console.warn(`[etsyFetch] 429 on ${path} — waiting ${(waitMs/1000).toFixed(1)}s (attempt ${attempt}/${maxRetries})`);
+    setFetchStatus(`Rate limited — retrying in ${Math.ceil(waitMs/1000)}s…`);
     await new Promise(r => setTimeout(r, waitMs));
 
-    // Exponential backoff for next attempt, capped at 30 s
-    delay = Math.min(delay * 2, 30_000);
+    // Exponential backoff for next attempt, capped at 60 s
+    delay = Math.min(delay * 2, 60_000);
   }
 }
 
