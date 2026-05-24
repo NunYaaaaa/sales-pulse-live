@@ -380,6 +380,104 @@
     }
     .fee-donut-tooltip.visible { opacity:1; }
 
+
+
+    /* ── SKELETONS ────────────────────────────────────────── */
+    @keyframes shimmer {
+      0%   { background-position: -600px 0; }
+      100% { background-position:  600px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, var(--border) 25%, var(--paper) 50%, var(--border) 75%);
+      background-size: 600px 100%;
+      animation: shimmer 1.4s infinite linear;
+      border-radius: 6px;
+      display: inline-block;
+    }
+    .skeleton-kpi-val  { height: 2rem;  width: 80px; }
+    .skeleton-kpi-sub  { height: 0.75rem; width: 100px; margin-top: 6px; }
+    .skeleton-row      { height: 1rem;  width: 100%; margin-bottom: 8px; border-radius: 4px; }
+    .skeleton-row.short { width: 60%; }
+    .skeleton-row.med   { width: 80%; }
+
+    /* Inline fetch status pill in dash header */
+    .fetch-status {
+      display: none; align-items: center; gap: 6px;
+      font-family: 'DM Mono', monospace; font-size: 0.6rem;
+      letter-spacing: 0.06em; color: var(--muted2);
+    }
+    .fetch-status.visible { display: flex; }
+    .fetch-status-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      border: 1.5px solid var(--orange); border-top-color: transparent;
+      animation: spin 0.7s linear infinite; flex-shrink: 0;
+    }
+    .fetch-status-dot.done { border: 1.5px solid var(--green); animation: none; }
+
+    /* ── ORDER CHARTS ─────────────────────────────────────── */
+    .order-charts-grid {
+      display:grid; grid-template-columns:1fr 1fr;
+      gap:14px; margin-bottom:14px;
+    }
+    @media(max-width:700px){ .order-charts-grid{ grid-template-columns:1fr; } }
+
+    .ochart-panel {
+      background:var(--offwhite); border:1px solid var(--border);
+      border-radius:16px; overflow:hidden;
+    }
+    .ochart-header {
+      display:flex; align-items:baseline; justify-content:space-between;
+      padding:1rem 1.25rem 0.5rem;
+    }
+    .ochart-title {
+      font-family:'Fraunces',serif; font-size:0.88rem; font-weight:700;
+      letter-spacing:-0.01em; color:var(--ink);
+    }
+    .ochart-subtitle {
+      font-family:'DM Mono',monospace; font-size:0.58rem;
+      letter-spacing:0.06em; color:var(--muted2);
+    }
+
+    /* Line / bar chart canvas area */
+    .ochart-canvas { position:relative; padding:0 1.25rem 1rem; }
+    .ochart-svg { width:100%; display:block; overflow:visible; }
+
+    /* Tooltip */
+    .ochart-tooltip {
+      position:absolute; pointer-events:none;
+      background:var(--ink); color:var(--cream);
+      font-family:'DM Mono',monospace; font-size:0.62rem; line-height:1.5;
+      padding:6px 10px; border-radius:8px; white-space:nowrap;
+      opacity:0; transition:opacity 0.12s; z-index:10;
+    }
+    .ochart-tooltip.visible { opacity:1; }
+
+    /* Top products panel — full width */
+    .ochart-panel.full { grid-column:1/-1; }
+    .top-prod-rows { padding:0 1.25rem 1.25rem; display:flex; flex-direction:column; gap:8px; }
+    .top-prod-row {
+      display:grid; grid-template-columns:160px 1fr 80px;
+      align-items:center; gap:12px;
+      padding:6px 8px; border-radius:8px; cursor:default;
+      transition:background 0.15s;
+    }
+    .top-prod-row:hover { background:var(--paper); }
+    .top-prod-name { font-size:0.8rem; font-weight:500; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .top-prod-sub  { font-family:'DM Mono',monospace; font-size:0.6rem; color:var(--muted2); }
+    .top-prod-bar-track { height:8px; background:var(--border); border-radius:999px; overflow:hidden; }
+    .top-prod-bar-fill  { height:100%; border-radius:999px; background:var(--orange); transition:width 0.5s cubic-bezier(.4,0,.2,1); }
+    .top-prod-val { font-family:'Fraunces',serif; font-size:0.95rem; font-weight:700; color:var(--ink); text-align:right; }
+    .top-prod-cnt { font-family:'DM Mono',monospace; font-size:0.6rem; color:var(--muted2); text-align:right; }
+
+    /* Chart toggle pills */
+    .ochart-toggle { display:flex; gap:4px; }
+    .ochart-toggle-btn {
+      font-family:'DM Mono',monospace; font-size:0.58rem; letter-spacing:0.05em;
+      padding:2px 8px; border-radius:999px; border:1px solid var(--border2);
+      background:var(--cream); color:var(--muted); cursor:pointer; transition:all 0.15s;
+    }
+    .ochart-toggle-btn.active { background:var(--ink); border-color:var(--ink); color:var(--cream); }
+
     /* LEDGER TYPE BADGE */
     .ledger-type-badge {
       font-family:'DM Mono',monospace; font-size:0.56rem; letter-spacing:0.04em;
@@ -452,10 +550,16 @@
       <div class="dash-shop-name" id="shop-name">—</div>
       <div class="dash-shop-sub" id="shop-sub">Loading…</div>
     </div>
-    <div class="dash-actions">
-      <button id="load-details-btn" onclick="loadAllDetails()">⚡ Load full details</button>
-      <button class="export-btn export-csv"  onclick="exportCSV()">↓ CSV</button>
-      <button class="export-btn export-json" onclick="exportJSON()">↓ JSON</button>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+      <div class="dash-actions">
+        <div class="fetch-status" id="fetch-status">
+          <div class="fetch-status-dot" id="fetch-status-dot"></div>
+          <span id="fetch-status-text">Loading…</span>
+        </div>
+        <button id="load-details-btn" onclick="loadAllDetails()" style="display:none">⚡ Load full details</button>
+        <button class="export-btn export-csv"  onclick="exportCSV()">↓ CSV</button>
+        <button class="export-btn export-json" onclick="exportJSON()">↓ JSON</button>
+      </div>
     </div>
   </div>
 
@@ -526,6 +630,70 @@
 
   <!-- ORDERS TAB -->
   <div class="tab-panel active" id="tab-orders">
+
+    <!-- ORDER ANALYTICS CHARTS -->
+    <div id="order-charts-wrap" style="display:none">
+      <!-- Row 1: Revenue line + Orders bar -->
+      <div class="order-charts-grid">
+
+        <!-- Revenue over time -->
+        <div class="ochart-panel">
+          <div class="ochart-header">
+            <div>
+              <div class="ochart-title">Revenue Over Time</div>
+              <div class="ochart-subtitle" id="rev-chart-sub">—</div>
+            </div>
+            <div class="ochart-toggle">
+              <button class="ochart-toggle-btn active" onclick="setRevMode('revenue',this)">Revenue</button>
+              <button class="ochart-toggle-btn" onclick="setRevMode('orders',this)">Orders</button>
+            </div>
+          </div>
+          <div class="ochart-canvas" id="rev-chart-canvas">
+            <svg class="ochart-svg" id="rev-chart-svg" style="height:160px"></svg>
+            <div class="ochart-tooltip" id="rev-tooltip"></div>
+          </div>
+        </div>
+
+        <!-- Day-of-week heatmap -->
+        <div class="ochart-panel">
+          <div class="ochart-header">
+            <div>
+              <div class="ochart-title">Sales by Day of Week</div>
+              <div class="ochart-subtitle" id="dow-chart-sub">avg. per day</div>
+            </div>
+            <div class="ochart-toggle">
+              <button class="ochart-toggle-btn active" onclick="setDowMode('revenue',this)">Revenue</button>
+              <button class="ochart-toggle-btn" onclick="setDowMode('orders',this)">Orders</button>
+            </div>
+          </div>
+          <div class="ochart-canvas" id="dow-chart-canvas">
+            <svg class="ochart-svg" id="dow-chart-svg" style="height:160px"></svg>
+            <div class="ochart-tooltip" id="dow-tooltip"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Row 2: Top products full width -->
+      <div class="ochart-panel full" id="top-prods-panel" style="margin-bottom:14px">
+        <div class="ochart-header">
+          <div>
+            <div class="ochart-title">Top Products</div>
+            <div class="ochart-subtitle" id="top-prods-sub">—</div>
+          </div>
+          <div class="ochart-toggle">
+            <button class="ochart-toggle-btn active" onclick="setTopMode('revenue',this)">Revenue</button>
+            <button class="ochart-toggle-btn" onclick="setTopMode('orders',this)">Orders</button>
+          </div>
+        </div>
+        <div class="top-prod-rows" id="top-prod-rows">
+          <div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted2);padding:0.5rem 0">
+            Load full details to see product breakdown.
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">Order History</div>
@@ -850,15 +1018,19 @@ async function resetAndReload() {
   const shopId = sessionStorage.getItem('spl_shop_id');
   if (!token || !shopId) return;
 
-  showLoading('Fetching orders for selected period…');
+  showSkeletons();   // skeleton while re-fetching
   try {
     allOrders = await fetchOrders(shopId, token, apiKey);
     renderKPIs();
     renderTable();
-    showDashboard();
+    renderOrderCharts();
+    setFetchStatus(`${allOrders.length} orders loaded`, false);
+    // Re-run full details for new date range in background
+    setFetchStatus('Loading financial details…');
+    await loadAllDetails(true);
   } catch(e) {
+    setFetchStatus('Reload failed', true);
     showError('Reload failed: ' + e.message);
-    showDashboard();
   }
 }
 
@@ -921,6 +1093,8 @@ async function handleCallback(code, returnedState) {
     sessionStorage.setItem('spl_token',   data.access_token);
     sessionStorage.setItem('spl_user_id', userId);
     history.replaceState({}, '', window.location.pathname);
+    // Brief pause after OAuth — Worker rate-limit window resets every second
+    await new Promise(r => setTimeout(r, 1200));
     await loadDashboard();
   } catch(e) { showConnect(); showError(`Token exchange error: ${e.message}`); }
 }
@@ -930,11 +1104,13 @@ async function loadDashboard() {
   const token  = sessionStorage.getItem('spl_token');
   const apiKey = sessionStorage.getItem('spl_api_key');
   if (!token) { showConnect(); return; }
-  showLoading('Fetching your shop…');
+
+  // ── Step 1: fetch shop info (fast — just one call) ──────────────────────
+  showLoading('Connecting to your shop…');
+  let shopId, shopName;
   try {
     const userId = sessionStorage.getItem('spl_user_id');
     if (!userId) throw new Error('User ID not found — please reconnect.');
-    showLoading('Loading shop details…');
     const shopResp = await etsyFetch(`/application/users/${userId}/shops`, token, apiKey);
     if (!shopResp.ok) {
       const errBody = await shopResp.json().catch(() => ({}));
@@ -942,32 +1118,93 @@ async function loadDashboard() {
     }
     const shopData = await shopResp.json();
     const shop     = (shopData.results && shopData.results[0]) || shopData;
-    const shopId   = shop.shop_id;
-    const shopName = shop.shop_name || 'Your Shop';
-    if (!shopId) throw new Error(`Shop ID missing from response. Raw: ${JSON.stringify(shopData).slice(0, 200)}`);
-
-    document.getElementById('shop-name').textContent  = shopName;
-    document.getElementById('shop-sub').textContent   = `Shop ID: ${shopId} · @${shopName.toLowerCase()}`;
+    shopId   = shop.shop_id;
+    shopName = shop.shop_name || 'Your Shop';
+    if (!shopId) throw new Error(`Shop ID missing. Raw: ${JSON.stringify(shopData).slice(0, 200)}`);
     sessionStorage.setItem('spl_shop_id',   shopId);
     sessionStorage.setItem('spl_shop_name', shopName);
+  } catch(e) {
+    showConnect();
+    showError(`Could not connect: ${e.message}`);
+    return;
+  }
 
-    showLoading('Fetching orders…');
-    // Default to last 30 days on first connect (matches the active preset chip)
-    if (filterFrom === null && filterTo === null) {
-      filterFrom = dateStrToTs(daysAgoStr(30), false);
-      filterTo   = dateStrToTs(todayStr(),     true);
-      document.getElementById('filter-from').value = daysAgoStr(30);
-      document.getElementById('filter-to').value   = todayStr();
-    }
+  // ── Step 2: show dashboard shell immediately ─────────────────────────────
+  document.getElementById('shop-name').textContent = shopName;
+  document.getElementById('shop-sub').textContent  = `Shop ID: ${shopId} · @${shopName.toLowerCase()}`;
+
+  // Default date filter
+  if (filterFrom === null && filterTo === null) {
+    filterFrom = dateStrToTs(daysAgoStr(30), false);
+    filterTo   = dateStrToTs(todayStr(),     true);
+    document.getElementById('filter-from').value = daysAgoStr(30);
+    document.getElementById('filter-to').value   = todayStr();
+  }
+
+  showSkeletons();   // paint placeholder UI immediately
+  showDashboard();   // flip to dashboard view
+
+  // ── Step 3: load orders in background ───────────────────────────────────
+  backgroundLoad(shopId, token, apiKey);
+}
+
+/** Show skeleton placeholders so the page looks alive before data arrives */
+function showSkeletons() {
+  // KPI cards
+  ['kpi-revenue','kpi-fees','kpi-net','kpi-orders','kpi-aov'].forEach(id => {
+    document.getElementById(id).innerHTML = '<span class="skeleton skeleton-kpi-val"></span>';
+  });
+  document.getElementById('kpi-fees-sub').innerHTML  = '<span class="skeleton skeleton-kpi-sub"></span>';
+  document.getElementById('kpi-net-sub').innerHTML   = '<span class="skeleton skeleton-kpi-sub"></span>';
+
+  // Table body
+  const tbody = document.getElementById('orders-tbody');
+  tbody.innerHTML = Array(8).fill(0).map(() => `
+    <tr style="border-bottom:1px solid var(--border)">
+      <td colspan="7" style="padding:0.85rem 1.25rem">
+        <span class="skeleton skeleton-row ${['med','short','med','','short','med',''][Math.floor(Math.random()*7)]}"></span>
+      </td>
+    </tr>`).join('');
+
+  // Order count
+  document.getElementById('order-count').textContent = '…';
+
+  // Status pill
+  setFetchStatus('Loading orders…', false);
+}
+
+/** Update the inline status pill in the header */
+function setFetchStatus(msg, done = false) {
+  const pill = document.getElementById('fetch-status');
+  const dot  = document.getElementById('fetch-status-dot');
+  const txt  = document.getElementById('fetch-status-text');
+  if (!pill) return; // dashboard not shown yet
+  pill.classList.add('visible');
+  dot.className  = 'fetch-status-dot' + (done ? ' done' : '');
+  txt.textContent = msg;
+  if (done) setTimeout(() => pill.classList.remove('visible'), 3000);
+}
+
+/** Fetch orders then auto-trigger full details — all in background */
+async function backgroundLoad(shopId, token, apiKey) {
+  // Phase A: orders
+  try {
+    setFetchStatus('Loading orders…');
     allOrders = await fetchOrders(shopId, token, apiKey);
     renderKPIs();
     currentPage = 1;
     renderTable();
-    showDashboard();
+    renderOrderCharts();
+    setFetchStatus(`${allOrders.length} orders loaded`, false);
   } catch(e) {
-    showConnect();
-    showError(`Error loading data: ${e.message}. Your token may have expired — please reconnect.`);
+    setFetchStatus('Order fetch failed', true);
+    showError(`Orders failed: ${e.message}`);
+    return;
   }
+
+  // Phase B: auto-load full details (transactions + ledger) in background
+  setFetchStatus('Loading financial details…');
+  await loadAllDetails(true /* background */);
 }
 
 async function fetchOrders(shopId, token, apiKey) {
@@ -981,7 +1218,7 @@ async function fetchOrders(shopId, token, apiKey) {
   const dateQS = dateParams.length ? '&' + dateParams.join('&') : '';
 
   while (true) {
-    showLoading(`Fetching orders… (${orders.length} loaded)`);
+    // (progress reported via setFetchStatus)
     const resp = await etsyFetch(
       `/application/shops/${shopId}/receipts?limit=${BATCH}&offset=${offset}&was_paid=true${dateQS}`,
       token, apiKey
@@ -992,7 +1229,7 @@ async function fetchOrders(shopId, token, apiKey) {
     orders = orders.concat(batch);
     if (batch.length < BATCH) break;
     offset += BATCH;
-    await new Promise(r => setTimeout(r, 150));
+    await new Promise(r => setTimeout(r, 500)); // 500ms between batches avoids Worker rate limits
   }
   return orders;
 }
@@ -1004,7 +1241,7 @@ async function fetchOrders(shopId, token, apiKey) {
  * exponential backoff starting at 2 s, capped at 30 s.
  * Non-429 errors are returned as-is for the caller to handle.
  */
-async function etsyFetch(path, token, apiKey, { maxRetries = 5 } = {}) {
+async function etsyFetch(path, token, apiKey, { maxRetries = 8 } = {}) {
   const sharedSecret = sessionStorage.getItem('spl_shared_secret') || '';
   const url = `${ETSY_API_BASE}${path}`;
   const headers = {
@@ -1013,7 +1250,7 @@ async function etsyFetch(path, token, apiKey, { maxRetries = 5 } = {}) {
   };
 
   let attempt = 0;
-  let delay   = 2000; // ms
+  let delay   = 5000; // ms — Workers need more breathing room than raw Etsy API
 
   while (true) {
     const resp = await fetch(url, { headers });
@@ -1023,20 +1260,31 @@ async function etsyFetch(path, token, apiKey, { maxRetries = 5 } = {}) {
     attempt++;
     if (attempt > maxRetries) return resp; // give up, let caller handle
 
-    // Honour Retry-After if the server sends it (value is in seconds)
-    const retryAfter = resp.headers.get('Retry-After');
-    const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : delay;
+    // Check several possible rate-limit headers (Workers may forward any of these)
+    const retryAfter  = resp.headers.get('Retry-After');           // seconds
+    const resetHeader = resp.headers.get('X-RateLimit-Reset');     // unix timestamp
+    const resetMs     = resetHeader ? (parseInt(resetHeader,10)*1000 - Date.now()) : null;
 
-    console.warn(`[etsyFetch] 429 on ${path} — waiting ${waitMs}ms (attempt ${attempt}/${maxRetries})`);
+    let waitMs;
+    if (retryAfter)          waitMs = parseInt(retryAfter, 10) * 1000;
+    else if (resetMs > 0)    waitMs = resetMs + 500;
+    else                     waitMs = delay;
+
+    // Add ±20% jitter so burst retries don't all land at once
+    const jitter = waitMs * 0.2 * (Math.random() - 0.5);
+    waitMs = Math.max(1000, Math.round(waitMs + jitter));
+
+    console.warn(`[etsyFetch] 429 on ${path} — waiting ${(waitMs/1000).toFixed(1)}s (attempt ${attempt}/${maxRetries})`);
+    setFetchStatus(`Rate limited — retrying in ${Math.ceil(waitMs/1000)}s…`);
     await new Promise(r => setTimeout(r, waitMs));
 
-    // Exponential backoff for next attempt, capped at 30 s
-    delay = Math.min(delay * 2, 30_000);
+    // Exponential backoff for next attempt, capped at 60 s
+    delay = Math.min(delay * 2, 60_000);
   }
 }
 
 // ─── LOAD FULL DETAILS ──────────────────────────────────────────────────────
-async function loadAllDetails() {
+async function loadAllDetails(background = false) {
   const token  = sessionStorage.getItem('spl_token');
   const apiKey = sessionStorage.getItem('spl_api_key');
   const shopId = sessionStorage.getItem('spl_shop_id');
@@ -1046,9 +1294,11 @@ async function loadAllDetails() {
   const ptext  = document.getElementById('progress-text');
 
   try {
-    btn.disabled = true;
-    btn.textContent = 'Loading…';
-    prog.style.display = 'flex';
+    if (!background) {
+      btn.disabled = true;
+      btn.textContent = 'Loading…';
+      prog.style.display = 'flex';
+    }
 
     const total = allOrders.length;
     let done = 0;
@@ -1094,8 +1344,8 @@ async function loadAllDetails() {
     }
 
     // ── Phase 2: fetch ledger in 30-day windows (80–100%) ──
-    ptext.textContent = 'Fetching financial ledger…';
-    fill.style.width = '85%';
+    if (!background) { ptext.textContent = 'Fetching financial ledger…'; fill.style.width = '85%'; }
+    else setFetchStatus('Fetching ledger…');
 
     const now          = Math.floor(Date.now() / 1000);
     const MAX_LOOKBACK = 365 * 24 * 60 * 60;
@@ -1155,9 +1405,11 @@ async function loadAllDetails() {
     window._ledgerEntries = ledgerEntries;
 
     detailsLoaded = true;
-    fill.style.width = '100%';
-    prog.style.display = 'none';
-    btn.textContent = '✓ Full details loaded';
+    if (!background) {
+      fill.style.width = '100%';
+      prog.style.display = 'none';
+      btn.textContent = '✓ Full details loaded';
+    }
     document.getElementById('fin-export-csv').disabled  = false;
     document.getElementById('fin-export-json').disabled = false;
     document.getElementById('fin-export-csv').title  = '';
@@ -1165,11 +1417,21 @@ async function loadAllDetails() {
 
     renderFinances();
     renderKPIs();
+    renderOrderCharts(); // refresh top products now we have line items
+    if (background) setFetchStatus('All data loaded ✓', true);
 
   } catch (err) {
-    prog.style.display = 'none';
-    btn.disabled = false;
-    btn.textContent = '⚡ Load full details';
+    if (!background) {
+      prog.style.display = 'none';
+      btn.disabled = false;
+      btn.textContent = '⚡ Load full details';
+    } else {
+      // Background failure — surface the manual button so user can retry
+      btn.style.display = '';
+      btn.disabled = false;
+      btn.textContent = '⚡ Load full details';
+      setFetchStatus('Detail load failed — retry manually', true);
+    }
     showError('Detail load failed: ' + err.message);
   }
 }
@@ -1528,6 +1790,383 @@ function renderFinances() {
   document.getElementById('finances-tbody').innerHTML = rows.join('');
 }
 
+
+// ─── ORDER ANALYTICS CHARTS ────────────────────────────────────────────────
+
+// State for toggle modes
+let revChartMode = 'revenue';   // 'revenue' | 'orders'
+let dowChartMode = 'revenue';
+let topProdMode  = 'revenue';
+
+// Palette for charts
+const CHART_COLORS = ['#d4622a','#3a7d4c','#5a3d9e','#b8860b','#2563eb','#db2777','#0891b2'];
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Group orders by calendar period.
+ * Returns array of { label, ts (unix), revenue, count } sorted by ts.
+ * bucketSize: 'day' | 'week' | 'month'
+ */
+function bucketOrders(orders, bucketSize) {
+  const map = {};
+  for (const o of orders) {
+    const d    = new Date(o.create_timestamp * 1000);
+    let key, label, ts;
+    if (bucketSize === 'day') {
+      key   = d.toISOString().slice(0, 10);
+      label = d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+      ts    = o.create_timestamp;
+    } else if (bucketSize === 'week') {
+      // ISO week start (Monday)
+      const day   = d.getDay();
+      const diff  = (day === 0 ? -6 : 1 - day);
+      const mon   = new Date(d); mon.setDate(d.getDate() + diff); mon.setHours(0,0,0,0);
+      key   = mon.toISOString().slice(0, 10);
+      label = mon.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+      ts    = Math.floor(mon.getTime() / 1000);
+    } else {
+      key   = d.toISOString().slice(0, 7);
+      label = d.toLocaleDateString('en-US', { month:'short', year:'numeric' });
+      ts    = Math.floor(new Date(key + '-01').getTime() / 1000);
+    }
+    if (!map[key]) map[key] = { label, ts, revenue:0, count:0 };
+    map[key].revenue += money(o.grandtotal);
+    map[key].count++;
+  }
+  return Object.values(map).sort((a, b) => a.ts - b.ts);
+}
+
+/** Pick a bucket size that gives 8–40 data points */
+function autoBucket(orders) {
+  if (!orders.length) return 'day';
+  const ts = orders.map(o => o.create_timestamp);
+  const spanDays = (Math.max(...ts) - Math.min(...ts)) / 86400;
+  if (spanDays <= 35)  return 'day';
+  if (spanDays <= 180) return 'week';
+  return 'month';
+}
+
+/** Draw a smooth line + area chart into an SVG element */
+function drawLineChart(svgEl, tooltipEl, data, valueKey, fmtFn, color) {
+  const W = svgEl.clientWidth || 400;
+  const H = 140;
+  const PAD = { top:12, right:12, bottom:28, left:8 };
+  const iW = W - PAD.left - PAD.right;
+  const iH = H - PAD.top  - PAD.bottom;
+
+  if (!data.length) { svgEl.innerHTML = ''; return; }
+
+  const vals = data.map(d => d[valueKey]);
+  const vMin = 0;
+  const vMax = Math.max(...vals) * 1.12 || 1;
+  const xStep = data.length > 1 ? iW / (data.length - 1) : iW;
+
+  const xOf = i  => PAD.left + i * xStep;
+  const yOf = v  => PAD.top + iH - ((v - vMin) / (vMax - vMin)) * iH;
+
+  // Smooth path via cubic bezier
+  const points = data.map((d, i) => [xOf(i), yOf(d[valueKey])]);
+  let linePath = `M ${points[0][0].toFixed(1)} ${points[0][1].toFixed(1)}`;
+  for (let i = 1; i < points.length; i++) {
+    const [x0,y0] = points[i-1], [x1,y1] = points[i];
+    const cpX = (x0 + x1) / 2;
+    linePath += ` C ${cpX.toFixed(1)} ${y0.toFixed(1)}, ${cpX.toFixed(1)} ${y1.toFixed(1)}, ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+  }
+  const areaPath = linePath
+    + ` L ${points[points.length-1][0].toFixed(1)} ${(PAD.top+iH).toFixed(1)}`
+    + ` L ${points[0][0].toFixed(1)} ${(PAD.top+iH).toFixed(1)} Z`;
+
+  // X-axis labels — show ~5 evenly spaced
+  const labelStep = Math.max(1, Math.floor(data.length / 5));
+  const xLabels = data.map((d, i) => {
+    if (i % labelStep !== 0 && i !== data.length - 1) return '';
+    return `<text x="${xOf(i).toFixed(1)}" y="${H - 4}" text-anchor="middle"
+      font-family="monospace" font-size="8" fill="var(--muted2)">${d.label}</text>`;
+  }).join('');
+
+  const uid = 'g' + Math.random().toString(36).slice(2,7);
+
+  svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svgEl.innerHTML = `
+    <defs>
+      <linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="${areaPath}" fill="url(#${uid})"/>
+    <path d="${linePath}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    ${xLabels}
+    ${points.map((p, i) => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.5"
+      fill="${color}" stroke="var(--offwhite)" stroke-width="1.5"
+      class="chart-dot" data-i="${i}" style="cursor:pointer"/>`).join('')}
+  `;
+
+  // Hit-targets for tooltip
+  svgEl.querySelectorAll('.chart-dot').forEach(dot => {
+    dot.addEventListener('mouseenter', (ev) => {
+      const i   = parseInt(dot.dataset.i);
+      const d   = data[i];
+      const val = fmtFn(d[valueKey]);
+      tooltipEl.innerHTML = `<strong>${d.label}</strong><br>${val}`;
+      tooltipEl.classList.add('visible');
+      positionTooltip(tooltipEl, svgEl, parseFloat(dot.getAttribute('cx')), parseFloat(dot.getAttribute('cy')));
+    });
+    dot.addEventListener('mouseleave', () => tooltipEl.classList.remove('visible'));
+  });
+}
+
+/** Draw a vertical bar chart */
+function drawBarChart(svgEl, tooltipEl, data, valueKey, fmtFn, color) {
+  const W = svgEl.clientWidth || 400;
+  const H = 140;
+  const PAD = { top:12, right:8, bottom:28, left:8 };
+  const iW = W - PAD.left - PAD.right;
+  const iH = H - PAD.top  - PAD.bottom;
+
+  if (!data.length) { svgEl.innerHTML = ''; return; }
+
+  const vals = data.map(d => d[valueKey]);
+  const vMax = Math.max(...vals) * 1.12 || 1;
+  const n    = data.length;
+  const gap  = Math.max(2, iW / n * 0.15);
+  const barW = (iW - gap * (n - 1)) / n;
+
+  const xOf = i => PAD.left + i * (barW + gap);
+  const yOf = v => PAD.top + iH - (v / vMax) * iH;
+  const hOf = v => (v / vMax) * iH;
+
+  // X labels — show ~5
+  const labelStep = Math.max(1, Math.floor(n / 5));
+
+  svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svgEl.innerHTML = data.map((d, i) => {
+    const x = xOf(i), y = yOf(d[valueKey]), h = hOf(d[valueKey]);
+    const lbl = (i % labelStep === 0 || i === n-1)
+      ? `<text x="${(x + barW/2).toFixed(1)}" y="${H-4}" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">${d.label}</text>`
+      : '';
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(h,1).toFixed(1)}"
+        rx="3" fill="${color}" opacity="0.85" class="chart-bar" data-i="${i}" style="cursor:pointer;transition:opacity 0.15s"/>
+      ${lbl}`;
+  }).join('');
+
+  svgEl.querySelectorAll('.chart-bar').forEach(bar => {
+    bar.addEventListener('mouseenter', (ev) => {
+      const i   = parseInt(bar.dataset.i);
+      const d   = data[i];
+      tooltipEl.innerHTML = `<strong>${d.label}</strong><br>${fmtFn(d[valueKey])}`;
+      tooltipEl.classList.add('visible');
+      const bx = parseFloat(bar.getAttribute('x')) + parseFloat(bar.getAttribute('width')) / 2;
+      const by = parseFloat(bar.getAttribute('y'));
+      positionTooltip(tooltipEl, svgEl, bx, by);
+      bar.style.opacity = '1';
+    });
+    bar.addEventListener('mouseleave', () => {
+      tooltipEl.classList.remove('visible');
+      bar.style.opacity = '0.85';
+    });
+  });
+}
+
+function positionTooltip(tip, svgEl, svgX, svgY) {
+  const rect   = svgEl.getBoundingClientRect();
+  const canvas = svgEl.closest('.ochart-canvas');
+  const cRect  = canvas.getBoundingClientRect();
+  const scaleX = rect.width  / (parseFloat(svgEl.getAttribute('viewBox')?.split(' ')[2]) || rect.width);
+  const scaleY = rect.height / (parseFloat(svgEl.getAttribute('viewBox')?.split(' ')[3]) || rect.height);
+  let left = (rect.left - cRect.left) + svgX * scaleX;
+  let top  = (rect.top  - cRect.top)  + svgY * scaleY - 52;
+  // Keep inside canvas
+  tip.style.left = Math.max(0, left - 50) + 'px';
+  tip.style.top  = Math.max(0, top) + 'px';
+}
+
+// ── Revenue / Orders over time ───────────────────────────────────────────────
+function renderRevChart() {
+  const svgEl  = document.getElementById('rev-chart-svg');
+  const tipEl  = document.getElementById('rev-tooltip');
+  const subEl  = document.getElementById('rev-chart-sub');
+  if (!svgEl || !allOrders.length) return;
+
+  const bucket = autoBucket(allOrders);
+  const data   = bucketOrders(allOrders, bucket);
+  const isRev  = revChartMode === 'revenue';
+  const total  = allOrders.reduce((s, o) => s + (isRev ? money(o.grandtotal) : 1), 0);
+  subEl.textContent = isRev
+    ? `${fmtMoney(total)} total · by ${bucket}`
+    : `${total} orders · by ${bucket}`;
+
+  const color  = isRev ? '#d4622a' : '#3a7d4c';
+  const fmtFn  = isRev ? fmtMoney : v => `${v} orders`;
+  const key    = isRev ? 'revenue' : 'count';
+
+  // Use line for many points, bar for few
+  if (data.length > 14) drawLineChart(svgEl, tipEl, data, key, fmtFn, color);
+  else                  drawBarChart(svgEl,  tipEl, data, key, fmtFn, color);
+}
+
+function setRevMode(mode, btn) {
+  revChartMode = mode;
+  document.querySelectorAll('#tab-orders .ochart-toggle-btn').forEach(b => {
+    if (b.closest('.ochart-panel') === btn.closest('.ochart-panel'))
+      b.classList.toggle('active', b === btn);
+  });
+  renderRevChart();
+}
+
+// ── Day of week chart ────────────────────────────────────────────────────────
+function renderDowChart() {
+  const svgEl = document.getElementById('dow-chart-svg');
+  const tipEl = document.getElementById('dow-tooltip');
+  const subEl = document.getElementById('dow-chart-sub');
+  if (!svgEl || !allOrders.length) return;
+
+  const DAYS  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const tally = Array(7).fill(0).map(() => ({ revenue:0, count:0, days: new Set() }));
+
+  for (const o of allOrders) {
+    const d   = new Date(o.create_timestamp * 1000);
+    const dow = d.getDay();
+    const dateKey = d.toISOString().slice(0, 10);
+    tally[dow].revenue += money(o.grandtotal);
+    tally[dow].count++;
+    tally[dow].days.add(dateKey);
+  }
+
+  const isRev = dowChartMode === 'revenue';
+  // Compute average per occurrence of that weekday
+  const data = DAYS.map((label, i) => {
+    const occ = tally[i].days.size || 1;
+    return {
+      label,
+      revenue: tally[i].revenue / occ,
+      count:   tally[i].count   / occ,
+      rawRev:  tally[i].revenue,
+      rawCnt:  tally[i].count,
+    };
+  });
+
+  subEl.textContent = 'avg. per day';
+  const fmtFn = isRev ? fmtMoney : v => `${v.toFixed(1)} orders`;
+  const key   = isRev ? 'revenue' : 'count';
+  const color = isRev ? '#5a3d9e' : '#b8860b';
+
+  drawBarChart(svgEl, tipEl, data, key, fmtFn, color);
+
+  // Richer tooltip showing both avg and total
+  svgEl.querySelectorAll('.chart-bar').forEach((bar, i) => {
+    bar.addEventListener('mouseenter', () => {
+      const d = data[i];
+      tipEl.innerHTML = isRev
+        ? `<strong>${d.label}</strong><br>Avg: ${fmtMoney(d.revenue)}<br>Total: ${fmtMoney(d.rawRev)}`
+        : `<strong>${d.label}</strong><br>Avg: ${d.count.toFixed(1)} orders<br>Total: ${d.rawCnt}`;
+    });
+  });
+}
+
+function setDowMode(mode, btn) {
+  dowChartMode = mode;
+  document.querySelectorAll('#tab-orders .ochart-toggle-btn').forEach(b => {
+    if (b.closest('.ochart-panel') === btn.closest('.ochart-panel'))
+      b.classList.toggle('active', b === btn);
+  });
+  renderDowChart();
+}
+
+// ── Top products ─────────────────────────────────────────────────────────────
+function renderTopProducts() {
+  const wrap = document.getElementById('top-prod-rows');
+  const sub  = document.getElementById('top-prods-sub');
+  if (!wrap) return;
+
+  // Need detailCache for line item titles
+  const hasTitles = Object.keys(detailCache).length > 0;
+  if (!hasTitles) {
+    wrap.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted2);padding:0.5rem 0">Load full details to see product breakdown.</div>`;
+    return;
+  }
+
+  // Aggregate by title from transaction line items
+  const prodMap = {};
+  for (const o of allOrders) {
+    const d   = detailCache[o.receipt_id];
+    const txs = d?.transactions || [];
+    for (const t of txs) {
+      const title = t.title || '(Unknown)';
+      if (!prodMap[title]) prodMap[title] = { revenue:0, count:0 };
+      const price = t.price ? money(t.price) : 0;
+      const qty   = t.quantity || 1;
+      prodMap[title].revenue += price * qty;
+      prodMap[title].count   += qty;
+    }
+  }
+
+  const isRev  = topProdMode === 'revenue';
+  const sorted = Object.entries(prodMap)
+    .map(([title, v]) => ({ title, ...v }))
+    .sort((a, b) => isRev ? b.revenue - a.revenue : b.count - a.count)
+    .slice(0, 8);
+
+  if (!sorted.length) {
+    wrap.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted2)">No product data found.</div>`;
+    return;
+  }
+
+  const maxVal = sorted[0][isRev ? 'revenue' : 'count'] || 1;
+  sub.textContent = `top ${sorted.length} of ${Object.keys(prodMap).length} products`;
+
+  const PROD_COLORS = ['#d4622a','#3a7d4c','#5a3d9e','#b8860b','#2563eb','#db2777','#0891b2','#65a30d'];
+
+  wrap.innerHTML = sorted.map((p, i) => {
+    const val    = isRev ? p.revenue : p.count;
+    const barPct = (val / maxVal * 100).toFixed(1);
+    const valStr = isRev ? fmtMoney(p.revenue) : `${p.count} sold`;
+    const subStr = isRev ? `${p.count} units` : fmtMoney(p.revenue);
+    return `<div class="top-prod-row">
+      <div>
+        <div class="top-prod-name" title="${escHtml(p.title)}">${escHtml(p.title)}</div>
+        <div class="top-prod-sub">${subStr}</div>
+      </div>
+      <div class="top-prod-bar-track">
+        <div class="top-prod-bar-fill" style="width:0%;background:${PROD_COLORS[i%PROD_COLORS.length]}" data-target="${barPct}"></div>
+      </div>
+      <div>
+        <div class="top-prod-val">${valStr}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Animate bars
+  requestAnimationFrame(() => {
+    wrap.querySelectorAll('.top-prod-bar-fill').forEach(el => {
+      el.style.width = el.dataset.target + '%';
+    });
+  });
+}
+
+function setTopMode(mode, btn) {
+  topProdMode = mode;
+  btn.closest('.ochart-toggle').querySelectorAll('.ochart-toggle-btn').forEach(b => {
+    b.classList.toggle('active', b === btn);
+  });
+  renderTopProducts();
+}
+
+/** Main entry — render all order charts. Called after orders load and after full details load. */
+function renderOrderCharts() {
+  const wrap = document.getElementById('order-charts-wrap');
+  if (!allOrders.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+
+  // Give the DOM a tick to paint before reading clientWidth
+  requestAnimationFrame(() => {
+    renderRevChart();
+    renderDowChart();
+    renderTopProducts();
+  });
+}
+
 // ─── ORDER TABLE ────────────────────────────────────────────────────────────
 function renderTable() {
   const tbody = document.getElementById('orders-tbody');
@@ -1753,6 +2392,7 @@ function switchTab(name, btn) {
   document.getElementById(`tab-${name}`).classList.add('active');
   btn.classList.add('active');
   if (name === 'finances' && detailsLoaded) renderFinances();
+  if (name === 'orders') requestAnimationFrame(() => renderOrderCharts());
 }
 
 // ─── PAGINATION ────────────────────────────────────────────────────────────
@@ -1961,6 +2601,8 @@ function disconnect() {
   document.getElementById('filter-from').value = '';
   document.getElementById('filter-to').value   = '';
   document.getElementById('filter-active-badge').classList.remove('visible');
+  document.getElementById('fetch-status').classList.remove('visible');
+  document.getElementById('load-details-btn').style.display = 'none';
   showConnect();
   document.getElementById('error-banner').style.display = 'none';
 }
