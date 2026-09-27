@@ -6,12 +6,3 @@ export const session = {
   remove: key     => sessionStorage.removeItem(`spl_${key}`),
   clear: ()       => sessionStorage.clear(),
 };
-
-/** Credentials needed by every API call. */
-export function creds() {
-  return {
-    token:  session.get('token'),
-    apiKey: session.get('api_key'),
-    shopId: session.get('shop_id'),
-  };
-}

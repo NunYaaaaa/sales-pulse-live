@@ -42,7 +42,7 @@ export function bucketOrders(orders, bucketSize) {
 }
 
 /** Pick a bucket size that gives 8–40 data points */
-export function autoBucket(orders) {
+function autoBucket(orders) {
   if (!orders.length) return 'day';
   const ts = orders.map(o => o.create_timestamp);
   const spanDays = (Math.max(...ts) - Math.min(...ts)) / 86400;

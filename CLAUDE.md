@@ -15,7 +15,7 @@ Sales Pulse Live is a client-side Etsy seller analytics dashboard, hosted as sta
 Everything must be served over HTTP, because ES modules and the OAuth redirect don't work from `file://`. The repo's parent folder has a `.claude/launch.json` entry named `static` (`python -m http.server 8000`).
 
 - `http://localhost:8000/test/mock.html`: the real dashboard running against a fake Etsy API (`test/mock-api.js`), with no OAuth needed. Use it to check any UI or data-flow change. `window.mockStats` counts requests per endpoint. Receipt 0 has an XSS payload in its city and buyer name; if `window.__xss` is set, escaping is broken.
-- `http://localhost:8000/test/finance.test.html`: unit tests for `js/finance.js` (cases live in `test/finance.tests.js`). Results are shown on the page and exposed as `window.testResult`. There is no Node on this machine, so tests run in the browser.
+- `http://localhost:8000/test/finance.test.html`: unit tests for the pure helpers: finance math, fee grouping, date bucketing, `escHtml`, `csvCell` (cases live in `test/finance.tests.js`). Results are shown on the page and exposed as `window.testResult`. There is no Node on this machine, so tests run in the browser.
 - Mock URL switches: `?expired` (first request returns 401, then the token refreshes), `?expired&norefresh` (session-expired path), `?currency=EUR`.
 - A live Etsy run needs the redirect URI entered on the connect screen to exactly match one registered on the seller's Etsy app. The Worker's CORS header currently allows only `https://nunyaaaaa.github.io`, so live API calls from `localhost` are blocked.
 
@@ -25,7 +25,7 @@ Everything must be served over HTTP, because ES modules and the OAuth redirect d
 
 **Cloudflare Worker proxy.** All Etsy API traffic goes through `WORKER_BASE` (`config.js`), not directly to `api.etsy.com`. The Worker handles the token exchange (`/token`) and proxies `/application/...` paths to add CORS. It rate-limits aggressively.
 
-**Auth (`auth.js`, `session.js`).** OAuth 2 PKCE. The user ID is parsed from the access-token prefix (`<user_id>.<token>`). All persisted state lives in `sessionStorage` under `spl_*` keys, accessed only through `session.get/set`; `creds()` returns `{token, apiKey, shopId}`.
+**Auth (`auth.js`, `session.js`).** OAuth 2 PKCE. The user ID is parsed from the access-token prefix (`<user_id>.<token>`). All persisted state lives in `sessionStorage` under `spl_*` keys, accessed only through `session.get/set/remove`.
 
 **HTTP (`api.js`).** `etsyFetch(path, {signal})` is the only function that should call the API. It reads the credentials from the session and sends `Authorization: Bearer` plus `x-api-key: <keystring>:<shared_secret>` (Etsy v3 requires both parts). It also:
 - paces every request through `throttle()` (200 ms between request starts), so callers never add their own `sleep`s;

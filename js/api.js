@@ -37,7 +37,7 @@ function throttle(signal) {
 // Etsy access tokens last 1 hour. Concurrent 401s share one refresh request.
 let refreshing = null;
 
-export function refreshAccessToken() {
+function refreshAccessToken() {
   refreshing ??= (async () => {
     const refreshToken = session.get('refresh_token');
     if (!refreshToken) throw new AuthError('Your Etsy session expired — please reconnect.');
