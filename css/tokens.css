@@ -1,0 +1,13 @@
+/* Shared design tokens for index.html and app.html */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --cream:#fdf6ee; --offwhite:#f7f2eb; --paper:#f0ebe2;
+  --border:#e2ddd4; --border2:#d4cec5;
+  --ink:#1a1108; --ink2:#3d3022; --muted:#7a6a58; --muted2:#a89e90;
+  --orange:#d4622a; --green:#3a7d4c; --purple:#5a3d9e; --gold:#b8860b;
+  --orange-bg:#fde8d8; --orange-bd:#f5c5a8;
+  --green-bg:#d8eddf;  --green-bd:#a8d4b5;
+  --purple-bg:#e8e0f5; --purple-bd:#c8b8ee;
+  --gold-bg:#fef3d8;   --gold-bd:#f0d898;
+  --red:#b91c1c; --red-bg:#fee2e2; --red-bd:#fca5a5;
+}

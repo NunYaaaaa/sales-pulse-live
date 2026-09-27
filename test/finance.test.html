@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Finance tests</title>
+  <style>
+    body { font-family: monospace; padding: 1rem; background: #fdf6ee; color: #1a1108; }
+    .pass { color: #3a7d4c; } .fail { color: #b91c1c; font-weight: bold; }
+  </style>
+</head>
+<body>
+<h1>Finance tests</h1>
+<pre id="out"></pre>
+<script type="module">
+import { tests } from './finance.tests.js';
+
+const out = document.getElementById('out');
+let failed = 0;
+for (const [name, fn] of tests) {
+  const line = document.createElement('div');
+  try { fn(); line.className = 'pass'; line.textContent = `✓ ${name}`; }
+  catch (e) { failed++; line.className = 'fail'; line.textContent = `✗ ${name}\n    ${e.message}`; }
+  out.appendChild(line);
+}
+const summary = document.createElement('div');
+summary.className = failed ? 'fail' : 'pass';
+summary.textContent = `\n${tests.length - failed}/${tests.length} passed`;
+out.appendChild(summary);
+window.testResult = { total: tests.length, failed };
+</script>
+</body>
+</html>

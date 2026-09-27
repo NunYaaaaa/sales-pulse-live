@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sales Pulse Live — Mock Dashboard</title>
+  <link rel="stylesheet" href="../css/tokens.css"/>
+  <link rel="stylesheet" href="../css/app.css"/>
+</head>
+<body>
+<!--
+  Dev harness: loads the real app.html markup + js/main.js against a fake
+  Etsy API (test/mock-api.js), so the dashboard can be exercised without
+  OAuth. Open http://localhost:8000/test/mock.html
+-->
+<script type="module">
+import { installMockApi } from './mock-api.js';
+
+const html = await (await fetch('../app.html')).text();
+const doc  = new DOMParser().parseFromString(html, 'text/html');
+doc.querySelectorAll('script').forEach(s => s.remove());
+document.body.append(...doc.body.childNodes);
+
+installMockApi();
+sessionStorage.setItem('spl_token',         '12345.mocktoken');
+sessionStorage.setItem('spl_user_id',       '12345');
+sessionStorage.setItem('spl_api_key',       'mockkey');
+sessionStorage.setItem('spl_shared_secret', 'mocksecret');
+
+await import('../js/main.js');
+</script>
+</body>
+</html>
