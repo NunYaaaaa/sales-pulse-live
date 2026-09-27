@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; connect-src https://sales-pulse-live.ammon-wendel.workers.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'none'; object-src 'none'"/>
+  <meta name="referrer" content="no-referrer"/>
   <title>Sales Pulse Live — Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,800;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/tokens.css"/>
@@ -28,7 +30,7 @@
   <div class="connect-card">
     <div class="connect-icon">🔐</div>
     <h2>Connect your Etsy shop</h2>
-    <p>Enter your Etsy API keystring, shared secret, and redirect URI, then authenticate with OAuth 2.0. We request read-only access — your shop data is never stored.</p>
+    <p>Enter your Etsy API keystring, shared secret, and redirect URI, then authenticate with OAuth 2.0. We request read-only access. Your keys and access token are kept in this browser tab's session storage only, and are cleared when you disconnect or close the tab.</p>
     <div id="error-banner"></div>
     <div class="config-row">
       <label>Etsy API Keystring</label>
@@ -36,7 +38,7 @@
     </div>
     <div class="config-row">
       <label>Etsy Shared Secret</label>
-      <input type="text" id="shared-secret-input" autocomplete="off" spellcheck="false"/>
+      <input type="password" id="shared-secret-input" autocomplete="off" spellcheck="false"/>
     </div>
     <div class="config-row">
       <label>Redirect URI (must match your Etsy app)</label>

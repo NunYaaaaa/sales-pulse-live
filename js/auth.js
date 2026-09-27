@@ -46,7 +46,8 @@ export async function handleCallback(code, returnedState, onConnected) {
   const verifier    = session.get('verifier');
   const apiKey      = session.get('api_key');
   const redirectUri = session.get('redirect_uri');
-  if (returnedState !== storedState) { showError('OAuth state mismatch.'); showConnect(); return; }
+  history.replaceState({}, '', window.location.pathname); // drop ?code= from the URL right away
+  if (!storedState || returnedState !== storedState) { showConnect(); showError('OAuth state mismatch — please try connecting again.'); return; }
 
   showLoading('Exchanging auth code…');
   try {
@@ -61,7 +62,8 @@ export async function handleCallback(code, returnedState, onConnected) {
     if (!userId || !/^\d+$/.test(userId)) throw new Error('Could not parse user ID from access token. Token format may have changed.');
     session.set('token',   data.access_token);
     session.set('user_id', userId);
-    history.replaceState({}, '', window.location.pathname);
+    session.remove('verifier');
+    session.remove('state');
     // Brief pause after OAuth — Worker rate-limit window resets every second
     await sleep(1200);
     await onConnected();

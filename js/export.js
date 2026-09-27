@@ -5,14 +5,26 @@ import { bestPaymentAmount, hasRefund } from './render.js';
 import { state } from './state.js';
 import { getStatus, money } from './util.js';
 
+/**
+ * Quote a CSV cell. Text starting with = + - @ (or tab/CR) is prefixed with '
+ * so spreadsheets don't evaluate buyer-supplied strings as formulas.
+ */
+export function csvCell(c) {
+  let s = String(c ?? '');
+  const isNumber = /^-?\d+(\.\d+)?$/.test(s);
+  if (!isNumber && /^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
 function toCSV(rows) {
-  return rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  return rows.map(r => r.map(csvCell).join(',')).join('\n');
 }
 
 function download(filename, content, type) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
   const a = document.createElement('a');
-  a.href  = URL.createObjectURL(new Blob([content], { type }));
-  a.download = filename; a.click();
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 export function exportCSV() {

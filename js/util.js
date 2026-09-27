@@ -8,8 +8,10 @@ export function money(obj) {
 export function fmtMoney(n) {
   return new Intl.NumberFormat('en-US', { style:'currency', currency:'USD' }).format(n);
 }
+const HTML_ESCAPES = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
+/** Escape for both element content and quoted attribute values. */
 export function escHtml(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(s ?? '').replace(/[&<>"']/g, c => HTML_ESCAPES[c]);
 }
 export function getStatus(o) {
   if (o.status)      return o.status;

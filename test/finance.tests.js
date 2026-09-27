@@ -1,5 +1,7 @@
-// Unit tests for js/finance.js — run via test/finance.test.html in a browser.
+// Unit tests for the pure helpers — run via test/finance.test.html in a browser.
+import { csvCell } from '../js/export.js';
 import { categoriseEntry, computeLedgerTotals } from '../js/finance.js';
+import { escHtml } from '../js/util.js';
 
 function eq(actual, expected, msg = '') {
   const a = JSON.stringify(actual), e = JSON.stringify(expected);
@@ -68,5 +70,18 @@ export const tests = [
   }],
   ['computeLedgerTotals: empty input', () => {
     eq(computeLedgerTotals([]), { grossCents: 0, feesCents: 0, netCents: 0, refundGrossCents: 0, refundFeesCents: 0 });
+  }],
+  ['escHtml escapes attribute-breaking quotes', () => {
+    eq(escHtml(`"><img src=x onerror='a'>&`), '&quot;&gt;&lt;img src=x onerror=&#39;a&#39;&gt;&amp;');
+    eq(escHtml(null), '');
+    eq(escHtml(0), '0');
+  }],
+  ['csvCell neutralises formulas but keeps negative numbers', () => {
+    eq(csvCell('=HYPERLINK("x")'), `"'=HYPERLINK(""x"")"`);
+    eq(csvCell('@SUM(A1)'), `"'@SUM(A1)"`);
+    eq(csvCell('-6.50'), '"-6.50"');
+    eq(csvCell(-3), '"-3"');
+    eq(csvCell('Buyer'), '"Buyer"');
+    eq(csvCell(null), '""');
   }],
 ];

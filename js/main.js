@@ -67,7 +67,7 @@ for (const id of ['fee-donut-svg', 'fee-bars-wrap']) {
   const state  = params.get('state');
   const error  = params.get('error');
 
-  if (error) { showConnect(); showError(`Etsy declined the request: ${params.get('error_description') || error}`); return; }
+  if (error) { history.replaceState({}, '', window.location.pathname); showConnect(); showError(`Etsy declined the request: ${params.get('error_description') || error}`); return; }
   if (code && state) { await handleCallback(code, state, loadDashboard); return; }
 
   if (session.get('token')) { await loadDashboard(); return; }
