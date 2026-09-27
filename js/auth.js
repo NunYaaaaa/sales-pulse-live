@@ -62,6 +62,7 @@ export async function handleCallback(code, returnedState, onConnected) {
     if (!userId || !/^\d+$/.test(userId)) throw new Error('Could not parse user ID from access token. Token format may have changed.');
     session.set('token',   data.access_token);
     session.set('user_id', userId);
+    if (data.refresh_token) session.set('refresh_token', data.refresh_token);
     session.remove('verifier');
     session.remove('state');
     // Brief pause after OAuth — Worker rate-limit window resets every second

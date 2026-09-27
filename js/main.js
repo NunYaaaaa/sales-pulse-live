@@ -1,18 +1,21 @@
 // ─── ENTRY POINT: event wiring + boot ──────────────────────────────────────
 import { handleCallback, startOAuth } from './auth.js';
-import { highlightFee, setChartMode } from './charts.js';
+import { highlightFee, renderOrderCharts, setChartMode } from './charts.js';
 import { exportCSV, exportFinancesCSV, exportFinancesJSON, exportJSON } from './export.js';
-import { applyCustomRange, applyPreset, loadAllDetails, loadDashboard } from './loader.js';
+import { applyCustomRange, applyPreset, cancelLoad, loadAllDetails, loadDashboard } from './loader.js';
 import { goPage, switchTab } from './render.js';
 import { session } from './session.js';
 import { clearData, state } from './state.js';
-import { showConnect, showError } from './ui.js';
+import { clearError, showConnect, showError } from './ui.js';
+import { setCurrency } from './util.js';
 
 const $ = id => document.getElementById(id);
 
 function disconnect() {
+  cancelLoad();
   session.clear();
   clearData();
+  setCurrency('USD');
   state.filterFrom = null; state.filterTo = null;
   // Reset filter bar UI back to 30d default
   document.querySelectorAll('.preset-chip').forEach(c => {
@@ -24,7 +27,7 @@ function disconnect() {
   $('fetch-status').classList.remove('visible');
   $('load-details-btn').style.display = 'none';
   showConnect();
-  $('error-banner').style.display = 'none';
+  clearError();
 }
 
 // Click handlers keyed by data-action. `el` is the element carrying the attribute.
@@ -42,6 +45,7 @@ const ACTIONS = {
   'tab':             el => switchTab(el.dataset.tab, el),
   'chart-mode':      el => setChartMode(el.dataset.chart, el.dataset.mode, el),
   'page':            el => goPage(parseInt(el.dataset.page, 10)),
+  'dismiss-error':   () => clearError(),
 };
 
 document.addEventListener('click', ev => {
@@ -59,6 +63,15 @@ for (const id of ['fee-donut-svg', 'fee-bars-wrap']) {
   });
   root.addEventListener('mouseleave', () => highlightFee(null));
 }
+
+// Charts size themselves from clientWidth, so redraw after resizing settles
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if ($('dashboard').style.display === 'block') renderOrderCharts();
+  }, 150);
+});
 
 // ─── BOOT ──────────────────────────────────────────────────────────────────
 (async () => {

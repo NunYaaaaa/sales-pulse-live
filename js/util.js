@@ -1,12 +1,24 @@
 // ─── UTILS ─────────────────────────────────────────────────────────────────
-export const sleep = ms => new Promise(r => setTimeout(r, ms));
+/** Resolve after ms; rejects with AbortError as soon as signal aborts. */
+export function sleep(ms, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(signal.reason);
+    const t = setTimeout(resolve, ms);
+    signal?.addEventListener('abort', () => { clearTimeout(t); reject(signal.reason); }, { once: true });
+  });
+}
 
 export function money(obj) {
   if (!obj) return 0;
   return (obj.amount || 0) / (obj.divisor || 100);
 }
+// Shop currency (ISO 4217), set once the shop is loaded
+let currency = 'USD';
+export function setCurrency(code) { currency = code || 'USD'; }
+export function getCurrency() { return currency; }
 export function fmtMoney(n) {
-  return new Intl.NumberFormat('en-US', { style:'currency', currency:'USD' }).format(n);
+  try { return new Intl.NumberFormat('en-US', { style:'currency', currency }).format(n); }
+  catch { return `${n.toFixed(2)} ${currency}`; } // unknown currency code
 }
 const HTML_ESCAPES = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
 /** Escape for both element content and quoted attribute values. */
@@ -29,12 +41,20 @@ export function statusClass(s) {
 }
 
 // ─── DATES ─────────────────────────────────────────────────────────────────
+// Everything is in the viewer's local timezone: presets, filter bounds,
+// chart buckets and exports all agree on what "a day" is.
+const pad2 = n => String(n).padStart(2, '0');
+
+/** Local calendar date of d as YYYY-MM-DD. */
+export function localDateKey(d) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
 export function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  return localDateKey(new Date());
 }
 export function daysAgoStr(n) {
   const d = new Date(); d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return localDateKey(d);
 }
 export function ytdStr() {
   return new Date().getFullYear() + '-01-01';
@@ -42,11 +62,12 @@ export function ytdStr() {
 
 /**
  * Convert a date string (YYYY-MM-DD) to a unix timestamp.
- * "from" is start of that day (00:00:00 UTC).
- * "to"   is end of that day (23:59:59 UTC).
+ * "from" is start of that local day (00:00:00).
+ * "to"   is end of that local day (23:59:59).
  */
 export function dateStrToTs(str, isEnd = false) {
   if (!str) return null;
-  const d = new Date(str + (isEnd ? 'T23:59:59Z' : 'T00:00:00Z'));
-  return Math.floor(d.getTime() / 1000);
+  const [y, m, d] = str.split('-').map(Number);
+  const dt = isEnd ? new Date(y, m - 1, d, 23, 59, 59) : new Date(y, m - 1, d);
+  return Math.floor(dt.getTime() / 1000);
 }

@@ -3,11 +3,19 @@ import { todayStr } from './util.js';
 
 const $ = id => document.getElementById(id);
 
+/** Show an error in the banner of whichever screen is visible. */
 export function showError(msg) {
-  const el = $('error-banner');
-  el.style.display = 'block'; el.textContent = '⚠ ' + msg;
+  const onDashboard = $('dashboard').style.display === 'block';
+  const el = $(onDashboard ? 'dash-error' : 'error-banner');
+  el.querySelector('.error-text').textContent = '⚠ ' + msg;
+  el.style.display = onDashboard ? 'flex' : 'block';
+}
+export function clearError() {
+  $('error-banner').style.display = 'none';
+  $('dash-error').style.display   = 'none';
 }
 export function showConnect() {
+  $('dash-error').style.display      = 'none';
   $('connect-screen').style.display  = 'flex';
   $('loading-screen').style.display  = 'none';
   $('dashboard').style.display       = 'none';

@@ -2,7 +2,7 @@
 import { FEE_GROUPS, FEE_OTHER_COLOR, PALETTE } from './config.js';
 import { categoriseEntry, ledgerType } from './finance.js';
 import { state } from './state.js';
-import { escHtml, fmtMoney, money } from './util.js';
+import { escHtml, fmtMoney, localDateKey, money } from './util.js';
 
 const $ = id => document.getElementById(id);
 
@@ -18,23 +18,22 @@ export function bucketOrders(orders, bucketSize) {
   for (const o of orders) {
     const d    = new Date(o.create_timestamp * 1000);
     let key, label, ts;
+    // All keys use the local calendar, matching the date filter
+    let start;
     if (bucketSize === 'day') {
-      key   = d.toISOString().slice(0, 10);
-      label = d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
-      ts    = o.create_timestamp;
+      start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      label = start.toLocaleDateString('en-US', { month:'short', day:'numeric' });
     } else if (bucketSize === 'week') {
       // ISO week start (Monday)
-      const day   = d.getDay();
-      const diff  = (day === 0 ? -6 : 1 - day);
-      const mon   = new Date(d); mon.setDate(d.getDate() + diff); mon.setHours(0,0,0,0);
-      key   = mon.toISOString().slice(0, 10);
-      label = mon.toLocaleDateString('en-US', { month:'short', day:'numeric' });
-      ts    = Math.floor(mon.getTime() / 1000);
+      const day = d.getDay();
+      start = new Date(d.getFullYear(), d.getMonth(), d.getDate() + (day === 0 ? -6 : 1 - day));
+      label = start.toLocaleDateString('en-US', { month:'short', day:'numeric' });
     } else {
-      key   = d.toISOString().slice(0, 7);
-      label = d.toLocaleDateString('en-US', { month:'short', year:'numeric' });
-      ts    = Math.floor(new Date(key + '-01').getTime() / 1000);
+      start = new Date(d.getFullYear(), d.getMonth(), 1);
+      label = start.toLocaleDateString('en-US', { month:'short', year:'numeric' });
     }
+    key = localDateKey(start);
+    ts  = Math.floor(start.getTime() / 1000);
     if (!map[key]) map[key] = { label, ts, revenue:0, count:0 };
     map[key].revenue += money(o.grandtotal);
     map[key].count++;
@@ -230,7 +229,7 @@ function renderDowChart() {
     const dow = d.getDay();
     tally[dow].revenue += money(o.grandtotal);
     tally[dow].count++;
-    tally[dow].days.add(d.toISOString().slice(0, 10));
+    tally[dow].days.add(localDateKey(d));
   }
 
   const isRev = state.dowChartMode === 'revenue';
@@ -263,8 +262,8 @@ function renderTopProducts() {
   const sub  = $('top-prods-sub');
   if (!wrap) return;
 
-  // Need detailCache for line item titles
-  if (!Object.keys(state.detailCache).length) {
+  // Need line items for every order, not just the rows the user has expanded
+  if (!state.detailsLoaded) {
     wrap.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted2);padding:0.5rem 0">Load full details to see product breakdown.</div>`;
     return;
   }
@@ -352,6 +351,22 @@ export function renderOrderCharts() {
 // ─── FEE BREAKDOWN CHART ────────────────────────────────────────────────────
 const DONUT_STROKE = 22;
 
+/**
+ * Merge a { ledger_type: cents } tally into chart rows by FEE_GROUPS label
+ * (so types sharing a label, like listing + LISTING_FEE, become one row);
+ * unknown types go to "Other". Sorted by amount desc.
+ */
+export function groupFees(tally) {
+  const byLabel = new Map();
+  for (const [key, cents] of Object.entries(tally)) {
+    const g = FEE_GROUPS.find(g => g.key === key) || { label: 'Other', color: FEE_OTHER_COLOR };
+    const row = byLabel.get(g.label) || { label: g.label, color: g.color, cents: 0 };
+    row.cents += cents;
+    byLabel.set(g.label, row);
+  }
+  return [...byLabel.values()].sort((a, b) => b.cents - a.cents);
+}
+
 export function renderFeeChart(entries) {
   const panel = $('fee-chart-panel');
 
@@ -370,34 +385,7 @@ export function renderFeeChart(entries) {
   if (totalFeesCents === 0) { panel.style.display = 'none'; return; }
   panel.style.display = 'block';
 
-  // Build ordered groups — merge known keys, bucket the rest into "Other"
-  const rows = [];
-  const seenKeys = new Set();
-
-  for (const g of FEE_GROUPS) {
-    // Merge LISTING_FEE into listing row
-    if (g.key === 'LISTING_FEE') {
-      if (tally['LISTING_FEE']) {
-        tally['listing'] = (tally['listing'] || 0) + tally['LISTING_FEE'];
-      }
-      continue;
-    }
-    if (tally[g.key]) {
-      rows.push({ label: g.label, cents: tally[g.key], color: g.color, key: g.key });
-      seenKeys.add(g.key);
-    }
-  }
-  seenKeys.add('LISTING_FEE');
-
-  // Everything else → Other
-  let otherCents = 0;
-  for (const [k, v] of Object.entries(tally)) {
-    if (!seenKeys.has(k)) otherCents += v;
-  }
-  if (otherCents > 0) rows.push({ label:'Other', cents: otherCents, color: FEE_OTHER_COLOR, key:'other' });
-
-  // Sort by amount desc
-  rows.sort((a, b) => b.cents - a.cents);
+  const rows = groupFees(tally);
 
   const total = totalFeesCents;
   $('fee-chart-total').textContent = fmtMoney(total / 100);

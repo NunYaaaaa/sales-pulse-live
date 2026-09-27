@@ -48,11 +48,11 @@ export const LEDGER_TAXONOMY = {
     'renew_sold_auto_refund',
     'listing_private_refund',
     'shipping_label_refund',
-    'sales_tax_refund',
   ]),
   // ── PASS-THROUGHS: excluded from both gross and fees ──
   passthrough: new Set([
     'sales_tax',    // collected on behalf of tax authority — not your money
+    'sales_tax_refund', // tax returned to the buyer — never was your money either
     'DISBURSE',     // payout to your bank — just a fund movement
     'DISBURSE2',
     'deposit',
@@ -107,7 +107,7 @@ export const FEE_GROUPS = [
   { key:'renew_sold_auto',       label:'Listing Renewals',   color:'#db2777' },
   { key:'offsite_ads_fee',       label:'Offsite Ads',        color:'#0891b2' },
   { key:'listing',               label:'Listing Fees',       color:'#65a30d' },
-  { key:'LISTING_FEE',           label:'Listing Fees',       color:'#65a30d' },
+  { key:'LISTING_FEE',           label:'Listing Fees',       color:'#65a30d' }, // merged with 'listing' by label
   { key:'marketing',             label:'Marketing',          color:'#7c3aed' },
   { key:'gift_wrap_fees',        label:'Gift Wrap',          color:'#be185d' },
   { key:'buyer_fee',             label:'Buyer Fees',         color:'#92400e' },

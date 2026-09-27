@@ -31,7 +31,7 @@
     <div class="connect-icon">🔐</div>
     <h2>Connect your Etsy shop</h2>
     <p>Enter your Etsy API keystring, shared secret, and redirect URI, then authenticate with OAuth 2.0. We request read-only access. Your keys and access token are kept in this browser tab's session storage only, and are cleared when you disconnect or close the tab.</p>
-    <div id="error-banner"></div>
+    <div id="error-banner"><span class="error-text"></span></div>
     <div class="config-row">
       <label>Etsy API Keystring</label>
       <input type="text" id="api-key-input" autocomplete="off" spellcheck="false"/>
@@ -79,6 +79,11 @@
         <button class="export-btn export-json" data-action="export-json">↓ JSON</button>
       </div>
     </div>
+  </div>
+
+  <div id="dash-error" role="alert">
+    <span class="error-text"></span>
+    <button class="error-dismiss" data-action="dismiss-error" title="Dismiss">✕</button>
   </div>
 
   <!-- DATE FILTER BAR -->

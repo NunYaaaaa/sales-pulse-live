@@ -22,7 +22,11 @@ doc.querySelectorAll('script').forEach(s => s.remove());
 document.body.append(...doc.body.childNodes);
 
 installMockApi();
-sessionStorage.setItem('spl_token',         '12345.mocktoken');
+const qs = new URLSearchParams(location.search);
+sessionStorage.setItem('spl_token',         qs.has('expired') ? '12345.expired' : '12345.mocktoken');
+if (qs.has('norefresh')) sessionStorage.removeItem('spl_refresh_token');
+else sessionStorage.setItem('spl_refresh_token', '12345.refresh');
+window.mockCurrency = qs.get('currency') || 'USD';
 sessionStorage.setItem('spl_user_id',       '12345');
 sessionStorage.setItem('spl_api_key',       'mockkey');
 sessionStorage.setItem('spl_shared_secret', 'mocksecret');

@@ -1,7 +1,8 @@
 // Unit tests for the pure helpers — run via test/finance.test.html in a browser.
+import { bucketOrders, groupFees } from '../js/charts.js';
 import { csvCell } from '../js/export.js';
 import { categoriseEntry, computeLedgerTotals } from '../js/finance.js';
-import { escHtml } from '../js/util.js';
+import { dateStrToTs, escHtml, localDateKey } from '../js/util.js';
 
 function eq(actual, expected, msg = '') {
   const a = JSON.stringify(actual), e = JSON.stringify(expected);
@@ -25,7 +26,7 @@ export const tests = [
     }
   }],
   ['payouts and sales tax are pass-through', () => {
-    for (const t of ['DISBURSE', 'DISBURSE2', 'deposit', 'sales_tax']) {
+    for (const t of ['DISBURSE', 'DISBURSE2', 'deposit', 'sales_tax', 'sales_tax_refund']) {
       eq(categoriseEntry(entry(t, -5000)), 'passthrough', t);
       eq(categoriseEntry(entry(t, 5000)), 'passthrough', t);
     }
@@ -70,6 +71,25 @@ export const tests = [
   }],
   ['computeLedgerTotals: empty input', () => {
     eq(computeLedgerTotals([]), { grossCents: 0, feesCents: 0, netCents: 0, refundGrossCents: 0, refundFeesCents: 0 });
+  }],
+  ['groupFees merges listing + LISTING_FEE and sums to the total', () => {
+    const rows = groupFees({ listing: 20, LISTING_FEE: 20, transaction: 100, mystery_fee: 5, renew_sold: 5 });
+    eq(rows.map(r => [r.label, r.cents]), [['Transaction Fees', 100], ['Listing Fees', 40], ['Other', 10]]);
+  }],
+  ['dateStrToTs uses local-day boundaries', () => {
+    const from = dateStrToTs('2026-03-10'), to = dateStrToTs('2026-03-10', true);
+    eq(localDateKey(new Date(from * 1000)), '2026-03-10', 'from');
+    eq(localDateKey(new Date(to * 1000)), '2026-03-10', 'to');
+    eq(to - from, 86399, 'span');
+    eq(dateStrToTs(''), null);
+  }],
+  ['bucketOrders groups by local day/week/month', () => {
+    const at = (y, m, d, h) => ({ create_timestamp: new Date(y, m - 1, d, h).getTime() / 1000, grandtotal: { amount: 1000, divisor: 100 } });
+    // 23:00 and 00:00 local are different days, whatever the UTC date
+    const orders = [at(2026, 3, 9, 23), at(2026, 3, 10, 0), at(2026, 3, 10, 12), at(2026, 3, 16, 9)];
+    eq(bucketOrders(orders, 'day').map(b => b.count), [1, 2, 1], 'day');
+    eq(bucketOrders(orders, 'week').map(b => b.count), [3, 1], 'week (Mon 9th, Mon 16th)');
+    eq(bucketOrders(orders, 'month').map(b => [b.count, b.revenue]), [[4, 40]], 'month');
   }],
   ['escHtml escapes attribute-breaking quotes', () => {
     eq(escHtml(`"><img src=x onerror='a'>&`), '&quot;&gt;&lt;img src=x onerror=&#39;a&#39;&gt;&amp;');

@@ -3,7 +3,6 @@ import { LEDGER_LABEL, PAGE_SIZE } from './config.js';
 import { fetchReceiptDetail } from './api.js';
 import { renderFeeChart, renderOrderCharts } from './charts.js';
 import { categoriseEntry, computeLedgerTotals, ledgerType } from './finance.js';
-import { creds } from './session.js';
 import { state } from './state.js';
 import { escHtml, fmtMoney, getStatus, money, statusClass } from './util.js';
 
@@ -178,9 +177,8 @@ async function toggleDetail(tr, order) {
 
   if (!state.detailCache[rid]) {
     td.innerHTML = `<div class="detail-inner"><div class="detail-loading"><span class="mini-spinner"></span> Fetching order details…</div></div>`;
-    const { token, apiKey, shopId } = creds();
     try {
-      state.detailCache[rid] = await fetchReceiptDetail(shopId, rid, token, apiKey, { strict: true });
+      state.detailCache[rid] = await fetchReceiptDetail(rid);
     } catch (err) {
       td.innerHTML = `<div class="detail-inner"><div class="detail-loading" style="color:var(--orange)">⚠ Failed to load details: ${escHtml(err.message)}</div></div>`;
       tr.classList.remove('expanded');

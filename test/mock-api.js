@@ -74,6 +74,10 @@ export function installMockApi({ latencyMs = 5 } = {}) {
     await new Promise(r => setTimeout(r, latencyMs));
 
     const q = url.searchParams, p = url.pathname;
+
+    // Simulate an expired access token: any token containing "expired" gets 401
+    const auth = (init?.headers || {})['Authorization'] || '';
+    if (p !== '/token' && auth.includes('expired')) return json({ error: 'invalid_token' }, 401);
     const limit  = +(q.get('limit') || 25), offset = +(q.get('offset') || 0);
     const min = +(q.get('min_created') || 0), max = +(q.get('max_created') || Infinity);
     const inRange = ts => ts >= min && ts <= max;
@@ -84,7 +88,7 @@ export function installMockApi({ latencyMs = 5 } = {}) {
       return json({ access_token: '12345.fresh' + Date.now(), refresh_token: '12345.refresh', expires_in: 3600, token_type: 'Bearer', grant_type: body.get('grant_type') });
     }
     if (/^\/application\/users\/\d+\/shops$/.test(p)) {
-      return json({ shop_id: SHOP_ID, shop_name: 'MockShop' });
+      return json({ shop_id: SHOP_ID, shop_name: 'MockShop', currency_code: window.mockCurrency || 'USD' });
     }
     if (/^\/application\/shops\/\d+\/receipts$/.test(p)) {
       const all = receipts.filter(r => inRange(r.create_timestamp));
