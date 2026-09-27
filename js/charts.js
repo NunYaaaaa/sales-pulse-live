@@ -1,7 +1,7 @@
 // ─── CHARTS (pure SVG, no libraries) ───────────────────────────────────────
 import { FEE_GROUPS, FEE_OTHER_COLOR, PALETTE } from './config.js';
 import { categoriseEntry, ledgerType } from './finance.js';
-import { state } from './state.js';
+import { lineItems, state } from './state.js';
 import { escHtml, fmtMoney, localDateKey, money } from './util.js';
 
 const $ = id => document.getElementById(id);
@@ -263,15 +263,15 @@ function renderTopProducts() {
   if (!wrap) return;
 
   // Need line items for every order, not just the rows the user has expanded
-  if (!state.detailsLoaded) {
-    wrap.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted2);padding:0.5rem 0">Load full details to see product breakdown.</div>`;
+  if (!state.allOrders.every(lineItems)) {
+    wrap.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted2);padding:0.5rem 0">${state.detailsLoaded ? 'Some line items could not be loaded.' : 'Loading product breakdown…'}</div>`;
     return;
   }
 
   // Aggregate by title from transaction line items
   const prodMap = {};
   for (const o of state.allOrders) {
-    const txs = state.detailCache[o.receipt_id]?.transactions || [];
+    const txs = lineItems(o);
     for (const t of txs) {
       const title = t.title || '(Unknown)';
       if (!prodMap[title]) prodMap[title] = { revenue:0, count:0 };

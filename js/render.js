@@ -1,9 +1,9 @@
 // ─── RENDERING: KPIs, order table, detail panel, finances ─────────────────
 import { LEDGER_LABEL, PAGE_SIZE } from './config.js';
-import { fetchReceiptDetail } from './api.js';
+import { fetchPayment, fetchTransactions } from './api.js';
 import { renderFeeChart, renderOrderCharts } from './charts.js';
 import { categoriseEntry, computeLedgerTotals, ledgerType } from './finance.js';
-import { state } from './state.js';
+import { lineItems, state } from './state.js';
 import { escHtml, fmtMoney, getStatus, money, statusClass } from './util.js';
 
 const $ = id => document.getElementById(id);
@@ -175,10 +175,13 @@ async function toggleDetail(tr, order) {
 
   const td = dtr.querySelector('td');
 
-  if (!state.detailCache[rid]) {
+  const needTx  = !lineItems(order);
+  const needPay = !(rid in state.payments);
+  if (needTx || needPay) {
     td.innerHTML = `<div class="detail-inner"><div class="detail-loading"><span class="mini-spinner"></span> Fetching order details…</div></div>`;
     try {
-      state.detailCache[rid] = await fetchReceiptDetail(rid);
+      if (needTx)  state.lineItems[rid] = await fetchTransactions(rid);
+      if (needPay) state.payments[rid]  = await fetchPayment(rid);
     } catch (err) {
       td.innerHTML = `<div class="detail-inner"><div class="detail-loading" style="color:var(--orange)">⚠ Failed to load details: ${escHtml(err.message)}</div></div>`;
       tr.classList.remove('expanded');
@@ -187,7 +190,7 @@ async function toggleDetail(tr, order) {
     }
   }
 
-  renderDetailPanel(td, order, state.detailCache[rid]);
+  renderDetailPanel(td, order, { transactions: lineItems(order) || [], payment: state.payments[rid] });
 }
 
 /**

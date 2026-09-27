@@ -2,7 +2,9 @@
 import { LEDGER_LABEL } from './config.js';
 import { categoriseEntry, computeLedgerTotals } from './finance.js';
 import { bestPaymentAmount, hasRefund } from './render.js';
-import { state } from './state.js';
+import { ensurePayments } from './loader.js';
+import { showError } from './ui.js';
+import { lineItems, state } from './state.js';
 import { getCurrency, getStatus, localDateKey, money } from './util.js';
 
 /**
@@ -27,11 +29,29 @@ function download(filename, content, type) {
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-export function exportCSV() {
+/** Fetch any missing payments first, showing progress on the export button. */
+async function withPayments(btn, fn) {
+  const label = btn.textContent;
+  btn.disabled = true;
+  try {
+    await ensurePayments(state.allOrders, (done, total) => { btn.textContent = `${done}/${total}…`; });
+    fn();
+  } catch (e) {
+    showError(`Export failed: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+}
+
+export const exportCSV  = btn => withPayments(btn, ordersCSV);
+export const exportJSON = btn => withPayments(btn, ordersJSON);
+
+function ordersCSV() {
   const cur = getCurrency();
   const headers = ['Receipt ID','Date','Buyer','Items','Payment Method','Status',`Gross (${cur})`,`Shipping (${cur})`,`Tax (${cur})`,`Discount (${cur})`,`Processing Fee (${cur})`,`Net after proc. fee (${cur})`,'Refunded'];
   const rows = state.allOrders.map(o => {
-    const pay = state.detailCache[o.receipt_id]?.payment;
+    const pay = state.payments[o.receipt_id];
     return [
       o.receipt_id || '',
       o.create_timestamp ? localDateKey(new Date(o.create_timestamp * 1000)) : '',
@@ -51,10 +71,9 @@ export function exportCSV() {
   download('orders_export.csv', toCSV([headers, ...rows]), 'text/csv');
 }
 
-export function exportJSON() {
+function ordersJSON() {
   const data = state.allOrders.map(o => {
-    const d   = state.detailCache[o.receipt_id];
-    const pay = d?.payment;
+    const pay = state.payments[o.receipt_id];
     return {
       receipt_id:         o.receipt_id,
       currency:           getCurrency(),
@@ -74,7 +93,7 @@ export function exportJSON() {
       net_after_proc_fee: pay ? bestPaymentAmount(pay, 'net') : null,
       refunded:           hasRefund(pay),
       pay_status:         pay?.status || null,
-      line_items: (d?.transactions || []).map(t => ({
+      line_items: (lineItems(o) || []).map(t => ({
         title:    t.title || null,
         sku:      t.sku || null,
         quantity: t.quantity || 1,

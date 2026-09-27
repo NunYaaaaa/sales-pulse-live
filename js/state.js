@@ -2,11 +2,15 @@
 // Single mutable store shared by every module.
 export const state = {
   allOrders:     [],
-  detailCache:   {},    // receipt_id -> { transactions, payment }
   ledgerEntries: null,  // array once full details are loaded
   currentPage:   1,
-  detailsLoaded: false,
+  detailsLoaded: false, // ledger + every order's line items are in
   expandedRow:   null,
+
+  // Per-receipt caches, kept across date-range changes (a receipt's
+  // details don't depend on the range it was fetched for).
+  lineItems: {},        // receipt_id -> transactions (only for receipts that came without them)
+  payments:  {},        // receipt_id -> payment | null (null = paid outside Etsy Payments)
 
   // Date filter — unix timestamps (seconds). null = no bound.
   filterFrom: null,     // inclusive lower bound
@@ -20,12 +24,38 @@ export const state = {
   feeSegments: [],      // last-drawn donut segments, for cross-highlighting
 };
 
-/** Clear all fetched shop data (keeps filter + chart modes). */
-export function clearData() {
+/** Line items for an order: embedded in the receipt, or fetched separately. */
+export function lineItems(o) {
+  return o.transactions ?? state.lineItems[o.receipt_id] ?? null;
+}
+
+// ─── RANGE CACHE ─────────────────────────────────────────────────────────────
+// Orders + ledger per date range, so flipping back to a range is instant.
+const RANGE_TTL_MS = 5 * 60 * 1000;
+const rangeCache = new Map();
+const rangeKey = () => `${state.filterFrom}|${state.filterTo}`;
+
+export function cacheCurrentRange() {
+  rangeCache.set(rangeKey(), { orders: state.allOrders, ledger: state.ledgerEntries, at: Date.now() });
+}
+export function cachedRange() {
+  const hit = rangeCache.get(rangeKey());
+  return hit && Date.now() - hit.at < RANGE_TTL_MS ? hit : null;
+}
+
+/** Reset the data shown for the current range. */
+export function clearRangeData() {
   state.allOrders     = [];
-  state.detailCache   = {};
   state.ledgerEntries = null;
   state.detailsLoaded = false;
   state.currentPage   = 1;
   state.expandedRow   = null;
+}
+
+/** Forget everything fetched (disconnect). */
+export function clearData() {
+  clearRangeData();
+  state.lineItems = {};
+  state.payments  = {};
+  rangeCache.clear();
 }

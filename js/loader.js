@@ -1,11 +1,11 @@
 // ─── DATA LOADING PIPELINE + DATE FILTER ───────────────────────────────────
-import { ApiError, AuthError, etsyFetch, fetchLedger, fetchOrders, fetchReceiptDetail, isAbort } from './api.js';
+import { ApiError, AuthError, etsyFetch, fetchLedger, fetchOrders, fetchPayment, fetchTransactions, isAbort } from './api.js';
 import { renderOrderCharts } from './charts.js';
 import { renderFinances, renderKPIs, renderTable } from './render.js';
 import { session } from './session.js';
-import { clearData, state } from './state.js';
+import { cacheCurrentRange, cachedRange, clearRangeData, lineItems, state } from './state.js';
 import { clearError, setFetchStatus, showConnect, showDashboard, showError, showLoading, showSkeletons } from './ui.js';
-import { dateStrToTs, daysAgoStr, setCurrency, sleep, todayStr, ytdStr } from './util.js';
+import { dateStrToTs, daysAgoStr, setCurrency, todayStr, ytdStr } from './util.js';
 
 const $ = id => document.getElementById(id);
 
@@ -90,10 +90,29 @@ export async function loadDashboard() {
   reload();
 }
 
-/** Clear all data and fetch orders, then full details, for the active date filter. */
+/** Enable the finance exports and mark details as loaded. */
+function markDetailsLoaded() {
+  state.detailsLoaded = true;
+  const btn = $('load-details-btn');
+  btn.textContent = '✓ Full details loaded';
+  btn.disabled = true;
+  for (const id of ['fin-export-csv', 'fin-export-json']) {
+    $(id).disabled = false;
+    $(id).title    = '';
+  }
+}
+
+function renderAll() {
+  renderKPIs();
+  renderTable();
+  renderOrderCharts();
+  renderFinances();
+}
+
+/** Show orders, then full details, for the active date filter (from cache when fresh). */
 async function reload() {
   const signal = beginLoad();
-  clearData();
+  clearRangeData();
   clearError();
 
   const btn = $('load-details-btn');
@@ -103,6 +122,16 @@ async function reload() {
   $('fin-export-json').disabled = true;
   $('finances-tbody').innerHTML = FINANCES_PLACEHOLDER;
   $('fee-chart-panel').style.display = 'none';
+
+  const hit = cachedRange();
+  if (hit) {
+    state.allOrders     = hit.orders;
+    state.ledgerEntries = hit.ledger;
+    markDetailsLoaded();
+    renderAll();
+    setFetchStatus(`${hit.orders.length} orders (cached)`, true);
+    return;
+  }
 
   showSkeletons();
 
@@ -123,16 +152,17 @@ async function reload() {
     return;
   }
 
-  // Phase B: full details (transactions + ledger) in background
+  // Phase B: full details (ledger, plus any missing line items) in background
   setFetchStatus('Loading financial details…');
   await loadAllDetails(true /* background */, signal);
 }
 
 // ─── LOAD FULL DETAILS ──────────────────────────────────────────────────────
 /**
- * Fetch per-receipt details, then the ledger for the active range.
- * `background` hides the progress bar. `signal` ties it to the current load;
- * a manual click (no signal) joins the current load's signal.
+ * Fetch line items for receipts that came without them (normally none —
+ * getShopReceipts embeds them), then the ledger for the active range.
+ * Payments are not fetched here; see ensurePayments().
+ * `background` hides the progress bar. `signal` ties it to the current load.
  */
 export async function loadAllDetails(background = false, signal = currentLoad?.signal) {
   const btn   = $('load-details-btn');
@@ -147,32 +177,27 @@ export async function loadAllDetails(background = false, signal = currentLoad?.s
       prog.style.display = 'flex';
     }
 
-    const orders = state.allOrders;
-    const total  = orders.length;
+    const orders  = state.allOrders;
+    const missing = orders.filter(o => !lineItems(o));
     let done = 0;
 
-    // ── Phase 1: fetch transactions + payment per receipt (0–80%) ──
-    for (const order of orders) {
-      const rid = order.receipt_id;
-      if (!state.detailCache[rid]) {
-        try {
-          const detail = await fetchReceiptDetail(rid, { signal });
-          if (signal?.aborted) return;
-          state.detailCache[rid] = detail;
-        } catch (e) {
-          if (!(e instanceof ApiError)) throw e;
-          console.warn(`[loadAllDetails] ${e.message}`); // skip; row can retry on expand
-        }
-        // 300 ms between receipts keeps us comfortably under Etsy's rate limit
-        await sleep(300, signal);
+    // ── Phase 1: line items the receipts didn't include (0–80%) ──
+    for (const o of missing) {
+      try {
+        const txs = await fetchTransactions(o.receipt_id, { signal });
+        if (signal?.aborted) return;
+        state.lineItems[o.receipt_id] = txs;
+      } catch (e) {
+        if (!(e instanceof ApiError)) throw e;
+        console.warn(`[loadAllDetails] ${e.message}`); // skip; row can retry on expand
       }
       done++;
-      const pct = total > 0 ? Math.round((done / total) * 80) : 80;
+      const pct = Math.round((done / missing.length) * 80);
       fill.style.width  = `${pct}%`;
-      ptext.textContent = `${pct}% (${done}/${total} orders)`;
+      ptext.textContent = `${pct}% (${done}/${missing.length} orders)`;
     }
 
-    // ── Phase 2: fetch ledger in 30-day windows (80–100%) ──
+    // ── Phase 2: ledger in 30-day windows (80–100%) ──
     if (!background) { ptext.textContent = 'Fetching financial ledger…'; fill.style.width = '85%'; }
     else setFetchStatus('Fetching ledger…');
 
@@ -187,17 +212,12 @@ export async function loadAllDetails(background = false, signal = currentLoad?.s
     const entries = await fetchLedger(floor, ceiling, { signal });
     if (signal?.aborted) return;
     state.ledgerEntries = entries;
-    state.detailsLoaded = true;
+    markDetailsLoaded();
+    cacheCurrentRange();
 
     if (!background) {
       fill.style.width = '100%';
       prog.style.display = 'none';
-    }
-    btn.textContent = '✓ Full details loaded';
-    btn.disabled = true;
-    for (const id of ['fin-export-csv', 'fin-export-json']) {
-      $(id).disabled = false;
-      $(id).title    = '';
     }
 
     renderFinances();
@@ -212,6 +232,24 @@ export async function loadAllDetails(background = false, signal = currentLoad?.s
     btn.disabled = false;
     btn.textContent = '⚡ Load full details';
     handleLoadError(err, 'Detail load');
+  }
+}
+
+/**
+ * Fetch the Etsy Payments record for every order that doesn't have one
+ * cached yet (used by the order exports). onProgress(done, total).
+ */
+export async function ensurePayments(orders, onProgress = () => {}) {
+  const missing = orders.filter(o => !(o.receipt_id in state.payments));
+  let done = 0;
+  for (const o of missing) {
+    try {
+      state.payments[o.receipt_id] = await fetchPayment(o.receipt_id);
+    } catch (e) {
+      if (!(e instanceof ApiError)) throw e;
+      console.warn(`[ensurePayments] ${e.message}`);
+    }
+    onProgress(++done, missing.length);
   }
 }
 

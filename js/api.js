@@ -20,6 +20,19 @@ async function apiError(resp, what) {
   return new ApiError(resp.status, `${what} failed (${resp.status}): ${body.error_description || body.error || resp.statusText}`);
 }
 
+// ── Pacing ───────────────────────────────────────────────────────────────────
+// Every request waits for its slot, so no caller has to add delays.
+// 200 ms between request starts ≈ 5 req/s — within what the Worker tolerates.
+const MIN_GAP_MS = 200;
+let nextSlot = 0;
+
+function throttle(signal) {
+  const now  = Date.now();
+  const wait = Math.max(0, nextSlot - now);
+  nextSlot = Math.max(now, nextSlot) + MIN_GAP_MS;
+  return wait ? sleep(wait, signal) : Promise.resolve();
+}
+
 // ── Token refresh ────────────────────────────────────────────────────────────
 // Etsy access tokens last 1 hour. Concurrent 401s share one refresh request.
 let refreshing = null;
@@ -42,7 +55,7 @@ export function refreshAccessToken() {
 }
 
 /**
- * GET an Etsy API path through the Worker.
+ * GET an Etsy API path through the Worker, paced by throttle().
  * - 429: retries with Retry-After / X-RateLimit-Reset / exponential backoff.
  * - 401: refreshes the access token once and retries; throws AuthError if that fails.
  * Other responses are returned as-is for the caller to handle.
@@ -59,6 +72,7 @@ export async function etsyFetch(path, { signal, maxRetries = 8 } = {}) {
   let refreshed = false;
 
   while (true) {
+    await throttle(signal);
     const resp = await fetch(url, { headers: headers(), signal });
 
     if (resp.status === 401 && !refreshed) {
@@ -117,35 +131,29 @@ export async function fetchOrders({ from = null, to = null, signal } = {}) {
     orders = orders.concat(batch);
     if (batch.length < BATCH) break;
     offset += BATCH;
-    await sleep(500, signal); // 500ms between batches avoids Worker rate limits
   }
   return orders;
 }
 
+/** Line items for one receipt (fallback when the receipt came without them). */
+export async function fetchTransactions(rid, { signal } = {}) {
+  const resp = await etsyFetch(`/application/shops/${session.get('shop_id')}/receipts/${rid}/transactions`, { signal });
+  if (!resp.ok) throw await apiError(resp, `Line items for #${rid}`);
+  const data = await resp.json();
+  return data.results || data.transaction || [];
+}
+
 /**
- * Fetch line items + payment for one receipt.
- * A 404 on payments is normal — the order was paid outside Etsy Payments.
+ * Etsy Payments record for one receipt, or null.
+ * A 404 is normal — the order was paid outside Etsy Payments.
  */
-export async function fetchReceiptDetail(rid, { signal } = {}) {
-  const shopId = session.get('shop_id');
-  const txResp = await etsyFetch(`/application/shops/${shopId}/receipts/${rid}/transactions`, { signal });
-  if (!txResp.ok) throw await apiError(txResp, `Line items for #${rid}`);
-  const txData = await txResp.json();
-
-  let payment = null;
-  const payResp = await etsyFetch(`/application/shops/${shopId}/receipts/${rid}/payments`, { signal });
-  if (payResp.ok) {
-    const payData = await payResp.json();
-    const pays = payData.results || payData.payments || (Array.isArray(payData) ? payData : null);
-    payment = pays?.[0] || null;
-  } else if (payResp.status !== 404) {
-    console.warn(`[fetchReceiptDetail] payments ${rid}: HTTP ${payResp.status}`);
-  }
-
-  return {
-    transactions: txData?.results || txData?.transaction || [],
-    payment,
-  };
+export async function fetchPayment(rid, { signal } = {}) {
+  const resp = await etsyFetch(`/application/shops/${session.get('shop_id')}/receipts/${rid}/payments`, { signal });
+  if (resp.status === 404) return null;
+  if (!resp.ok) throw await apiError(resp, `Payment for #${rid}`);
+  const data = await resp.json();
+  const pays = data.results || data.payments || (Array.isArray(data) ? data : null);
+  return pays?.[0] || null;
 }
 
 /**
@@ -171,10 +179,8 @@ export async function fetchLedger(floor, ceiling, { signal } = {}) {
       entries = entries.concat(batch);
       if (batch.length < 100) break;
       offset += 100;
-      await sleep(200, signal);
     }
     windowEnd = windowStart;
-    await sleep(200, signal);
   }
 
   const seen = new Set();
