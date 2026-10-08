@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Sales Pulse Live — Etsy Sales, Fees &amp; Net Earnings</title>
-  <meta name="description" content="Connect your Etsy shop with read-only access and see gross sales, every Etsy fee and your net earnings for any date range, with CSV and JSON export."/>
+  <meta name="description" content="Connect your Etsy shop with read-only access and see gross sales, every Etsy fee and your net earnings for any date range, plus customer, listing and review insights, with CSV and JSON export."/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,800;1,9..144,300;1,9..144,700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/tokens.css"/>
   <!-- The dashboard's own stylesheet: shared nav, plus the components the previews below are built from -->
@@ -290,7 +290,7 @@
     </div>
     <h1>Your Etsy sales,<br><span class="ul">after</span> <span class="gr">every fee.</span></h1>
     <p class="hero-sub">
-      Connect your shop through the Etsy API and see what buyers paid, what Etsy took and what you kept. Charts, order details and your full payment ledger, with CSV and JSON export.
+      Connect your shop through the Etsy API and see what buyers paid, what Etsy took and what you kept. Charts, order details, your full payment ledger and deeper insights, with CSV and JSON export.
     </p>
     <div class="hero-stats">
       <div class="h-stat"><div class="h-stat-val">Any range</div><div class="h-stat-lbl">7 days to all time</div></div>
@@ -481,6 +481,7 @@
         <div class="tabs">
           <span class="tab-btn active">Order History</span>
           <span class="tab-btn">Finances</span>
+          <span class="tab-btn">Insights</span>
         </div>
         <div class="panel">
           <div class="panel-header">
@@ -583,6 +584,7 @@
         <div class="tabs">
           <span class="tab-btn">Order History</span>
           <span class="tab-btn active">Finances</span>
+          <span class="tab-btn">Insights</span>
         </div>
         <div class="fee-chart-panel" style="border-top-left-radius:0">
           <div class="fee-chart-header">
@@ -694,8 +696,87 @@
     </div>
   </div>
 
+  <!-- INSIGHTS -->
+  <div class="section off">
+    <div class="section-inner">
+      <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Insights</div>
+      <h2 class="section-title reveal">Know your buyers, <em>listings and reviews.</em></h2>
+      <p class="section-body reveal">The Insights tab digs further into the same data: repeat buyers and where orders ship, best-selling variations, time to ship and late orders, what ads and shipping labels cost, listing views and favorites, and review ratings.</p>
+      <div class="preview reveal" role="img" aria-label="Insights preview with sample data: 7 repeat buyers, $60.83 of ad spend, a 1.4-day median time to ship and a 4.86 average rating, with orders by country and best-selling variations.">
+        <div class="preview-tag">Preview · sample data</div>
+        <div class="tabs">
+          <span class="tab-btn">Order History</span>
+          <span class="tab-btn">Finances</span>
+          <span class="tab-btn active">Insights</span>
+        </div>
+        <div class="ins-kpis" style="margin:1.25rem 0 14px">
+          <div class="kpi-card"><div class="kpi-label">Repeat Buyers</div><div class="kpi-val">7</div><div class="kpi-sub">12.3% of 57 buyers ordered 2+ times</div></div>
+          <div class="kpi-card"><div class="kpi-label">Ad Spend</div><div class="kpi-val red">$60.83</div><div class="kpi-sub">Etsy Ads + Offsite Ads fees</div></div>
+          <div class="kpi-card"><div class="kpi-label">Median Time to Ship</div><div class="kpi-val">1.4 days</div><div class="kpi-sub">94% by Etsy's expected date</div></div>
+          <div class="kpi-card"><div class="kpi-label">Average Rating</div><div class="kpi-val">4.86 ★</div><div class="kpi-sub">21 reviews this period</div></div>
+        </div>
+        <div class="ins-grid">
+          <div class="ochart-panel">
+            <div class="ochart-header">
+              <div><div class="ochart-title">Where Orders Ship</div><div class="ochart-subtitle">5 countries · by revenue</div></div>
+              <div class="ochart-toggle"><span class="ochart-toggle-btn active">Countries</span><span class="ochart-toggle-btn">US states</span></div>
+            </div>
+            <div class="top-prod-rows">
+              <div class="top-prod-row">
+                <div><div class="top-prod-name">United States</div><div class="top-prod-sub">49 orders · 76.6%</div></div>
+                <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:100%;background:#d4622a"></div></div>
+                <div><div class="top-prod-val">$3,672.10</div></div>
+              </div>
+              <div class="top-prod-row">
+                <div><div class="top-prod-name">United Kingdom</div><div class="top-prod-sub">6 orders · 9.4%</div></div>
+                <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:13.1%;background:#3a7d4c"></div></div>
+                <div><div class="top-prod-val">$482.30</div></div>
+              </div>
+              <div class="top-prod-row">
+                <div><div class="top-prod-name">Canada</div><div class="top-prod-sub">4 orders · 6.3%</div></div>
+                <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:9%;background:#5a3d9e"></div></div>
+                <div><div class="top-prod-val">$331.60</div></div>
+              </div>
+              <div class="top-prod-row">
+                <div><div class="top-prod-name">Australia</div><div class="top-prod-sub">3 orders · 4.7%</div></div>
+                <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:5.9%;background:#b8860b"></div></div>
+                <div><div class="top-prod-val">$214.90</div></div>
+              </div>
+              <div class="top-prod-row">
+                <div><div class="top-prod-name">Germany</div><div class="top-prod-sub">2 orders · 3.1%</div></div>
+                <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:3.5%;background:#2563eb"></div></div>
+                <div><div class="top-prod-val">$128.50</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="ochart-panel">
+            <div class="ochart-header"><div><div class="ochart-title">Best-Selling Variations</div><div class="ochart-subtitle">top 3 products with variations · by units sold</div></div></div>
+            <div class="ins-body">
+              <div class="ins-var">
+                <div class="ins-var-head"><span class="top-prod-name">Custom Name Ring — Sterling</span><span class="top-prod-sub">14 units · Ring size · Metal</span></div>
+                <div class="ins-seg"><span style="width:35.71%;background:#d4622a"></span><span style="width:28.57%;background:#3a7d4c"></span><span style="width:21.43%;background:#5a3d9e"></span><span style="width:14.29%;background:#b8860b"></span></div>
+                <div class="ins-legend"><span><i style="background:#d4622a"></i>7 · Silver<b>5</b></span><span><i style="background:#3a7d4c"></i>6 · Silver<b>4</b></span><span><i style="background:#5a3d9e"></i>8 · Gold<b>3</b></span><span><i style="background:#b8860b"></i>7 · Gold<b>2</b></span></div>
+              </div>
+              <div class="ins-var">
+                <div class="ins-var-head"><span class="top-prod-name">Botanical Print Set</span><span class="top-prod-sub">11 units · Size</span></div>
+                <div class="ins-seg"><span style="width:54.55%;background:#d4622a"></span><span style="width:45.45%;background:#3a7d4c"></span></div>
+                <div class="ins-legend"><span><i style="background:#d4622a"></i>A4<b>6</b></span><span><i style="background:#3a7d4c"></i>A3<b>5</b></span></div>
+              </div>
+              <div class="ins-var">
+                <div class="ins-var-head"><span class="top-prod-name">Linen Tote Bag</span><span class="top-prod-sub">9 units · Color</span></div>
+                <div class="ins-seg"><span style="width:55.56%;background:#d4622a"></span><span style="width:33.33%;background:#3a7d4c"></span><span style="width:11.11%;background:#5a3d9e"></span></div>
+                <div class="ins-legend"><span><i style="background:#d4622a"></i>Natural<b>5</b></span><span><i style="background:#3a7d4c"></i>Sage<b>3</b></span><span><i style="background:#5a3d9e"></i>Rust<b>1</b></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="ins-caveat reveal" style="margin-top:1rem">Listings and reviews take a few extra Etsy requests, so they load only when you open the Insights tab. Etsy's API has no visit, conversion or search data.</p>
+    </div>
+  </div>
+
   <!-- HOW IT WORKS -->
-  <div class="section off" id="how">
+  <div class="section cream" id="how">
     <div class="section-inner">
       <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> How It Works</div>
       <h2 class="section-title reveal">Three steps <em>to your numbers.</em></h2>
@@ -717,14 +798,14 @@
           <div class="step-num">03</div>
           <div class="step-icon p">📊</div>
           <h3>Explore &amp; Export</h3>
-          <p>Pick a date range, explore the charts, orders and fee breakdown, then download your orders or ledger as CSV or JSON.</p>
+          <p>Pick a date range, explore the charts, orders, fee breakdown and insights, then download your orders or ledger as CSV or JSON.</p>
         </div>
       </div>
     </div>
   </div>
 
   <!-- WHO IT'S FOR -->
-  <div class="section cream">
+  <div class="section off">
     <div class="section-inner">
       <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Who It's For</div>
       <h2 class="section-title reveal">Built for sellers <em>who mean business.</em></h2>
@@ -755,7 +836,7 @@
   </div>
 
   <!-- PRIVACY -->
-  <div class="section off">
+  <div class="section cream">
     <div class="section-inner">
       <div class="privacy-grid">
         <div class="reveal">
@@ -784,7 +865,7 @@
           </div>
           <div class="priv-item reveal">
             <div class="priv-check gold">✓</div>
-            <div class="priv-text"><strong>Gentle on Etsy's API</strong><p>Requests are paced and back off automatically when Etsy rate-limits them, and results are reused for five minutes instead of fetched again.</p></div>
+            <div class="priv-text"><strong>Gentle on Etsy's API</strong><p>Requests are paced and back off automatically when Etsy rate-limits them, and recent results are reused instead of fetched again. Listings and reviews are only requested when you open Insights.</p></div>
           </div>
         </div>
       </div>
