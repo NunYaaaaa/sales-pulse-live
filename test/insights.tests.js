@@ -3,7 +3,7 @@
 import { drawBarChart, drawHeatmap, drawLineChart, hourLabel } from '../js/charts.js';
 import {
   adSpend, backlog, basketStats, customerStats, discountStats, feeRateSeries, fulfilment, geography,
-  heatmapMatrix, payoutStats, refundStats, revenueComposition, shippingPnL, variationStats,
+  heatmapMatrix, listingStats, payoutStats, refundStats, revenueComposition, shippingPnL, variationStats,
 } from '../js/insights.js';
 import { bucketStart, pickBucket } from '../js/util.js';
 
@@ -233,5 +233,22 @@ export const tests = [
     drawHeatmap(svg, document.createElement('div'), grid, grid, '#000', String);
     eq(svg.querySelectorAll('rect[data-w]').length, 168);
     eq([0, 1, 11, 12, 13, 23].map(hourLabel), ['12a', '1a', '11a', '12p', '1p', '11p']);
+  }],
+  ['listingStats: joins sales by listing, flags, lifetime rates, sold-but-unlisted', () => {
+    const L = listingStats([
+      { listing_id: 1, title: 'Ring',  state: 'active',   quantity: 2,  views: 1000, num_favorers: 50, price: usd(76) },
+      { listing_id: 2, title: 'Mug',   state: 'active',   quantity: 10, views: 0,    num_favorers: 5 },
+      { listing_id: 3, title: 'Print', state: 'sold_out', quantity: 0,  views: 400,  num_favorers: 10 },
+    ], [
+      { transactions: [{ listing_id: 1, quantity: 2, price: usd(76) }, { listing_id: 3, quantity: 1, price: usd(20) }] },
+      { transactions: [{ listing_id: 9, quantity: 3, price: usd(10) }] }, // listing 9 isn't listed any more
+    ]);
+    eq(L.rows.map(r => [r.id, r.units, r.revenue]), [[1, 2, 152], [3, 1, 20], [2, 0, 0]], 'sorted by revenue');
+    eq(L.rows.map(r => [r.noSales, r.lowStock, r.soldOut]), [[false, true, false], [false, false, true], [true, false, false]]);
+    eq([L.rows[0].favPer100Views.toFixed(1), L.rows[0].salesPer100Views.toFixed(2)], ['5.0', '0.20']);
+    eq([L.rows[2].views, L.rows[2].favPer100Views], [null, null], 'views 0 = not counted yet');
+    eq([L.active, L.soldOut, L.noSales, L.lowStock], [2, 1, 1, 1]);
+    eq(L.favPer100Views.toFixed(2), (60 / 1400 * 100).toFixed(2), 'only listings with views count');
+    eq(L.gone, { listings: 1, units: 3, revenue: 30 });
   }],
 ];

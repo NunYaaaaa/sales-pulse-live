@@ -10,6 +10,12 @@ export const state = {
   shop:          null,     // the Etsy shop object (counts, reviews, currency)
   ledgerSpan:    null,     // { from, to } the ledger actually covers (capped at 365 days)
 
+  // Insights-only data, fetched when that tab is opened. Listings don't depend
+  // on the date range, so they're kept across ranges for LISTINGS_TTL_MS.
+  listings:       null,    // active + sold-out listings
+  listingsAt:     0,
+  listingsStatus: null,    // { loading, done, total } | { error } | null
+
   // Per-receipt caches, kept across date-range changes (a receipt's
   // details don't depend on the range it was fetched for).
   lineItems: {},        // receipt_id -> transactions (only for receipts that came without them)
@@ -64,5 +70,8 @@ export function clearData() {
   state.lineItems = {};
   state.payments  = {};
   state.shop      = null;
+  state.listings  = null;
+  state.listingsAt     = 0;
+  state.listingsStatus = null;
   rangeCache.clear();
 }

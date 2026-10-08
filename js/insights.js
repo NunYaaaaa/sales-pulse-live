@@ -370,6 +370,60 @@ export function refundStats(orders) {
   };
 }
 
+// ─── LISTINGS (extra calls) ─────────────────────────────────────────────────
+
+/**
+ * Listings joined with their sales in `orders` (by listing_id). views and
+ * num_favorers are Etsy's lifetime totals; a views count of 0 can mean "not
+ * counted yet", so per-view rates are null then. `gone` sums sales of
+ * listings that aren't in `listings` any more (deactivated, expired…).
+ */
+export function listingStats(listings, orders, { lowStock = 2 } = {}) {
+  const sales = new Map();
+  for (const o of orders) {
+    for (const t of o.transactions || []) {
+      if (t.listing_id == null) continue;
+      const s = sales.get(t.listing_id) ?? { units: 0, revenue: 0 };
+      s.units   += t.quantity || 1;
+      s.revenue += money(t.price) * (t.quantity || 1);
+      sales.set(t.listing_id, s);
+    }
+  }
+  const r2 = n => Math.round(n * 100) / 100;
+  const rows = listings.map(l => {
+    const s     = sales.get(l.listing_id) ?? { units: 0, revenue: 0 };
+    const views = l.views || 0;
+    const state = lower(l.state) || 'active';
+    const qty   = l.quantity ?? null;
+    return {
+      id: l.listing_id, title: l.title || '(Untitled)', state,
+      price: l.price ? money(l.price) : null, quantity: qty,
+      views: views || null, favorites: l.num_favorers || 0,
+      units: s.units, revenue: r2(s.revenue),
+      favPer100Views:   views ? (l.num_favorers || 0) / views * 100 : null,
+      salesPer100Views: views ? s.units / views * 100 : null,
+      noSales:  state === 'active' && s.units === 0,
+      lowStock: state === 'active' && qty != null && qty <= lowStock,
+      soldOut:  state === 'sold_out',
+    };
+  }).sort((a, b) => b.revenue - a.revenue || (b.views || 0) - (a.views || 0));
+
+  const listed = new Set(listings.map(l => l.listing_id));
+  const gone   = [...sales].filter(([id]) => !listed.has(id)).map(([, s]) => s);
+  const active = rows.filter(r => r.state === 'active');
+  const views  = sum(rows, r => r.views || 0);
+  const favs   = sum(rows.filter(r => r.views), r => r.favorites);
+  return {
+    rows,
+    active: active.length,
+    soldOut: rows.filter(r => r.soldOut).length,
+    noSales: active.filter(r => r.noSales).length,
+    lowStock: active.filter(r => r.lowStock).length,
+    favPer100Views: views ? favs / views * 100 : null,
+    gone: { listings: gone.length, units: sum(gone, g => g.units), revenue: r2(sum(gone, g => g.revenue)) },
+  };
+}
+
 /** Orders and revenue by local weekday (0 = Sunday) × hour (0–23). */
 export function heatmapMatrix(orders) {
   const counts  = Array.from({ length: 7 }, () => Array(24).fill(0));

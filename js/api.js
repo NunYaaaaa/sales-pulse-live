@@ -109,30 +109,39 @@ export async function etsyFetch(path, { signal, maxRetries = 8 } = {}) {
   }
 }
 
-/** All paid receipts created within [from, to] (unix seconds, either may be null). */
-export async function fetchOrders({ from = null, to = null, signal } = {}) {
-  const shopId = session.get('shop_id');
-  const BATCH  = 100;
-  let orders = [], offset = 0;
-
-  // Build date filter query params (Etsy uses unix timestamps)
-  const dateParams = [];
-  if (from) dateParams.push(`min_created=${from}`);
-  if (to)   dateParams.push(`max_created=${to}`);
-  const dateQS = dateParams.length ? '&' + dateParams.join('&') : '';
-
+/**
+ * Every page of a paged Etsy collection. path(offset) builds each request
+ * (with limit=PAGE). onPage(fetchedSoFar, total) reports progress.
+ */
+const PAGE = 100;
+async function fetchAllPages(path, what, { signal, onPage } = {}) {
+  let results = [], offset = 0;
   while (true) {
-    const resp = await etsyFetch(
-      `/application/shops/${shopId}/receipts?limit=${BATCH}&offset=${offset}&was_paid=true${dateQS}`,
-      { signal }
-    );
-    if (!resp.ok) throw await apiError(resp, 'Order fetch');
-    const batch = (await resp.json()).results || [];
-    orders = orders.concat(batch);
-    if (batch.length < BATCH) break;
-    offset += BATCH;
+    const resp = await etsyFetch(path(offset), { signal });
+    if (!resp.ok) throw await apiError(resp, what);
+    const data  = await resp.json();
+    const batch = data.results || [];
+    results = results.concat(batch);
+    onPage?.(results.length, data.count ?? null);
+    if (batch.length < PAGE) return results;
+    offset += PAGE;
   }
-  return orders;
+}
+
+/** All paid receipts created within [from, to] (unix seconds, either may be null). */
+export function fetchOrders({ from = null, to = null, signal } = {}) {
+  const shopId = session.get('shop_id');
+  const dateQS = (from ? `&min_created=${from}` : '') + (to ? `&max_created=${to}` : '');
+  return fetchAllPages(
+    offset => `/application/shops/${shopId}/receipts?limit=${PAGE}&offset=${offset}&was_paid=true${dateQS}`,
+    'Order fetch', { signal });
+}
+
+/** Every listing in one state ('active', 'sold_out', …), with Etsy's lifetime views and favorites. */
+export function fetchListings(listingState, { signal, onPage } = {}) {
+  return fetchAllPages(
+    offset => `/application/shops/${session.get('shop_id')}/listings?state=${listingState}&limit=${PAGE}&offset=${offset}`,
+    'Listings fetch', { signal, onPage });
 }
 
 /** Line items for one receipt (fallback when the receipt came without them). */
@@ -168,18 +177,9 @@ export async function fetchLedger(floor, ceiling, { signal } = {}) {
 
   while (windowEnd > floor) {
     const windowStart = Math.max(windowEnd - windowSize, floor);
-    let offset = 0;
-    while (true) {
-      const resp = await etsyFetch(
-        `/application/shops/${shopId}/payment-account/ledger-entries?min_created=${windowStart}&max_created=${windowEnd}&limit=100&offset=${offset}`,
-        { signal }
-      );
-      if (!resp.ok) throw await apiError(resp, 'Ledger fetch');
-      const batch = (await resp.json()).results || [];
-      entries = entries.concat(batch);
-      if (batch.length < 100) break;
-      offset += 100;
-    }
+    entries = entries.concat(await fetchAllPages(
+      offset => `/application/shops/${shopId}/payment-account/ledger-entries?min_created=${windowStart}&max_created=${windowEnd}&limit=${PAGE}&offset=${offset}`,
+      'Ledger fetch', { signal }));
     windowEnd = windowStart;
   }
 

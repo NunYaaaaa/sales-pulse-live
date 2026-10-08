@@ -131,14 +131,34 @@ function buildData() {
   for (let d = 0; d < 400; d += 7) addLedger(now - d * DAY, 'DISBURSE2', -20000, 'disbursement', d);
   for (let d = 0; d < 400; d++) addLedger(now - d * DAY - 7200, 'prolist', -(80 + Math.floor(rand2() * 220)), 'shop', SHOP_ID);
   receipts.sort((a, b) => b.create_timestamp - a.create_timestamp);
-  return { receipts, ledger };
+  return { receipts, ledger, listings: buildListings() };
+}
+
+// Listings: the products above (Linen Pillowcase left out, as if deactivated,
+// Wax Seal Stamp Set sold out, Custom Ring low on stock) plus ~125 that never
+// sold, enough to need two pages. A few have views not counted yet (0).
+function buildListings() {
+  const listings = PRODUCTS.slice(0, 4).map(([title, price], idx) => ({
+    listing_id: 7000 + idx, title, price: usd(price), state: idx === 3 ? 'sold_out' : 'active',
+    quantity: idx === 3 ? 0 : idx === 1 ? 2 : 12 + idx, views: 2000 + Math.floor(rand2() * 8000),
+    num_favorers: 80 + Math.floor(rand2() * 400),
+  }));
+  for (let k = 0; k < 127; k++) {
+    listings.push({
+      listing_id: 7100 + k, title: k === 3 ? `Bad title ${XSS}` : `Handmade item ${k + 1}`,
+      price: usd(1500 + Math.floor(rand2() * 60) * 100), state: k % 60 === 59 ? 'sold_out' : 'active',
+      quantity: k % 60 === 59 ? 0 : 1 + Math.floor(rand2() * 20),
+      views: k % 25 === 7 ? 0 : Math.floor(rand2() * 1500), num_favorers: Math.floor(rand2() * 60),
+    });
+  }
+  return listings;
 }
 
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 export function installMockApi({ latencyMs = 5 } = {}) {
-  const { receipts, ledger } = buildData();
+  const { receipts, ledger, listings } = buildData();
   const realFetch = window.fetch.bind(window);
   window.mockStats = { requests: 0, byPath: {} };
 
@@ -188,6 +208,10 @@ export function installMockApi({ latencyMs = 5 } = {}) {
     }
     if (/^\/application\/shops\/\d+\/payment-account\/ledger-entries$/.test(p)) {
       const all = ledger.filter(e => inRange(e.created_timestamp));
+      return json({ count: all.length, results: all.slice(offset, offset + limit) });
+    }
+    if (/^\/application\/shops\/\d+\/listings$/.test(p)) {
+      const all = listings.filter(l => l.state === (q.get('state') || 'active'));
       return json({ count: all.length, results: all.slice(offset, offset + limit) });
     }
     return json({ error: `mock: no route for ${p}` }, 404);

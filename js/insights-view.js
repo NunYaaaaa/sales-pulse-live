@@ -5,7 +5,7 @@ import { FEE_GROUPS, FEE_OTHER_COLOR, LABEL_FEES, LABEL_REFUNDS, PALETTE } from 
 import { animateBars, DAY_NAMES, drawBarChart, drawHeatmap, drawLineChart, hourLabel, setToggleActive } from './charts.js';
 import {
   adSpend, backlog, basketStats, customerStats, discountStats, feeRateSeries, fulfilment, geography,
-  heatmapMatrix, payoutStats, refundStats, revenueComposition, shippingPnL, variationStats,
+  heatmapMatrix, listingStats, payoutStats, refundStats, revenueComposition, shippingPnL, variationStats,
 } from './insights.js';
 import { lineItems, state } from './state.js';
 import { escHtml, fmtMoney, getCurrency, pickBucket } from './util.js';
@@ -69,6 +69,7 @@ export function renderInsights() {
     renderCustomers(orders);
     renderProducts(orders);
     renderOperations(orders, Math.floor(Date.now() / 1000));
+    renderListings(orders);
   });
 }
 
@@ -410,4 +411,69 @@ function renderHeatmap(orders) {
   const p = m.peak;
   sub.textContent = `your local time · busiest: ${DAY_NAMES[p.day]} ${hourLabel(p.hour)}–${hourLabel((p.hour + 1) % 24)} (${plural(p.count, 'order')})`;
   drawHeatmap(svg, $('ins-heat-tooltip'), m.counts, m.revenue, '#d4622a', fmtMoney);
+}
+
+// ─── LISTINGS ───────────────────────────────────────────────────────────────
+
+const flag = (cls, text) => `<span class="ledger-type-badge ${cls}">${text}</span>`;
+const rate = (v, digits) => v == null ? '—' : v.toFixed(digits);
+
+function renderListings(orders) {
+  const el = $('ins-listings'), kpis = $('ins-listing-kpis'), count = $('ins-listing-count');
+  if (!state.listings) {
+    const st = state.listingsStatus;
+    kpis.innerHTML = '';
+    count.textContent = '—';
+    el.innerHTML = st?.error
+      ? empty(`Couldn't load listings: ${escHtml(st.error)}`) + '<button class="apply-btn" data-action="insights-retry">Retry</button>'
+      : st?.loading
+        ? empty(`Loading listings…${st.total ? ` ${fmtNum(st.done)} of ${fmtNum(st.total)}` : ''}`)
+        : empty('Listings load once the orders and ledger for this period are in.');
+    return;
+  }
+
+  const L = listingStats(state.listings, orders);
+  const allTime = state.filterFrom == null && state.filterTo == null;
+  kpis.innerHTML = [
+    kpi('Active Listings', fmtNum(L.active), `${fmtNum(L.soldOut)} sold out`),
+    kpi('No Sales This Period', fmtNum(L.noSales), `${pct(L.active ? L.noSales / L.active : null, 0)} of active listings`),
+    kpi('Low Stock', fmtNum(L.lowStock), 'active, 2 or fewer left', L.lowStock ? 'red' : ''),
+    kpi('Favorites per 100 Views', rate(L.favPer100Views, 1), 'lifetime, all listings'),
+  ].join('');
+  count.textContent = plural(L.rows.length, 'listing');
+
+  const right = 'style="text-align:right"';
+  const head = ['<th>Listing</th>', `<th ${right}>Price</th>`, `<th ${right}>Stock</th>`, `<th ${right}>Views</th>`,
+    `<th ${right}>Favorites</th>`, `<th ${right}>Favs / 100 views</th>`, `<th ${right}>Sold</th>`, `<th ${right}>Item revenue</th>`,
+    ...(allTime ? [`<th ${right}>Sales / 100 views</th>`] : []), '<th></th>'].join('');
+  const rows = L.rows.map(r => {
+    const title = escHtml(r.title);
+    const flags = [
+      r.soldOut  ? flag('lt-fee', 'sold out') : '',
+      r.lowStock ? flag('lt-refund', 'low stock') : '',
+      r.noSales  ? flag('lt-tax', 'no sales') : '',
+    ].join('');
+    return `<tr>
+      <td class="ins-title-cell"><a href="https://www.etsy.com/listing/${encodeURIComponent(String(r.id))}" target="_blank" rel="noopener" title="${title}">${title}</a></td>
+      <td class="ins-num">${r.price == null ? '—' : fmtMoney(r.price)}</td>
+      <td class="ins-num">${r.quantity == null ? '—' : fmtNum(r.quantity)}</td>
+      <td class="ins-num">${r.views == null ? '—' : fmtNum(r.views)}</td>
+      <td class="ins-num">${fmtNum(r.favorites)}</td>
+      <td class="ins-num">${rate(r.favPer100Views, 1)}</td>
+      <td class="ins-num">${fmtNum(r.units)}</td>
+      <td class="ins-num">${r.units ? fmtMoney(r.revenue) : '—'}</td>
+      ${allTime ? `<td class="ins-num">${rate(r.salesPer100Views, 2)}</td>` : ''}
+      <td><span class="ins-flags">${flags}</span></td>
+    </tr>`;
+  }).join('');
+
+  const notes = [
+    "Views and favorites are Etsy's lifetime totals for each listing, updated about once a day. Etsy's API has no visit, conversion or search data.",
+    allTime ? 'Sales per 100 views compares lifetime sales with lifetime views.' : 'Pick "All time" to compare sales with views.',
+  ];
+  if (L.gone.listings) {
+    notes.push(`${plural(L.gone.listings, 'listing')} sold in this period ${L.gone.listings === 1 ? 'is' : 'are'} no longer active or sold out (${plural(L.gone.units, 'unit')}, ${fmtMoney(L.gone.revenue)}), so ${L.gone.listings === 1 ? "it isn't" : "they aren't"} in the table.`);
+  }
+  el.innerHTML = `<div class="table-wrap ins-scroll"><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>` +
+    caveat(notes.join(' '));
 }

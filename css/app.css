@@ -501,6 +501,18 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
 .ins-caveat { font-family:'DM Mono',monospace; font-size:0.58rem; line-height:1.6; color:var(--muted2); margin-top:0.6rem; }
 .ins-empty { font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted2); padding:0.5rem 0; }
 .ins-body .top-prod-rows { padding:0; }
+.ins-panel { border-radius:16px; margin-bottom:0; }
+.ins-panel .ins-empty, .ins-panel .ins-caveat { padding:0.85rem 1.25rem; margin:0; }
+.ins-panel .apply-btn { margin:0 1.25rem 1rem; }
+.ins-scroll { max-height:520px; overflow:auto; }
+.ins-scroll thead th { position:sticky; top:0; z-index:1; }
+.ins-scroll th, .ins-scroll td { padding-left:0.7rem; padding-right:0.7rem; }
+.ins-scroll th:first-child, .ins-scroll td:first-child { padding-left:1.25rem; }
+.ins-num { text-align:right; font-family:'DM Mono',monospace; font-size:0.72rem; }
+.ins-title-cell { max-width:240px; overflow:hidden; text-overflow:ellipsis; }
+.ins-title-cell a { color:var(--ink); text-decoration:none; }
+.ins-title-cell a:hover { color:var(--orange); text-decoration:underline; }
+.ins-flags { display:inline-flex; gap:4px; margin-left:6px; vertical-align:middle; }
 .ins-var { margin-bottom:1rem; }
 .ins-var-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:6px; }
 .ins-var-head .top-prod-name { min-width:0; }

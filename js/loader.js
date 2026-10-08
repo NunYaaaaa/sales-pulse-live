@@ -1,5 +1,5 @@
 // ─── DATA LOADING PIPELINE + DATE FILTER ───────────────────────────────────
-import { ApiError, AuthError, etsyFetch, fetchLedger, fetchOrders, fetchPayment, fetchTransactions, isAbort } from './api.js';
+import { ApiError, AuthError, etsyFetch, fetchLedger, fetchListings, fetchOrders, fetchPayment, fetchTransactions, isAbort } from './api.js';
 import { renderOrderCharts } from './charts.js';
 import { renderInsights } from './insights-view.js';
 import { renderFinances, renderKPIs, renderTable } from './render.js';
@@ -14,6 +14,7 @@ const FINANCES_PLACEHOLDER =
   `<tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">Click "⚡ Load full details" to fetch ledger data.</td></tr>`;
 
 const MAX_LOOKBACK = 365 * 24 * 60 * 60;
+const LISTINGS_TTL_MS = 10 * 60 * 1000;
 
 // Only one load runs at a time. Starting a new one aborts the previous run,
 // so a stale run can never write old-range data into state.
@@ -134,6 +135,7 @@ async function reload() {
     markDetailsLoaded();
     renderAll();
     setFetchStatus(`${hit.orders.length} orders (cached)`, true);
+    ensureInsightsData();
     return;
   }
 
@@ -231,6 +233,7 @@ export async function loadAllDetails(background = false, signal = currentLoad?.s
     renderOrderCharts(); // refresh top products now we have line items
     renderInsights();
     setFetchStatus('All data loaded ✓', true);
+    ensureInsightsData();
 
   } catch (err) {
     if (isAbort(err)) return;
@@ -239,6 +242,42 @@ export async function loadAllDetails(background = false, signal = currentLoad?.s
     btn.disabled = false;
     btn.textContent = '⚡ Load full details';
     handleLoadError(err, 'Detail load');
+  }
+}
+
+// ─── INSIGHTS DATA ──────────────────────────────────────────────────────────
+// Listings are only used by the Insights tab, so they're fetched the first
+// time it's open after a range has fully loaded, and reused for 10 minutes.
+let insightsRunFor = null; // the load signal the last run belonged to
+
+/** Fetch the Insights tab's extra data if it's showing and the range has loaded. */
+export async function ensureInsightsData() {
+  const signal = currentLoad?.signal;
+  if (state.activeTab !== 'insights' || !signal || signal.aborted || !state.detailsLoaded) return;
+  if (insightsRunFor === signal) return; // already ran (or running) for this load
+  insightsRunFor = signal;
+
+  try {
+    if (!state.listings || Date.now() - state.listingsAt > LISTINGS_TTL_MS) {
+      const progress = (done, total) => {
+        state.listingsStatus = { loading: true, done, total };
+        renderInsights();
+      };
+      progress(0, null);
+      const active  = await fetchListings('active',   { signal, onPage: progress });
+      const soldOut = await fetchListings('sold_out', { signal });
+      if (signal.aborted) return;
+      state.listings       = [...active, ...soldOut];
+      state.listingsAt     = Date.now();
+      state.listingsStatus = null;
+      renderInsights();
+    }
+  } catch (e) {
+    if (isAbort(e)) return;
+    insightsRunFor = null; // let the retry button run it again
+    if (e instanceof AuthError) { handleLoadError(e, 'Listings fetch'); return; }
+    state.listingsStatus = { error: e.message };
+    renderInsights();
   }
 }
 

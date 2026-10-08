@@ -3,7 +3,7 @@ import { handleCallback, startOAuth } from './auth.js';
 import { highlightFee, renderOrderCharts, setChartMode } from './charts.js';
 import { exportCSV, exportFinancesCSV, exportFinancesJSON, exportJSON } from './export.js';
 import { renderInsights, setInsightMode } from './insights-view.js';
-import { applyCustomRange, applyPreset, cancelLoad, loadAllDetails, loadDashboard } from './loader.js';
+import { applyCustomRange, applyPreset, cancelLoad, ensureInsightsData, loadAllDetails, loadDashboard } from './loader.js';
 import { goPage, switchTab } from './render.js';
 import { session } from './session.js';
 import { clearData, state } from './state.js';
@@ -43,9 +43,10 @@ const ACTIONS = {
   'preset':          el => applyPreset(el.dataset.preset, el),
   'clear-filter':    () => applyPreset('all', document.querySelector('.preset-chip[data-preset="all"]')),
   'apply-range':     () => applyCustomRange(),
-  'tab':             el => switchTab(el.dataset.tab, el),
+  'tab':             el => { switchTab(el.dataset.tab, el); ensureInsightsData(); },
   'chart-mode':      el => setChartMode(el.dataset.chart, el.dataset.mode, el),
   'insight-mode':    el => setInsightMode(el.dataset.key, el.dataset.mode, el),
+  'insights-retry':  () => ensureInsightsData(),
   'page':            el => goPage(parseInt(el.dataset.page, 10)),
   'dismiss-error':   () => clearError(),
 };
