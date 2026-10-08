@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Sales Pulse Live is a client-side Etsy seller analytics dashboard, hosted as static files on GitHub Pages (`https://nunyaaaaa.github.io/sales-pulse-live/`). There is no build step, package manager or bundler: plain HTML, CSS and vanilla-JS ES modules. Charts are hand-drawn SVG, with no libraries. It is multi-tenant: each seller enters their own Etsy keystring and shared secret.
 
-- `index.html`: marketing/landing page (inline CSS plus a small inline script); its CTAs link to `app.html`.
+- `index.html`: marketing/landing page (inline CSS plus a small inline script); its CTAs link to `app.html`. It also loads `css/app.css` and builds its dashboard previews (KPIs, charts, orders, fee breakdown, ledger) from the app's own classes with static sample data. When you change what the dashboard shows, its labels, or what it claims about data handling, update the matching preview and copy here as well, so the landing page never advertises something the app doesn't do.
 - `app.html`: dashboard markup only. It loads `css/tokens.css`, `css/app.css` and `js/main.js`.
 - `css/tokens.css`: `:root` design tokens shared by both pages. Change colours here, not per page.
 

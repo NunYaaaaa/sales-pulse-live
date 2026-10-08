@@ -26,6 +26,7 @@ nav { position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-i
 .connect-icon { width:56px; height:56px; background:var(--orange-bg); border:1px solid var(--orange-bd); border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:1.5rem; margin:0 auto 1.5rem; }
 .connect-card h2 { font-family:'Fraunces',serif; font-size:1.6rem; font-weight:700; letter-spacing:-0.03em; color:var(--ink); margin-bottom:0.75rem; }
 .connect-card p { font-size:0.9rem; color:var(--muted); line-height:1.8; font-weight:300; margin-bottom:2rem; }
+.connect-card p a { color:var(--orange); }
 .config-row { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1.25rem; text-align:left; }
 .config-row label { font-family:'DM Mono',monospace; font-size:0.62rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted2); }
 .config-row input { background:var(--cream); border:1px solid var(--border2); border-radius:10px; padding:0.65rem 0.9rem; font-family:'DM Mono',monospace; font-size:0.8rem; color:var(--ink); outline:none; transition:border-color 0.2s; }
@@ -102,7 +103,6 @@ tbody tr.order-row { border-bottom:1px solid var(--border); transition:backgroun
 tbody tr.order-row:hover { background:var(--paper); }
 tbody tr.order-row.expanded { background:var(--paper); }
 tbody tr.detail-row { border-bottom:1px solid var(--border); }
-tbody tr.detail-row td { padding:0; }
 tbody td { padding:0.75rem 1.25rem; color:var(--ink); vertical-align:middle; white-space:nowrap; }
 .td-mono  { font-family:'DM Mono',monospace; font-size:0.72rem; }
 .td-muted { color:var(--muted2); }
@@ -205,6 +205,7 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
 .line-items .li-title { font-size:0.82rem; }
 .line-items .li-sku { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted2); }
 .line-items .li-num { text-align:right; font-family:'DM Mono',monospace; font-size:0.75rem; white-space:nowrap; }
+.line-items th.li-num { font-size:0.55rem; }
 
 .detail-loading { display:flex; align-items:center; gap:8px; font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--muted2); padding:1.25rem 1.5rem; }
 

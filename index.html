@@ -3,63 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sales Pulse Live — Real-Time Etsy Analytics</title>
+  <title>Sales Pulse Live — Etsy Sales, Fees &amp; Net Earnings</title>
+  <meta name="description" content="Connect your Etsy shop with read-only access and see gross sales, every Etsy fee and your net earnings for any date range, with CSV and JSON export."/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,800;1,9..144,300;1,9..144,700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/tokens.css"/>
+  <!-- The dashboard's own stylesheet: shared nav, plus the components the previews below are built from -->
+  <link rel="stylesheet" href="css/app.css"/>
   <style>
-    html { scroll-behavior: smooth; }
+    body { overflow-x: hidden; }
 
-    body {
-      background: var(--cream);
-      color: var(--ink);
-      font-family: 'DM Sans', sans-serif;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    body::after {
-      content: '';
-      position: fixed; inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
-      opacity: 0.03; pointer-events: none; z-index: 999;
-    }
-
-    /* NAV */
-    nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 1.1rem 2.5rem;
-      background: rgba(253,246,238,0.9);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .logo {
-      font-family: 'Fraunces', serif; font-weight: 700; font-size: 1.1rem;
-      letter-spacing: -0.02em; color: var(--ink);
-      display: flex; align-items: center; gap: 0.5rem;
-    }
-
-    .logo-mark {
-      width: 26px; height: 26px; border-radius: 8px; background: var(--ink);
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    }
-
-    .logo-mark svg { width: 14px; height: 14px; fill: var(--cream); }
-
-    .nav-pills { display: flex; align-items: center; gap: 8px; }
-
-    .nav-pill {
-      font-family: 'DM Mono', monospace; font-size: 0.65rem;
-      letter-spacing: 0.07em; padding: 0.3rem 0.75rem;
-      border-radius: 999px; border: 1px solid;
-    }
-
-    .pill-live { color: var(--orange); background: var(--orange-bg); border-color: var(--orange-bd); display: flex; align-items: center; gap: 5px; }
-    .pill-api  { color: var(--purple); background: var(--purple-bg); border-color: var(--purple-bd); }
-
-    .live-dot { width: 5px; height: 5px; background: var(--orange); border-radius: 50%; animation: blink 1.4s infinite; }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+    .pill-api { color: var(--purple); background: var(--purple-bg); border-color: var(--purple-bd); }
+    @media (max-width: 480px) { .pill-api { display: none; } }
 
     /* HERO */
     .hero {
@@ -97,22 +51,35 @@
 
     .hero-sub {
       font-size: 1.1rem; font-weight: 300; color: var(--muted);
-      line-height: 1.8; max-width: 520px; margin: 0 auto 3rem;
+      line-height: 1.8; max-width: 560px; margin: 0 auto 3rem;
       opacity: 0; animation: fadeUp 0.7s ease forwards 0.4s;
     }
 
     .hero-stats {
       display: flex; justify-content: center;
-      max-width: 560px; margin: 0 auto;
+      max-width: 640px; margin: 0 auto;
       border: 1px solid var(--border); border-radius: 14px;
       overflow: hidden; background: var(--offwhite);
       opacity: 0; animation: fadeUp 0.7s ease forwards 0.55s;
     }
 
-    .h-stat { flex: 1; padding: 1.25rem 1rem; text-align: center; border-right: 1px solid var(--border); }
+    .h-stat { flex: 1; padding: 1.25rem 0.75rem; text-align: center; border-right: 1px solid var(--border); }
     .h-stat:last-child { border-right: none; }
-    .h-stat-val { font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); }
+    .h-stat-val { font-family: 'Fraunces', serif; font-size: 1.4rem; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); white-space: nowrap; }
     .h-stat-lbl { font-family: 'DM Mono', monospace; font-size: 0.6rem; letter-spacing: 0.08em; color: var(--muted2); text-transform: uppercase; margin-top: 3px; }
+    @media (max-width: 560px) {
+      .hero-stats { flex-wrap: wrap; }
+      .h-stat { flex: 1 1 50%; border-bottom: 1px solid var(--border); }
+      .h-stat:nth-child(2n) { border-right: none; }
+      .h-stat:nth-last-child(-n+2) { border-bottom: none; }
+    }
+
+    .hero-note {
+      font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.04em;
+      color: var(--muted2); margin-top: 1rem;
+      opacity: 0; animation: fadeUp 0.7s ease forwards 0.8s;
+    }
+    .hero-note a { color: var(--orange); }
 
     @keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
 
@@ -121,6 +88,7 @@
     .section.off   { background: var(--offwhite); }
     .section.cream { background: var(--cream); }
     .section-inner { max-width: 1000px; margin: 0 auto; }
+    @media (max-width: 560px) { .section { padding: 4rem 1rem; } }
 
     .section-eyebrow {
       display: flex; align-items: center; gap: 10px;
@@ -137,67 +105,28 @@
     }
     .section-title em { font-style: italic; color: var(--muted); font-weight: 300; }
 
-    .section-body { font-size: 1rem; font-weight: 300; color: var(--muted); line-height: 1.85; max-width: 500px; margin-bottom: 3rem; }
+    .section-body { font-size: 1rem; font-weight: 300; color: var(--muted); line-height: 1.85; max-width: 560px; margin-bottom: 3rem; }
 
-    /* LIVE FEED */
-    .feed-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
-    @media (max-width: 680px) { .feed-wrap { grid-template-columns: 1fr; } }
-
-    .feed-panel { background: var(--ink); border-radius: 16px; padding: 1.75rem; display: flex; flex-direction: column; gap: 10px; }
-
-    .feed-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-    .feed-title { font-family: 'DM Mono', monospace; font-size: 0.65rem; color: #555; letter-spacing: 0.1em; text-transform: uppercase; }
-    .feed-badge {
-      font-family: 'DM Mono', monospace; font-size: 0.6rem;
-      color: var(--orange); background: rgba(212,98,42,0.12);
-      border: 1px solid rgba(212,98,42,0.25); padding: 3px 8px;
-      border-radius: 6px; display: flex; align-items: center; gap: 4px;
+    /* PREVIEWS: static snapshots of the dashboard, built from its own classes in css/app.css */
+    .preview {
+      position: relative; background: var(--cream);
+      border: 1px solid var(--border); border-radius: 20px;
+      padding: 1.75rem 1.5rem 1.5rem;
+      box-shadow: 0 20px 60px rgba(26,17,8,0.06);
     }
-
-    .feed-row {
-      display: flex; align-items: center; justify-content: space-between;
-      background: #2a2118; border-radius: 8px; padding: 10px 14px;
+    .preview, .preview * { cursor: default !important; }
+    .preview > :last-child { margin-bottom: 0; }
+    .preview-tag {
+      position: absolute; top: -0.65rem; left: 1.25rem;
+      font-family: 'DM Mono', monospace; font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase;
+      background: var(--ink); color: var(--cream); padding: 3px 10px; border-radius: 999px;
     }
-    .feed-row.new { animation: slideIn 0.5s ease; }
-    @keyframes slideIn { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
-
-    .feed-row-left { display: flex; align-items: center; gap: 10px; }
-    .feed-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .feed-name { font-size: 0.8rem; font-weight: 500; color: #e8e0d4; }
-    .feed-time { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: #555; }
-    .feed-amt { font-size: 0.85rem; font-weight: 500; }
-
-    .feed-right { display: flex; flex-direction: column; gap: 1.25rem; }
-
-    .metric-card { background: var(--cream); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; }
-    .metric-card-label { font-family: 'DM Mono', monospace; font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted2); margin-bottom: 0.5rem; }
-    .metric-card-val { font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); }
-    .metric-card-sub { font-size: 0.78rem; color: var(--green); font-family: 'DM Mono', monospace; margin-top: 4px; }
-
-    /* CHART */
-    .chart-area { background: var(--cream); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; overflow: hidden; }
-    .chart-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
-    .chart-legend { display: flex; gap: 1rem; flex-wrap: wrap; }
-    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--muted); }
-    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    svg.linechart { width: 100%; height: 180px; display: block; }
-
-    /* TOP PRODUCTS */
-    .products-grid { display: flex; flex-direction: column; gap: 10px; }
-
-    .product-row {
-      display: grid; grid-template-columns: 180px 1fr 80px;
-      align-items: center; gap: 1rem;
-      background: var(--cream); border: 1px solid var(--border);
-      border-radius: 12px; padding: 1rem 1.25rem; transition: border-color 0.2s;
+    .preview .fake-date {
+      font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--ink);
+      background: var(--cream); border: 1px solid var(--border2);
+      border-radius: 8px; padding: 0.3rem 0.6rem;
     }
-    .product-row:hover { border-color: var(--border2); }
-
-    .product-name { font-size: 0.88rem; font-weight: 500; color: var(--ink); }
-    .product-sub  { font-size: 0.72rem; color: var(--muted2); font-family: 'DM Mono', monospace; }
-    .product-bar-wrap { height: 8px; background: var(--paper); border-radius: 999px; overflow: hidden; }
-    .product-bar { height: 100%; border-radius: 999px; }
-    .product-val { font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 700; color: var(--ink); text-align: right; }
+    @media (max-width: 560px) { .preview { padding: 1.5rem 0.75rem 0.75rem; } }
 
     /* HOW IT WORKS */
     .steps-row {
@@ -227,6 +156,12 @@
 
     .step-box h3 { font-family: 'Fraunces', serif; font-size: 1.05rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.5rem; color: var(--ink); }
     .step-box p  { font-size: 0.875rem; color: var(--muted); line-height: 1.75; font-weight: 300; }
+    .step-box a  { color: var(--orange); }
+    .step-box code {
+      font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--ink);
+      background: var(--paper); border: 1px solid var(--border); border-radius: 4px;
+      padding: 1px 5px; word-break: break-all;
+    }
 
     /* WHO IT'S FOR */
     .for-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; }
@@ -294,7 +229,7 @@
       font-family: 'DM Mono', monospace; font-size: 0.65rem; letter-spacing: 0.05em;
       padding: 0.32rem 0.9rem; border-radius: 999px;
       background: var(--ink); color: var(--cream);
-      border: none; cursor: pointer; text-decoration: none;
+      border: none; cursor: pointer; text-decoration: none; white-space: nowrap;
       display: inline-flex; align-items: center; gap: 5px;
       transition: background 0.2s;
     }
@@ -320,6 +255,10 @@
     .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.65s ease, transform 0.65s ease; }
     .reveal.visible { opacity: 1; transform: translateY(0); }
 
+    @media (prefers-reduced-motion: reduce) {
+      .reveal, .hero *, .hero-note { opacity: 1 !important; transform: none !important; transition: none !important; animation: none !important; }
+    }
+
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: var(--cream); }
     ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
@@ -327,16 +266,15 @@
 </head>
 <body>
 
-  <!-- NAV -->
+  <!-- NAV (same markup and styles as app.html) -->
   <nav>
-    <div class="logo">
+    <a href="index.html" class="logo">
       <div class="logo-mark">
         <svg viewBox="0 0 14 14"><path d="M7 1L9.5 5.5H13L9.5 8.5L11 13L7 10L3 13L4.5 8.5L1 5.5H4.5Z"/></svg>
       </div>
       Sales Pulse Live
-    </div>
-    <div class="nav-pills">
-      <div class="nav-pill pill-live"><div class="live-dot"></div>Live Data</div>
+    </a>
+    <div class="nav-right">
       <div class="nav-pill pill-api">Etsy API v3</div>
       <a href="app.html" class="nav-cta">Launch App →</a>
     </div>
@@ -345,225 +283,479 @@
   <!-- HERO -->
   <div class="hero">
     <div class="hero-chips">
-      <div class="chip chip-o">Real-time sync</div>
+      <div class="chip chip-o">Straight from the Etsy API</div>
       <div class="chip chip-g">Read-only access</div>
-      <div class="chip chip-p">OAuth 2.0 secured</div>
-      <div class="chip chip-gold">No data stored</div>
+      <div class="chip chip-p">OAuth 2.0 + PKCE</div>
+      <div class="chip chip-gold">Nothing saved on a server</div>
     </div>
-    <h1>Your Etsy sales.<br><span class="ul">Exported</span> <span class="gr">instantly.</span></h1>
+    <h1>Your Etsy sales,<br><span class="ul">after</span> <span class="gr">every fee.</span></h1>
     <p class="hero-sub">
-      Sales Pulse Live connects to your shop via the Etsy API so you can export and monitor your sales, orders, and revenue in real time — no manual downloads required.
+      Connect your shop through the Etsy API and see what buyers paid, what Etsy took and what you kept. Charts, order details and your full payment ledger, with CSV and JSON export.
     </p>
     <div class="hero-stats">
-      <div class="h-stat"><div class="h-stat-val">CSV</div><div class="h-stat-lbl">Export format</div></div>
-      <div class="h-stat"><div class="h-stat-val">JSON</div><div class="h-stat-lbl">Export format</div></div>
-      <div class="h-stat"><div class="h-stat-val">Read-only</div><div class="h-stat-lbl">Always secure</div></div>
-      <div class="h-stat"><div class="h-stat-val">API v3</div><div class="h-stat-lbl">Official Etsy</div></div>
+      <div class="h-stat"><div class="h-stat-val">Any range</div><div class="h-stat-lbl">7 days to all time</div></div>
+      <div class="h-stat"><div class="h-stat-val">CSV · JSON</div><div class="h-stat-lbl">Orders + ledger</div></div>
+      <div class="h-stat"><div class="h-stat-val">Read-only</div><div class="h-stat-lbl">Etsy permissions</div></div>
+      <div class="h-stat"><div class="h-stat-val">API v3</div><div class="h-stat-lbl">Official Etsy API</div></div>
     </div>
     <div style="opacity:0;animation:fadeUp 0.7s ease forwards 0.7s">
       <a href="app.html" class="hero-cta">
         🛒 Connect Your Shop <span class="hero-cta-arrow">→</span>
       </a>
     </div>
+    <p class="hero-note">Uses your own Etsy API keys · <a href="#how">How to get them</a></p>
   </div>
 
-  <!-- LIVE FEED -->
+  <!-- OVERVIEW -->
   <div class="section off">
     <div class="section-inner">
-      <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Live Orders</div>
-      <h2 class="section-title reveal">Watch your sales <em>as they happen.</em></h2>
-      <p class="section-body reveal">Every order that comes in appears instantly — no refreshing, no waiting. Your data, the moment it's yours.</p>
-      <div class="feed-wrap reveal">
-        <div class="feed-panel" id="feed">
-          <div class="feed-header">
-            <div class="feed-title">Recent orders</div>
-            <div class="feed-badge"><div class="live-dot"></div> Syncing</div>
+      <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Shop Overview</div>
+      <h2 class="section-title reveal">What you sold, <em>and what you kept.</em></h2>
+      <p class="section-body reveal">Pick 7 days, 30 days, 90 days, year to date, 12 months, all time or your own dates. Sales Pulse Live loads every paid order in that range and shows gross sales, Etsy fees, net earnings, order count and average order value.</p>
+      <div class="preview reveal" role="img" aria-label="Dashboard preview with sample data: 30 days selected, gross $4,829.40, fees $812.36, net $4,017.04, 64 orders, average order value $75.46.">
+        <div class="preview-tag">Preview · sample data</div>
+        <div class="dash-header">
+          <div>
+            <div class="dash-shop-name">YourShopName</div>
+            <div class="dash-shop-sub">Shop ID: 12345678 · @yourshopname</div>
           </div>
-          <div class="feed-row">
-            <div class="feed-row-left"><div class="feed-dot" style="background:#d4622a"></div><div><div class="feed-name">Custom Ring Order</div><div class="feed-time">Just now</div></div></div>
-            <div class="feed-amt" style="color:#fb923c">+$128.00</div>
-          </div>
-          <div class="feed-row">
-            <div class="feed-row-left"><div class="feed-dot" style="background:#3a7d4c"></div><div><div class="feed-name">Print Set — Botanical</div><div class="feed-time">4 min ago</div></div></div>
-            <div class="feed-amt" style="color:#4ade80">+$54.00</div>
-          </div>
-          <div class="feed-row">
-            <div class="feed-row-left"><div class="feed-dot" style="background:#5a3d9e"></div><div><div class="feed-name">Ceramic Mug — Set of 4</div><div class="feed-time">11 min ago</div></div></div>
-            <div class="feed-amt" style="color:#c084fc">+$89.50</div>
-          </div>
-          <div class="feed-row">
-            <div class="feed-row-left"><div class="feed-dot" style="background:#b8860b"></div><div><div class="feed-name">Candle Bundle</div><div class="feed-time">18 min ago</div></div></div>
-            <div class="feed-amt" style="color:#fbbf24">+$42.00</div>
-          </div>
-          <div class="feed-row">
-            <div class="feed-row-left"><div class="feed-dot" style="background:#3a7d4c"></div><div><div class="feed-name">Linen Tote Bag</div><div class="feed-time">26 min ago</div></div></div>
-            <div class="feed-amt" style="color:#4ade80">+$36.00</div>
+          <div class="dash-actions">
+            <span class="export-btn export-csv">↓ CSV</span>
+            <span class="export-btn export-json">↓ JSON</span>
           </div>
         </div>
-        <div class="feed-right">
-          <div class="metric-card">
-            <div class="metric-card-label">Revenue this month</div>
-            <div class="metric-card-val">$4,829.40</div>
-            <div class="metric-card-sub">↑ 18.4% vs last month</div>
+        <div class="date-filter-bar">
+          <span class="date-filter-label">Period</span>
+          <div class="preset-chips">
+            <span class="preset-chip">7 days</span>
+            <span class="preset-chip active">30 days</span>
+            <span class="preset-chip">90 days</span>
+            <span class="preset-chip">Year to date</span>
+            <span class="preset-chip">12 months</span>
+            <span class="preset-chip">All time</span>
           </div>
-          <div class="metric-card">
-            <div class="metric-card-label">Orders today</div>
-            <div class="metric-card-val">47</div>
-            <div class="metric-card-sub">↑ 12 more than yesterday</div>
+          <div class="date-filter-sep"></div>
+          <div class="date-range-inputs">
+            <span class="fake-date">09/07/2026</span>
+            <span class="date-range-dash">→</span>
+            <span class="fake-date">10/07/2026</span>
           </div>
-          <div class="metric-card">
-            <div class="metric-card-label">Avg. order value</div>
-            <div class="metric-card-val">$72.40</div>
-            <div class="metric-card-sub">↑ 6.2% vs last month</div>
+        </div>
+        <div class="kpi-row">
+          <div class="kpi-card">
+            <div class="kpi-label">Total Gross</div>
+            <div class="kpi-val">$4,829.40</div>
+            <div class="kpi-sub">buyer payments incl. shipping + tax</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Total Fees</div>
+            <div class="kpi-val red">$812.36</div>
+            <div class="kpi-sub">txn + processing + ads + listing + labels</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Net Earnings</div>
+            <div class="kpi-val green">$4,017.04</div>
+            <div class="kpi-sub">gross minus all fees</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Total Orders</div>
+            <div class="kpi-val">64</div>
+            <div class="kpi-sub">fetched from Etsy</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Avg. Order Value</div>
+            <div class="kpi-val">$75.46</div>
+            <div class="kpi-sub">mean transaction</div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- REVENUE CHART -->
+  <!-- TRENDS -->
   <div class="section cream">
     <div class="section-inner">
-      <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Revenue Trends</div>
+      <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Sales Trends</div>
       <h2 class="section-title reveal">Spot patterns <em>before they pass.</em></h2>
-      <p class="section-body reveal">Export your revenue data and visualize trends over days, weeks, or months. Know your busiest seasons before they arrive.</p>
-      <div class="chart-area reveal">
-        <div class="chart-header">
-          <div>
-            <div style="font-family:'Fraunces',serif;font-size:1.5rem;font-weight:700;letter-spacing:-0.03em;color:var(--ink)">$4,829.40</div>
-            <div style="font-size:0.75rem;color:var(--green);font-family:'DM Mono',monospace;margin-top:2px">↑ 18.4% this month</div>
+      <p class="section-body reveal">Chart revenue or order count over time, grouped by day, week or month to suit the range. See which days of the week sell best, and rank your products by revenue or units sold.</p>
+      <div class="preview reveal" role="img" aria-label="Chart preview with sample data: daily revenue over 30 days, average sales by day of week, and the top eight products by revenue.">
+        <div class="preview-tag">Preview · sample data</div>
+        <div class="order-charts-grid">
+          <div class="ochart-panel">
+            <div class="ochart-header">
+              <div>
+                <div class="ochart-title">Revenue Over Time</div>
+                <div class="ochart-subtitle">$4,829.40 total · by day</div>
+              </div>
+              <div class="ochart-toggle">
+                <span class="ochart-toggle-btn active">Revenue</span>
+                <span class="ochart-toggle-btn">Orders</span>
+              </div>
+            </div>
+            <div class="ochart-canvas">
+              <svg class="ochart-svg" viewBox="0 0 440 140" aria-hidden="true"><defs><linearGradient id="pv-rev" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#d4622a" stop-opacity="0.18"/><stop offset="100%" stop-color="#d4622a" stop-opacity="0"/></linearGradient></defs><path d="M 8.0 29.1 C 16.4 29.1, 16.4 61.9, 24.8 61.9 C 33.2 61.9, 33.2 77.0, 41.6 77.0 C 50.0 77.0, 50.0 84.1, 58.4 84.1 C 66.8 84.1, 66.8 65.9, 75.2 65.9 C 83.6 65.9, 83.6 90.3, 92.0 90.3 C 100.4 90.3, 100.4 96.3, 108.8 96.3 C 117.2 96.3, 117.2 81.5, 125.6 81.5 C 134.0 81.5, 134.0 22.7, 142.4 22.7 C 150.8 22.7, 150.8 87.0, 159.2 87.0 C 167.6 87.0, 167.6 85.4, 176.0 85.4 C 184.4 85.4, 184.4 50.4, 192.8 50.4 C 201.2 50.4, 201.2 101.5, 209.6 101.5 C 218.0 101.5, 218.0 84.3, 226.4 84.3 C 234.8 84.3, 234.8 88.7, 243.2 88.7 C 251.6 88.7, 251.6 55.7, 260.0 55.7 C 268.4 55.7, 268.4 101.2, 276.8 101.2 C 285.2 101.2, 285.2 63.5, 293.6 63.5 C 302.0 63.5, 302.0 66.6, 310.4 66.6 C 318.8 66.6, 318.8 99.8, 327.2 99.8 C 335.6 99.8, 335.6 85.4, 344.0 85.4 C 352.4 85.4, 352.4 90.0, 360.8 90.0 C 369.2 90.0, 369.2 98.2, 377.6 98.2 C 386.0 98.2, 386.0 68.5, 394.4 68.5 C 402.8 68.5, 402.8 95.5, 411.2 95.5 C 419.6 95.5, 419.6 78.2, 428.0 78.2 L 428.0 112.0 L 8.0 112.0 Z" fill="url(#pv-rev)"/><path d="M 8.0 29.1 C 16.4 29.1, 16.4 61.9, 24.8 61.9 C 33.2 61.9, 33.2 77.0, 41.6 77.0 C 50.0 77.0, 50.0 84.1, 58.4 84.1 C 66.8 84.1, 66.8 65.9, 75.2 65.9 C 83.6 65.9, 83.6 90.3, 92.0 90.3 C 100.4 90.3, 100.4 96.3, 108.8 96.3 C 117.2 96.3, 117.2 81.5, 125.6 81.5 C 134.0 81.5, 134.0 22.7, 142.4 22.7 C 150.8 22.7, 150.8 87.0, 159.2 87.0 C 167.6 87.0, 167.6 85.4, 176.0 85.4 C 184.4 85.4, 184.4 50.4, 192.8 50.4 C 201.2 50.4, 201.2 101.5, 209.6 101.5 C 218.0 101.5, 218.0 84.3, 226.4 84.3 C 234.8 84.3, 234.8 88.7, 243.2 88.7 C 251.6 88.7, 251.6 55.7, 260.0 55.7 C 268.4 55.7, 268.4 101.2, 276.8 101.2 C 285.2 101.2, 285.2 63.5, 293.6 63.5 C 302.0 63.5, 302.0 66.6, 310.4 66.6 C 318.8 66.6, 318.8 99.8, 327.2 99.8 C 335.6 99.8, 335.6 85.4, 344.0 85.4 C 352.4 85.4, 352.4 90.0, 360.8 90.0 C 369.2 90.0, 369.2 98.2, 377.6 98.2 C 386.0 98.2, 386.0 68.5, 394.4 68.5 C 402.8 68.5, 402.8 95.5, 411.2 95.5 C 419.6 95.5, 419.6 78.2, 428.0 78.2" fill="none" stroke="#d4622a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text x="8.0" y="136" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">Sep 8</text><text x="92.0" y="136" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">Sep 13</text><text x="176.0" y="136" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">Sep 19</text><text x="260.0" y="136" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">Sep 24</text><text x="344.0" y="136" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">Sep 29</text><text x="428.0" y="136" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">Oct 6</text><circle cx="8.0" cy="29.1" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="24.8" cy="61.9" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="41.6" cy="77.0" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="58.4" cy="84.1" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="75.2" cy="65.9" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="92.0" cy="90.3" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="108.8" cy="96.3" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="125.6" cy="81.5" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="142.4" cy="22.7" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="159.2" cy="87.0" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="176.0" cy="85.4" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="192.8" cy="50.4" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="209.6" cy="101.5" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="226.4" cy="84.3" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="243.2" cy="88.7" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="260.0" cy="55.7" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="276.8" cy="101.2" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="293.6" cy="63.5" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="310.4" cy="66.6" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="327.2" cy="99.8" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="344.0" cy="85.4" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="360.8" cy="90.0" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="377.6" cy="98.2" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="394.4" cy="68.5" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="411.2" cy="95.5" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/><circle cx="428.0" cy="78.2" r="3.5" fill="#d4622a" stroke="var(--offwhite)" stroke-width="1.5"/></svg>
+            </div>
           </div>
-          <div class="chart-legend">
-            <div class="legend-item"><div class="legend-dot" style="background:#d4622a"></div>Revenue</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#3a7d4c"></div>Orders</div>
+          <div class="ochart-panel">
+            <div class="ochart-header">
+              <div>
+                <div class="ochart-title">Sales by Day of Week</div>
+                <div class="ochart-subtitle">avg. per day</div>
+              </div>
+              <div class="ochart-toggle">
+                <span class="ochart-toggle-btn active">Revenue</span>
+                <span class="ochart-toggle-btn">Orders</span>
+              </div>
+            </div>
+            <div class="ochart-canvas">
+              <svg class="ochart-svg" viewBox="0 0 440 140" aria-hidden="true"><rect x="8.0" y="41.4" width="52.8" height="70.6" rx="3" fill="#5a3d9e" opacity="0.85"/><text x="34.4" y="136" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">Sun</text><rect x="69.9" y="89.4" width="52.8" height="22.6" rx="3" fill="#5a3d9e" opacity="0.85"/><text x="96.3" y="136" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">Mon</text><rect x="131.7" y="45.7" width="52.8" height="66.3" rx="3" fill="#5a3d9e" opacity="0.85"/><text x="158.1" y="136" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">Tue</text><rect x="193.6" y="22.7" width="52.8" height="89.3" rx="3" fill="#5a3d9e" opacity="0.85"/><text x="220.0" y="136" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">Wed</text><rect x="255.5" y="49.9" width="52.8" height="62.1" rx="3" fill="#5a3d9e" opacity="0.85"/><text x="281.9" y="136" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">Thu</text><rect x="317.3" y="80.1" width="52.8" height="31.9" rx="3" fill="#5a3d9e" opacity="0.85"/><text x="343.7" y="136" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">Fri</text><rect x="379.2" y="44.2" width="52.8" height="67.8" rx="3" fill="#5a3d9e" opacity="0.85"/><text x="405.6" y="136" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">Sat</text></svg>
+            </div>
           </div>
         </div>
-        <svg class="linechart" viewBox="0 0 900 180" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="go" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#d4622a" stop-opacity="0.18"/>
-              <stop offset="100%" stop-color="#d4622a" stop-opacity="0"/>
-            </linearGradient>
-            <linearGradient id="gg" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#3a7d4c" stop-opacity="0.14"/>
-              <stop offset="100%" stop-color="#3a7d4c" stop-opacity="0"/>
-            </linearGradient>
-          </defs>
-          <path d="M0,140 C60,130 90,115 150,100 C210,85 240,95 300,80 C360,65 390,75 450,55 C510,35 540,50 600,40 C660,30 690,45 750,25 C810,10 840,20 900,15 L900,180 L0,180 Z" fill="url(#go)"/>
-          <path d="M0,140 C60,130 90,115 150,100 C210,85 240,95 300,80 C360,65 390,75 450,55 C510,35 540,50 600,40 C660,30 690,45 750,25 C810,10 840,20 900,15" fill="none" stroke="#d4622a" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M0,155 C60,148 90,140 150,132 C210,124 240,130 300,120 C360,110 390,116 450,105 C510,94 540,100 600,90 C660,80 690,88 750,75 C810,62 840,70 900,60 L900,180 L0,180 Z" fill="url(#gg)"/>
-          <path d="M0,155 C60,148 90,140 150,132 C210,124 240,130 300,120 C360,110 390,116 450,105 C510,94 540,100 600,90 C660,80 690,88 750,75 C810,62 840,70 900,60" fill="none" stroke="#3a7d4c" stroke-width="2" stroke-linecap="round" stroke-dasharray="5,3"/>
-          <text x="0"   y="178" font-size="9" fill="#a89e90" font-family="monospace">Jan</text>
-          <text x="110" y="178" font-size="9" fill="#a89e90" font-family="monospace">Feb</text>
-          <text x="220" y="178" font-size="9" fill="#a89e90" font-family="monospace">Mar</text>
-          <text x="330" y="178" font-size="9" fill="#a89e90" font-family="monospace">Apr</text>
-          <text x="440" y="178" font-size="9" fill="#a89e90" font-family="monospace">May</text>
-          <text x="550" y="178" font-size="9" fill="#a89e90" font-family="monospace">Jun</text>
-          <text x="660" y="178" font-size="9" fill="#a89e90" font-family="monospace">Jul</text>
-          <text x="770" y="178" font-size="9" fill="#a89e90" font-family="monospace">Aug</text>
-        </svg>
+        <div class="ochart-panel full">
+          <div class="ochart-header">
+            <div>
+              <div class="ochart-title">Top Products</div>
+              <div class="ochart-subtitle">top 8 of 14 products</div>
+            </div>
+            <div class="ochart-toggle">
+              <span class="ochart-toggle-btn active">Revenue</span>
+              <span class="ochart-toggle-btn">Orders</span>
+            </div>
+          </div>
+          <div class="top-prod-rows">
+            <div class="top-prod-row">
+              <div><div class="top-prod-name">Custom Name Ring — Sterling</div><div class="top-prod-sub">14 units</div></div>
+              <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:100%;background:#d4622a"></div></div>
+              <div><div class="top-prod-val">$1,064.00</div></div>
+            </div>
+            <div class="top-prod-row">
+              <div><div class="top-prod-name">Ceramic Mug — Set of 4</div><div class="top-prod-sub">8 units</div></div>
+              <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:67.3%;background:#3a7d4c"></div></div>
+              <div><div class="top-prod-val">$716.00</div></div>
+            </div>
+            <div class="top-prod-row">
+              <div><div class="top-prod-name">Botanical Print Set</div><div class="top-prod-sub">11 units</div></div>
+              <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:55.8%;background:#5a3d9e"></div></div>
+              <div><div class="top-prod-val">$594.00</div></div>
+            </div>
+            <div class="top-prod-row">
+              <div><div class="top-prod-name">Soy Candle Bundle</div><div class="top-prod-sub">11 units</div></div>
+              <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:43.4%;background:#b8860b"></div></div>
+              <div><div class="top-prod-val">$462.00</div></div>
+            </div>
+            <div class="top-prod-row">
+              <div><div class="top-prod-name">Linen Tote Bag</div><div class="top-prod-sub">9 units</div></div>
+              <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:30.5%;background:#2563eb"></div></div>
+              <div><div class="top-prod-val">$324.00</div></div>
+            </div>
+            <div class="top-prod-row">
+              <div><div class="top-prod-name">Wax Seal Stamp Set</div><div class="top-prod-sub">5 units</div></div>
+              <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:20.7%;background:#db2777"></div></div>
+              <div><div class="top-prod-val">$220.00</div></div>
+            </div>
+            <div class="top-prod-row">
+              <div><div class="top-prod-name">Wall Art Print — A3</div><div class="top-prod-sub">3 units</div></div>
+              <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:19.2%;background:#0891b2"></div></div>
+              <div><div class="top-prod-val">$204.00</div></div>
+            </div>
+            <div class="top-prod-row">
+              <div><div class="top-prod-name">Dried Flower Bunch</div><div class="top-prod-sub">6 units</div></div>
+              <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:16.4%;background:#65a30d"></div></div>
+              <div><div class="top-prod-val">$174.00</div></div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- TOP PRODUCTS -->
+  <!-- ORDER HISTORY -->
   <div class="section off">
     <div class="section-inner">
-      <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Top Products</div>
-      <h2 class="section-title reveal">Know what's <em>actually selling.</em></h2>
-      <p class="section-body reveal">Export your order data and rank your products by revenue or volume — without digging through Etsy's native reports.</p>
-      <div class="products-grid reveal">
-        <div class="product-row">
-          <div><div class="product-name">Custom Ring Order</div><div class="product-sub">142 orders</div></div>
-          <div class="product-bar-wrap"><div class="product-bar" style="width:100%;background:#d4622a"></div></div>
-          <div class="product-val">$4,260</div>
+      <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Order History</div>
+      <h2 class="section-title reveal">Every order, <em>down to the line item.</em></h2>
+      <p class="section-body reveal">Open any order to see the subtotal, shipping, tax and discounts, the card processing fee, where it shipped, any buyer note, and each item with its SKU and price.</p>
+      <div class="preview reveal" role="img" aria-label="Order history preview with sample data: a list of orders with one expanded to show its totals, processing fee, shipping location, buyer note and line items.">
+        <div class="preview-tag">Preview · sample data</div>
+        <div class="tabs">
+          <span class="tab-btn active">Order History</span>
+          <span class="tab-btn">Finances</span>
         </div>
-        <div class="product-row">
-          <div><div class="product-name">Ceramic Mug Set</div><div class="product-sub">98 orders</div></div>
-          <div class="product-bar-wrap"><div class="product-bar" style="width:76%;background:#3a7d4c"></div></div>
-          <div class="product-val">$3,234</div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Order History</div>
+            <div class="panel-count">64 orders</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th></th><th>Receipt ID</th><th>Date</th><th>Buyer</th><th>Items</th><th>Status</th><th>Gross</th></tr>
+              </thead>
+              <tbody>
+                <tr class="order-row expanded">
+                  <td class="td-mono td-muted" style="width:24px"><span class="expand-icon">▶</span></td>
+                  <td class="td-mono td-muted">#3184920571</td>
+                  <td class="td-mono td-muted">Oct 6, 2026</td>
+                  <td>Maya Robinson</td>
+                  <td class="td-mono" style="color:var(--muted)">2</td>
+                  <td><span class="status-badge s-paid">Paid</span></td>
+                  <td><span class="amount-pos">$95.04</span></td>
+                </tr>
+                <tr class="detail-row">
+                  <td colspan="7">
+                    <div class="detail-inner">
+                      <div class="detail-summary">
+                        <div class="detail-stat"><span class="detail-stat-label">Grand Total</span><span class="detail-stat-val">$95.04</span></div>
+                        <div class="detail-stat"><span class="detail-stat-label">Subtotal</span><span class="detail-stat-val">$84.00</span></div>
+                        <div class="detail-stat"><span class="detail-stat-label">Shipping</span><span class="detail-stat-val">$4.50</span></div>
+                        <div class="detail-stat"><span class="detail-stat-label">Tax</span><span class="detail-stat-val">$6.54</span></div>
+                        <div class="detail-stat-sep"></div>
+                        <div class="detail-stat"><span class="detail-stat-label">Processing Fee</span><span class="detail-stat-val red">−$3.10</span></div>
+                        <div class="detail-stat"><span class="detail-stat-label">Net (after proc. fee)</span><span class="detail-stat-val green">$91.94</span></div>
+                      </div>
+                      <div class="detail-body">
+                        <div class="detail-col-info">
+                          <div class="detail-section-title">Order info</div>
+                          <div class="detail-kv"><span class="detail-kv-label">Payment</span><span class="detail-kv-val" style="text-transform:capitalize">apple pay</span></div>
+                          <div class="detail-kv"><span class="detail-kv-label">Ship to</span><span class="detail-kv-val muted">Portland, OR, US</span></div>
+                          <div class="detail-kv"><span class="detail-kv-label">Gift order</span><span class="detail-kv-val">No</span></div>
+                          <div class="detail-note" style="font-size:0.68rem;color:var(--muted2)">⚠ Processing fee only. Full transaction + ad fees appear in the Finances tab.</div>
+                          <div class="detail-note"><strong style="font-size:0.7rem;font-weight:500;color:var(--ink)">Buyer note</strong><br>Could you engrave “Ava” on the ring? Thank you!</div>
+                        </div>
+                        <div class="detail-col-items">
+                          <table class="line-items">
+                            <thead><tr><th>Item</th><th style="text-align:center">Qty</th><th class="li-num">Each</th><th class="li-num">Total</th></tr></thead>
+                            <tbody>
+                              <tr>
+                                <td><div class="li-title">Custom Name Ring — Sterling</div><div class="li-sku">SKU: RING-925-NAME</div></td>
+                                <td style="text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:0.72rem">1</td>
+                                <td class="li-num">$76.00</td>
+                                <td class="li-num" style="font-weight:500">$76.00</td>
+                              </tr>
+                              <tr>
+                                <td><div class="li-title">Ring Gift Box</div><div class="li-sku">SKU: BOX-KRAFT</div></td>
+                                <td style="text-align:center;color:var(--muted);font-family:'DM Mono',monospace;font-size:0.72rem">1</td>
+                                <td class="li-num">$8.00</td>
+                                <td class="li-num" style="font-weight:500">$8.00</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="order-row">
+                  <td class="td-mono td-muted" style="width:24px"><span class="expand-icon">▶</span></td>
+                  <td class="td-mono td-muted">#3184871204</td>
+                  <td class="td-mono td-muted">Oct 6, 2026</td>
+                  <td>Daniel Okafor</td>
+                  <td class="td-mono" style="color:var(--muted)">1</td>
+                  <td><span class="status-badge s-completed">Completed</span></td>
+                  <td><span class="amount-pos">$62.31</span></td>
+                </tr>
+                <tr class="order-row">
+                  <td class="td-mono td-muted" style="width:24px"><span class="expand-icon">▶</span></td>
+                  <td class="td-mono td-muted">#3184655930</td>
+                  <td class="td-mono td-muted">Oct 5, 2026</td>
+                  <td>Priya Shah</td>
+                  <td class="td-mono" style="color:var(--muted)">3</td>
+                  <td><span class="status-badge s-completed">Completed</span></td>
+                  <td><span class="amount-pos">$118.40</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div class="product-row">
-          <div><div class="product-name">Botanical Print Set</div><div class="product-sub">87 orders</div></div>
-          <div class="product-bar-wrap"><div class="product-bar" style="width:62%;background:#5a3d9e"></div></div>
-          <div class="product-val">$2,871</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEES & LEDGER -->
+  <div class="section cream">
+    <div class="section-inner">
+      <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Fees &amp; Ledger</div>
+      <h2 class="section-title reveal">See where <em>Etsy's cut goes.</em></h2>
+      <p class="section-body reveal">Sales Pulse Live reads your Etsy payment ledger and sorts every entry into sales, fees, refunds and pass-throughs, so transaction fees, processing fees, shipping labels and ads each get their own line. Sales tax and payouts to your bank stay out of the totals. Ledger data covers up to the last 12 months.</p>
+      <div class="preview reveal" role="img" aria-label="Finances preview with sample data: $812.36 of Etsy fees split into transaction fees, shipping labels, processing fees, Etsy Ads, listing renewals and Offsite Ads, above a payment ledger table.">
+        <div class="preview-tag">Preview · sample data</div>
+        <div class="tabs">
+          <span class="tab-btn">Order History</span>
+          <span class="tab-btn active">Finances</span>
         </div>
-        <div class="product-row">
-          <div><div class="product-name">Candle Bundle</div><div class="product-sub">74 orders</div></div>
-          <div class="product-bar-wrap"><div class="product-bar" style="width:49%;background:#b8860b"></div></div>
-          <div class="product-val">$2,442</div>
+        <div class="fee-chart-panel" style="border-top-left-radius:0">
+          <div class="fee-chart-header">
+            <div class="fee-chart-title">Etsy Fee Breakdown</div>
+            <div class="fee-chart-total">$812.36</div>
+          </div>
+          <div class="fee-chart-body">
+            <div class="fee-donut-wrap">
+              <svg class="fee-donut-svg" viewBox="0 0 160 160" aria-hidden="true"><circle cx="80" cy="80" r="62" fill="none" stroke="#3a7d4c" stroke-width="22" stroke-dasharray="138.994 250.563" stroke-dashoffset="0.000"/><circle cx="80" cy="80" r="62" fill="none" stroke="#d4622a" stroke-width="22" stroke-dasharray="137.819 251.738" stroke-dashoffset="-138.994"/><circle cx="80" cy="80" r="62" fill="none" stroke="#b8860b" stroke-width="22" stroke-dasharray="77.148 312.409" stroke-dashoffset="-276.813"/><circle cx="80" cy="80" r="62" fill="none" stroke="#5a3d9e" stroke-width="22" stroke-dasharray="23.114 366.444" stroke-dashoffset="-353.961"/><circle cx="80" cy="80" r="62" fill="none" stroke="#db2777" stroke-width="22" stroke-dasharray="6.426 383.132" stroke-dashoffset="-377.075"/><circle cx="80" cy="80" r="62" fill="none" stroke="#0891b2" stroke-width="22" stroke-dasharray="6.057 383.501" stroke-dashoffset="-383.501"/><circle cx="80" cy="80" r="49" fill="var(--offwhite)"/></svg>
+              <div class="fee-donut-center">
+                <span class="fee-donut-center-val">$812.36</span>
+                <span class="fee-donut-center-lbl">total fees</span>
+              </div>
+            </div>
+            <div class="fee-bars-wrap">
+              <div class="fee-bar-row">
+                <div class="fee-bar-label">Transaction Fees</div>
+                <div class="fee-bar-track"><div class="fee-bar-fill" style="width:100%;background:#3a7d4c"></div></div>
+                <div><div class="fee-bar-val">$289.85</div><div class="fee-bar-pct">35.7%</div></div>
+              </div>
+              <div class="fee-bar-row">
+                <div class="fee-bar-label">Shipping Labels</div>
+                <div class="fee-bar-track"><div class="fee-bar-fill" style="width:99.2%;background:#d4622a"></div></div>
+                <div><div class="fee-bar-val">$287.40</div><div class="fee-bar-pct">35.4%</div></div>
+              </div>
+              <div class="fee-bar-row">
+                <div class="fee-bar-label">Processing Fees</div>
+                <div class="fee-bar-track"><div class="fee-bar-fill" style="width:55.5%;background:#b8860b"></div></div>
+                <div><div class="fee-bar-val">$160.88</div><div class="fee-bar-pct">19.8%</div></div>
+              </div>
+              <div class="fee-bar-row">
+                <div class="fee-bar-label">Etsy Ads</div>
+                <div class="fee-bar-track"><div class="fee-bar-fill" style="width:16.6%;background:#5a3d9e"></div></div>
+                <div><div class="fee-bar-val">$48.20</div><div class="fee-bar-pct">5.9%</div></div>
+              </div>
+              <div class="fee-bar-row">
+                <div class="fee-bar-label">Listing Renewals</div>
+                <div class="fee-bar-track"><div class="fee-bar-fill" style="width:4.6%;background:#db2777"></div></div>
+                <div><div class="fee-bar-val">$13.40</div><div class="fee-bar-pct">1.6%</div></div>
+              </div>
+              <div class="fee-bar-row">
+                <div class="fee-bar-label">Offsite Ads</div>
+                <div class="fee-bar-track"><div class="fee-bar-fill" style="width:4.4%;background:#0891b2"></div></div>
+                <div><div class="fee-bar-val">$12.63</div><div class="fee-bar-pct">1.6%</div></div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="product-row">
-          <div><div class="product-name">Linen Tote Bag</div><div class="product-sub">61 orders</div></div>
-          <div class="product-bar-wrap"><div class="product-bar" style="width:36%;background:#d4622a"></div></div>
-          <div class="product-val">$1,980</div>
+        <div class="panel" style="border-radius:16px">
+          <div class="panel-header">
+            <div class="panel-title">Payment Ledger</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span class="export-btn export-csv">↓ CSV</span>
+              <span class="export-btn export-json">↓ JSON</span>
+              <div class="panel-count">396 entries</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Date</th><th>Type</th><th>Description</th><th>Reference</th><th>Amount</th><th>Running Balance</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="td-mono td-muted">Oct 6, 2026</td>
+                  <td><span class="ledger-type-badge lt-fee">fee</span></td>
+                  <td>Card processing fee</td>
+                  <td><span class="td-mono td-muted">#3184920571</span></td>
+                  <td><span style="color:var(--red);font-family:'DM Mono',monospace;font-size:0.72rem">-$3.10</span></td>
+                  <td class="td-mono td-muted">$1,248.62</td>
+                </tr>
+                <tr>
+                  <td class="td-mono td-muted">Oct 6, 2026</td>
+                  <td><span class="ledger-type-badge lt-fee">fee</span></td>
+                  <td>Transaction fee / sale</td>
+                  <td><span class="td-mono td-muted">#3184920571</span></td>
+                  <td><span style="color:var(--red);font-family:'DM Mono',monospace;font-size:0.72rem">-$5.75</span></td>
+                  <td class="td-mono td-muted">$1,251.72</td>
+                </tr>
+                <tr>
+                  <td class="td-mono td-muted">Oct 6, 2026</td>
+                  <td><span class="ledger-type-badge lt-revenue">sale</span></td>
+                  <td>Payment received</td>
+                  <td><span class="td-mono td-muted">#3184920571</span></td>
+                  <td><span style="color:var(--green);font-family:'Fraunces',serif;font-weight:700;font-size:0.9rem">+$88.50</span></td>
+                  <td class="td-mono td-muted">$1,257.47</td>
+                </tr>
+                <tr>
+                  <td class="td-mono td-muted">Oct 6, 2026</td>
+                  <td><span class="ledger-type-badge lt-fee">fee</span></td>
+                  <td>Shipping label cost</td>
+                  <td><span style="color:var(--muted2);font-size:0.65rem;font-family:'DM Mono',monospace">shipping label</span></td>
+                  <td><span style="color:var(--red);font-family:'DM Mono',monospace;font-size:0.72rem">-$4.80</span></td>
+                  <td class="td-mono td-muted">$1,168.97</td>
+                </tr>
+                <tr>
+                  <td class="td-mono td-muted">Oct 5, 2026</td>
+                  <td><span class="ledger-type-badge lt-payout">payout</span></td>
+                  <td>Payout to bank</td>
+                  <td><span style="color:var(--muted2);font-size:0.65rem;font-family:'DM Mono',monospace">—</span></td>
+                  <td><span style="color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem">-$950.00</span></td>
+                  <td class="td-mono td-muted">$1,173.77</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- HOW IT WORKS -->
-  <div class="section cream">
+  <div class="section off" id="how">
     <div class="section-inner">
       <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> How It Works</div>
-      <h2 class="section-title reveal">Three steps to <em>real-time clarity.</em></h2>
-      <p class="section-body reveal">Sales Pulse Live reads your order and transaction data and exports it in structured formats so you can analyze your shop anywhere.</p>
+      <h2 class="section-title reveal">Three steps <em>to your numbers.</em></h2>
+      <p class="section-body reveal">Sales Pulse Live connects through your own Etsy developer app, so the access Etsy grants is yours alone, and read-only.</p>
       <div class="steps-row reveal">
         <div class="step-box">
           <div class="step-num">01</div>
-          <div class="step-icon o">🔐</div>
-          <h3>Connect Your Shop</h3>
-          <p>Authenticate securely using Etsy's official OAuth 2.0 login. We never see or store your password.</p>
+          <div class="step-icon o">🔑</div>
+          <h3>Create an Etsy App</h3>
+          <p>Register an app at <a href="https://www.etsy.com/developers/your-apps" target="_blank" rel="noopener">etsy.com/developers</a> and add <code>https://nunyaaaaa.github.io/sales-pulse-live/app.html</code> as its redirect URI. Etsy gives you a keystring and a shared secret.</p>
         </div>
         <div class="step-box">
           <div class="step-num">02</div>
-          <div class="step-icon g">⚡</div>
-          <h3>Sync Your Data</h3>
-          <p>Sales Pulse Live reads your sales, orders, and receipt data in real time directly from the Etsy Open API v3.</p>
+          <div class="step-icon g">🔐</div>
+          <h3>Connect Your Shop</h3>
+          <p>Paste the keystring and shared secret, then approve read-only access on Etsy's own sign-in page. Your Etsy password never reaches Sales Pulse Live.</p>
         </div>
         <div class="step-box">
           <div class="step-num">03</div>
-          <div class="step-icon p">📤</div>
-          <h3>Export &amp; Analyze</h3>
-          <p>Download as CSV or JSON and plug into any spreadsheet, dashboard, or analytics tool you prefer.</p>
+          <div class="step-icon p">📊</div>
+          <h3>Explore &amp; Export</h3>
+          <p>Pick a date range, explore the charts, orders and fee breakdown, then download your orders or ledger as CSV or JSON.</p>
         </div>
       </div>
     </div>
   </div>
 
   <!-- WHO IT'S FOR -->
-  <div class="section off">
+  <div class="section cream">
     <div class="section-inner">
       <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Who It's For</div>
       <h2 class="section-title reveal">Built for sellers <em>who mean business.</em></h2>
-      <p class="section-body reveal">Whether you run one shop or manage multiple, Sales Pulse Live gives you faster, cleaner access to your own data.</p>
+      <p class="section-body reveal">Whether you check in every week or once a year at tax time, Sales Pulse Live gives you faster, cleaner access to your own shop data.</p>
       <div class="for-grid reveal">
         <div class="for-card o">
           <div class="for-card-icon">📊</div>
           <h4>Spreadsheet Sellers</h4>
-          <p>Export directly to CSV and drop it into your existing Google Sheets or Excel workflow.</p>
+          <p>Download your orders or your full payment ledger as CSV and drop them into Google Sheets or Excel.</p>
         </div>
         <div class="for-card g">
           <div class="for-card-icon">📈</div>
           <h4>Dashboard Builders</h4>
-          <p>Feed clean JSON data into Notion, Airtable, or any custom dashboard you've built.</p>
+          <p>Download clean JSON, with line items and categorised ledger entries, to import into Notion, Airtable or your own tools.</p>
         </div>
         <div class="for-card p">
           <div class="for-card-icon">🔍</div>
           <h4>Trend Trackers</h4>
-          <p>Spot seasonal patterns, top products, and revenue trends without digging through Etsy's native reports.</p>
+          <p>See your best days, busiest weeks and top products without digging through Etsy's own reports.</p>
         </div>
         <div class="for-card gold">
-          <div class="for-card-icon">⚡</div>
-          <h4>Real-Time Monitors</h4>
-          <p>Watch your sales as they happen — no more refreshing and waiting for data to update.</p>
+          <div class="for-card-icon">💸</div>
+          <h4>Margin Watchers</h4>
+          <p>See what transaction fees, processing, shipping labels and ads really cost you, and what's left after them.</p>
         </div>
       </div>
     </div>
   </div>
 
   <!-- PRIVACY -->
-  <div class="section cream">
+  <div class="section off">
     <div class="section-inner">
       <div class="privacy-grid">
         <div class="reveal">
@@ -574,25 +766,25 @@
             <span class="filled2">Always.</span>
           </div>
           <div style="margin-top:1.5rem;display:inline-flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--purple);background:var(--purple-bg);border:1px solid var(--purple-bd);padding:6px 14px;border-radius:8px;">
-            ✓ &nbsp;Etsy Open API v3 compliant
+            ✓ &nbsp;Built on the Etsy Open API v3
           </div>
         </div>
         <div class="privacy-checks">
           <div class="priv-item reveal">
             <div class="priv-check o">✓</div>
-            <div class="priv-text"><strong>Read-only access</strong><p>We never write, edit, or delete any listings, orders, or account data in your shop.</p></div>
+            <div class="priv-text"><strong>Read-only access</strong><p>Sales Pulse Live asks Etsy only for read permissions. It can't edit listings, orders or anything else in your shop.</p></div>
           </div>
           <div class="priv-item reveal">
             <div class="priv-check g">✓</div>
-            <div class="priv-text"><strong>OAuth 2.0 secured</strong><p>Login handled entirely by Etsy's official auth system — your credentials never touch our servers.</p></div>
+            <div class="priv-text"><strong>OAuth 2.0 + PKCE</strong><p>You sign in on Etsy's own page, so your Etsy password never reaches Sales Pulse Live. Your API keys and access token stay in this browser tab's session storage and are cleared when you disconnect or close the tab.</p></div>
           </div>
           <div class="priv-item reveal">
             <div class="priv-check p">✓</div>
-            <div class="priv-text"><strong>No data storage</strong><p>We do not store your personal data, shop data, or order history on our servers.</p></div>
+            <div class="priv-text"><strong>Nothing saved on a server</strong><p>Requests pass through a small proxy that lets your browser talk to Etsy. Your orders and ledger are held in the page's memory only and aren't saved anywhere.</p></div>
           </div>
           <div class="priv-item reveal">
             <div class="priv-check gold">✓</div>
-            <div class="priv-text"><strong>API compliant</strong><p>Fully built on Etsy's Open API v3, within all usage policies and rate limits.</p></div>
+            <div class="priv-text"><strong>Gentle on Etsy's API</strong><p>Requests are paced and back off automatically when Etsy rate-limits them, and results are reused for five minutes instead of fetched again.</p></div>
           </div>
         </div>
       </div>
@@ -626,32 +818,6 @@
       });
     }, { threshold: 0.08 });
     reveals.forEach(el => observer.observe(el));
-
-    const orders = [
-      { name: 'Wall Art Print',     color: '#d4622a', amtColor: '#fb923c', amt: '+$68.00' },
-      { name: 'Custom Ring Order',  color: '#3a7d4c', amtColor: '#4ade80', amt: '+$128.00' },
-      { name: 'Dried Flower Bunch', color: '#5a3d9e', amtColor: '#c084fc', amt: '+$29.00' },
-      { name: 'Wax Seal Stamp Set', color: '#b8860b', amtColor: '#fbbf24', amt: '+$44.00' },
-      { name: 'Linen Pillowcase',   color: '#3a7d4c', amtColor: '#4ade80', amt: '+$38.00' },
-    ];
-
-    let idx = 0;
-    setInterval(() => {
-      const feed = document.getElementById('feed');
-      const rows = feed.querySelectorAll('.feed-row');
-      const o = orders[idx % orders.length];
-      const row = document.createElement('div');
-      row.className = 'feed-row new';
-      row.innerHTML = `
-        <div class="feed-row-left">
-          <div class="feed-dot" style="background:${o.color}"></div>
-          <div><div class="feed-name">${o.name}</div><div class="feed-time">Just now</div></div>
-        </div>
-        <div class="feed-amt" style="color:${o.amtColor}">${o.amt}</div>`;
-      feed.insertBefore(row, rows[0]);
-      if (feed.querySelectorAll('.feed-row').length > 5) feed.removeChild(feed.querySelectorAll('.feed-row')[5]);
-      idx++;
-    }, 3500);
   </script>
 
 </body>
