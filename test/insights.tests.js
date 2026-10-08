@@ -1,7 +1,10 @@
 // Unit tests for the Insights calculations (js/insights.js) and the chart
 // primitives' escaping — run via test/finance.test.html in a browser.
-import { drawBarChart, drawLineChart } from '../js/charts.js';
-import { adSpend, customerStats, feeRateSeries, geography, payoutStats, revenueComposition, shippingPnL } from '../js/insights.js';
+import { drawBarChart, drawHeatmap, drawLineChart, hourLabel } from '../js/charts.js';
+import {
+  adSpend, backlog, basketStats, customerStats, discountStats, feeRateSeries, fulfilment, geography,
+  heatmapMatrix, payoutStats, refundStats, revenueComposition, shippingPnL, variationStats,
+} from '../js/insights.js';
 import { bucketStart, pickBucket } from '../js/util.js';
 
 function eq(actual, expected, msg = '') {
@@ -132,5 +135,103 @@ export const tests = [
       eq(svg.querySelector('img'), null, draw.name);
       eq(svg.textContent.includes(payload), true, `${draw.name} shows the text`);
     }
+  }],
+  ['variationStats: groups by listing, drops personalization, folds extra combos into Other', () => {
+    const tx = (listing_id, title, quantity, ...values) => ({ listing_id, title, quantity, variations: [
+      ...values.map((v, i) => ({ formatted_name: i ? 'Metal' : 'Size', formatted_value: v })),
+      { formatted_name: 'Personalization', formatted_value: 'Ava', question_id: 1 },
+    ] });
+    const v = variationStats([
+      { transactions: [tx(1, 'Ring', 2, '7', 'Gold'), tx(1, 'Ring (renamed)', 1, '7', 'Gold'), tx(1, 'Ring', 1, '8', 'Silver')] },
+      { transactions: [tx(2, 'Print', 1, 'A4'), { listing_id: 3, title: 'Plain', quantity: 5, variations: [] }] },
+    ]);
+    eq(v.map(p => [p.key, p.units]), [[1, 4], [2, 1]], 'by units; listings without variations skipped');
+    eq(v[0].combos, [{ label: '7 · Gold', units: 3 }, { label: '8 · Silver', units: 1 }]);
+    eq(v[0].dims, 'Size · Metal');
+    const many = variationStats([{ transactions: ['a', 'b', 'c'].map(x => tx(9, 'T', 1, x)) }], { maxCombos: 2 });
+    eq(many[0].combos.map(c => c.label), ['a', 'b', 'Other']);
+  }],
+  ['basketStats: 5+ bin and nice value bands from the 95th percentile', () => {
+    const o = (units, total) => ({ grandtotal: usd(total), transactions: [{ quantity: units }] });
+    const b = basketStats([o(1, 10), o(1, 20), o(2, 30), o(7, 40), o(3, 55), { grandtotal: usd(60) }]);
+    eq(b.unitBins.map(x => x.count), [2, 1, 1, 0, 1]);
+    eq([b.avgUnits, b.multiShare], [14 / 5, 3 / 5], 'orders without line items left out');
+    eq(b.step, 10);
+    eq(b.valueBins.map(x => [x.min, x.max, x.count]), [[0, 10, 0], [10, 20, 1], [20, 30, 1], [30, 40, 1], [40, 50, 1], [50, null, 2]]);
+    eq(basketStats([]).avgUnits, null, 'empty');
+  }],
+  ['discountStats: share, total, and average order with vs without', () => {
+    const d = discountStats([
+      order({ discount_amt: usd(5), grandtotal: usd(45) }),
+      order({ discount_amt: usd(0), grandtotal: usd(60) }),
+      order({ grandtotal: usd(40) }),
+    ]);
+    eq([d.discounted, d.totalDiscount, d.aovWith, d.aovWithout], [1, 5, 45, 50]);
+    eq(d.share, 1 / 3);
+  }],
+  ['fulfilment: shipments first, transaction fallback; digital, canceled and unshipped left out', () => {
+    const paid = at(2026, 3, 10, 9);
+    const tx = (extra = {}) => ({ paid_timestamp: paid, expected_ship_date: at(2026, 3, 12, 0), ...extra });
+    const f = fulfilment([
+      order({ transactions: [tx()], shipments: [{ shipment_notification_timestamp: at(2026, 3, 11, 9) }] }), // 1 day, on time
+      order({ transactions: [tx({ shipped_timestamp: at(2026, 3, 12, 22) })] }),                             // 2.5 days, still on time that day
+      order({ transactions: [tx()], shipments: [{ shipment_notification_timestamp: at(2026, 3, 17, 9) }] }), // 7 days, late
+      order({ transactions: [tx({ is_digital: true, shipped_timestamp: paid })] }),
+      order({ status: 'Canceled', transactions: [tx()] }),
+      order({ transactions: [tx()] }),
+    ]);
+    eq(f.shipped, 3);
+    eq(f.medianDays.toFixed(3), '2.542');
+    eq(f.bins.map(b => b.count), [0, 1, 1, 0, 0, 1, 0, 0]);
+    eq(f.onTimeRate, 2 / 3);
+    eq(fulfilment([]).medianDays, null, 'empty');
+  }],
+  ['backlog: unshipped physical orders by age; overdue after the expected day ends', () => {
+    const now = at(2026, 3, 20, 12);
+    const o = (paidDay, extra = {}) => order({
+      is_shipped: false,
+      transactions: [{ paid_timestamp: at(2026, 3, paidDay, 12), expected_ship_date: at(2026, 3, paidDay + 3, 0) }],
+      ...extra,
+    });
+    const b = backlog([
+      o(20),                             // today
+      o(17),                             // 3 days old, due by the end of today
+      o(10),                             // 10 days old, overdue
+      o(10, { status: 'canceled' }),     // never ships
+      o(10, { is_shipped: true }),
+      o(10, { is_shipped: undefined }),  // unknown: skipped
+    ], now);
+    eq([b.count, b.overdue, b.oldestDays], [3, 1, 10]);
+    eq(b.bins.map(x => x.count), [1, 1, 0, 1]);
+  }],
+  ['refundStats: statuses in any case, plus refunds on other orders', () => {
+    const r = refundStats([
+      order({ status: 'Canceled', refunds: [{ amount: usd(20) }] }),
+      order({ status: 'fully refunded', refunds: [{ amount: usd(15) }] }),
+      order({ status: 'Partially Refunded', refunds: [{ amount: usd(5) }] }),
+      order({ status: 'completed', refunds: [{ amount: usd(2.5) }] }),
+      order({ status: 'paid' }),
+    ]);
+    eq([r.canceled, r.fullyRefunded, r.partiallyRefunded, r.affected, r.refundedAmount], [1, 1, 1, 4, 42.5]);
+    eq(r.rate, 0.8);
+  }],
+  ['heatmapMatrix: local weekday × hour, with the busiest cell', () => {
+    const m = heatmapMatrix([
+      order({ create_timestamp: at(2026, 3, 10, 23) }),
+      order({ create_timestamp: at(2026, 3, 10, 23), grandtotal: usd(5) }),
+      order({ create_timestamp: at(2026, 3, 15, 0) }),
+    ]);
+    eq(m.counts[2][23], 2, 'Tuesday 11pm');
+    eq(m.counts[0][0], 1, 'Sunday midnight');
+    eq(m.revenue[2][23], 15);
+    eq(m.peak, { day: 2, hour: 23, count: 2 });
+  }],
+  ['drawHeatmap draws 7 × 24 cells; hourLabel uses 12-hour times', () => {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    const grid = Array.from({ length: 7 }, () => Array(24).fill(0));
+    grid[1][5] = 3;
+    drawHeatmap(svg, document.createElement('div'), grid, grid, '#000', String);
+    eq(svg.querySelectorAll('rect[data-w]').length, 168);
+    eq([0, 1, 11, 12, 13, 23].map(hourLabel), ['12a', '1a', '11a', '12p', '1p', '11p']);
   }],
 ];

@@ -177,3 +177,210 @@ export function geography(orders, level = 'country') {
   const rows = [...map.values()].sort((a, b) => b.revenue - a.revenue);
   return { rows, known, unknown };
 }
+
+// ─── PRODUCTS & ORDERS (receipts) ───────────────────────────────────────────
+
+const isPersonalization = v => v.question_id != null || /personali[sz]ation/i.test(v.formatted_name || '');
+
+/**
+ * Best-selling variation combinations (e.g. "7 · Gold") for the top products
+ * by units. Products are grouped by listing_id, falling back to the title.
+ * Personalization text is left out; combinations past maxCombos become "Other".
+ */
+export function variationStats(orders, { topN = 5, maxCombos = 5 } = {}) {
+  const products = new Map();
+  for (const o of orders) {
+    for (const t of o.transactions || []) {
+      const vars = (t.variations || []).filter(v => !isPersonalization(v));
+      if (!vars.length) continue;
+      const key = t.listing_id ?? t.title ?? '';
+      const p = products.get(key) ?? {
+        key, title: t.title || '(Unknown)', units: 0, combos: new Map(),
+        dims: vars.map(v => v.formatted_name).filter(Boolean).join(' · '),
+      };
+      const qty   = t.quantity || 1;
+      const combo = vars.map(v => v.formatted_value).join(' · ');
+      p.units += qty;
+      p.combos.set(combo, (p.combos.get(combo) || 0) + qty);
+      products.set(key, p);
+    }
+  }
+  return [...products.values()]
+    .sort((a, b) => b.units - a.units)
+    .slice(0, topN)
+    .map(p => {
+      const all  = [...p.combos].map(([label, units]) => ({ label, units })).sort((a, b) => b.units - a.units);
+      const top  = all.slice(0, maxCombos);
+      const rest = sum(all.slice(maxCombos), c => c.units);
+      if (rest) top.push({ label: 'Other', units: rest, other: true });
+      return { key: p.key, title: p.title, dims: p.dims, units: p.units, combos: top, comboCount: all.length };
+    });
+}
+
+/** Smallest of 1, 2, 2.5, 5 × 10^k that is at least `raw`. */
+function niceStep(raw) {
+  if (!(raw > 0)) return 1;
+  const p = 10 ** Math.floor(Math.log10(raw));
+  return [1, 2, 2.5, 5, 10].map(m => m * p).find(s => s >= raw - 1e-9);
+}
+
+/**
+ * Units per order (1, 2, 3, 4, 5+) and order totals in about 4–8 "nice" bins
+ * sized from the 95th percentile, so one huge order doesn't flatten the rest
+ * (the last bin is open-ended: max = null).
+ */
+export function basketStats(orders) {
+  const unitBins = ['1', '2', '3', '4', '5+'].map(label => ({ label, count: 0 }));
+  let units = 0, multi = 0, counted = 0;
+  const values = [];
+  for (const o of orders) {
+    const u = sum(o.transactions || [], t => t.quantity || 1);
+    if (u > 0) {
+      unitBins[Math.min(u, 5) - 1].count++;
+      units += u; counted++;
+      if (u > 1) multi++;
+    }
+    values.push(money(o.grandtotal));
+  }
+  const sorted = [...values].sort((a, b) => a - b);
+  const p95  = sorted.length ? sorted[Math.floor(0.95 * (sorted.length - 1))] : 0;
+  const step = niceStep(p95 / 8);
+  const n    = Math.max(1, Math.ceil(p95 / step - 1e-9));
+  const valueBins = Array.from({ length: n }, (_, i) => ({ min: i * step, max: i === n - 1 ? null : (i + 1) * step, count: 0 }));
+  for (const v of values) valueBins[Math.max(0, Math.min(n - 1, Math.floor(v / step + 1e-9)))].count++;
+  return {
+    unitBins, step, valueBins,
+    avgUnits:   counted ? units / counted : null,
+    multiShare: counted ? multi / counted : null,
+  };
+}
+
+/** Orders with a percent or fixed-amount discount (free-shipping coupons aren't in discount_amt). */
+export function discountStats(orders) {
+  const discounted = orders.filter(o => money(o.discount_amt) > 0);
+  const fullPrice  = orders.filter(o => !(money(o.discount_amt) > 0));
+  const aov = list => list.length ? sum(list, o => money(o.grandtotal)) / list.length : null;
+  return {
+    orders: orders.length,
+    discounted: discounted.length,
+    share: orders.length ? discounted.length / orders.length : null,
+    totalDiscount: Math.round(sum(discounted, o => money(o.discount_amt)) * 100) / 100,
+    aovWith: aov(discounted),
+    aovWithout: aov(fullPrice),
+  };
+}
+
+// ─── OPERATIONS (receipts) ──────────────────────────────────────────────────
+
+const lower = s => String(s ?? '').toLowerCase();
+const NEVER_SHIPS = new Set(['canceled', 'cancelled', 'fully refunded']);
+const isDigitalOnly = o => (o.transactions || []).length > 0 && o.transactions.every(t => t.is_digital);
+const earliest = arr => { const v = arr.filter(x => x > 0); return v.length ? Math.min(...v) : null; };
+const latest   = arr => { const v = arr.filter(x => x > 0); return v.length ? Math.max(...v) : null; };
+
+/** 23:59:59 local time on the day of ts. */
+function endOfLocalDay(ts) {
+  const d = new Date(ts * 1000);
+  return Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59).getTime() / 1000);
+}
+
+/** When an order was paid, first marked shipped (null if not yet) and expected to ship. */
+function shipTimes(o) {
+  const txs = o.transactions || [];
+  return {
+    paid:     earliest(txs.map(t => t.paid_timestamp)) ?? o.create_timestamp,
+    shipped:  earliest((o.shipments || []).map(s => s.shipment_notification_timestamp)) ?? earliest(txs.map(t => t.shipped_timestamp)),
+    expected: latest(txs.map(t => t.expected_ship_date)),
+  };
+}
+
+/** Index of the last bin whose `min` is <= value. */
+const binFor = (bins, value) => bins.reduce((idx, b, i) => (value >= b.min ? i : idx), 0);
+
+const SHIP_BINS = [[0, '0'], [1, '1'], [2, '2'], [3, '3'], [4, '4–5'], [6, '6–7'], [8, '8–14'], [15, '15+']];
+
+/**
+ * Days from payment to the first "shipped" mark for physical orders (digital,
+ * canceled and fully refunded orders are left out). onTimeRate compares with
+ * Etsy's expected ship date (until the end of that day, local time).
+ */
+export function fulfilment(orders) {
+  const days = [];
+  let onTime = 0, withExpected = 0;
+  for (const o of orders) {
+    if (isDigitalOnly(o) || NEVER_SHIPS.has(lower(o.status))) continue;
+    const { paid, shipped, expected } = shipTimes(o);
+    if (!shipped) continue;
+    days.push(Math.max(0, (shipped - paid) / 86400));
+    if (expected) {
+      withExpected++;
+      if (shipped <= endOfLocalDay(expected)) onTime++;
+    }
+  }
+  const bins = SHIP_BINS.map(([min, label]) => ({ min, label, count: 0 }));
+  for (const d of days) bins[binFor(bins, Math.floor(d))].count++;
+  const sorted = [...days].sort((a, b) => a - b), mid = sorted.length >> 1;
+  return {
+    shipped: days.length,
+    medianDays: !sorted.length ? null : sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2,
+    bins,
+    onTimeRate: withExpected ? onTime / withExpected : null,
+    withExpected,
+  };
+}
+
+const AGE_BINS = [[0, '0–1 days'], [2, '2–3 days'], [4, '4–7 days'], [8, '8+ days']];
+
+/**
+ * Physical orders not yet marked shipped, by days since payment, and how many
+ * are past Etsy's expected ship date. Orders whose shipped flag is unknown are skipped.
+ */
+export function backlog(orders, now) {
+  const bins = AGE_BINS.map(([min, label]) => ({ min, label, count: 0 }));
+  let count = 0, overdue = 0, oldestDays = null;
+  for (const o of orders) {
+    if (isDigitalOnly(o) || NEVER_SHIPS.has(lower(o.status))) continue;
+    if ((o.is_shipped ?? o.was_shipped) !== false || (o.shipments || []).length) continue;
+    const { paid, expected } = shipTimes(o);
+    const age = Math.max(0, (now - paid) / 86400);
+    count++;
+    bins[binFor(bins, age)].count++;
+    oldestDays = Math.max(oldestDays ?? 0, age);
+    if (expected && now > endOfLocalDay(expected)) overdue++;
+  }
+  return { count, overdue, oldestDays, bins };
+}
+
+/** Canceled / refunded orders (by status or a recorded refund) and the amount refunded. */
+export function refundStats(orders) {
+  let canceled = 0, fullyRefunded = 0, partiallyRefunded = 0, affected = 0, refunded = 0;
+  for (const o of orders) {
+    const s = lower(o.status);
+    const refunds = o.refunds || [];
+    if (s === 'canceled' || s === 'cancelled') canceled++;
+    else if (s === 'fully refunded') fullyRefunded++;
+    else if (s === 'partially refunded') partiallyRefunded++;
+    if (s === 'canceled' || s === 'cancelled' || s.endsWith('refunded') || refunds.length) affected++;
+    refunded += sum(refunds, r => money(r.amount));
+  }
+  return {
+    orders: orders.length, canceled, fullyRefunded, partiallyRefunded, affected,
+    rate: orders.length ? affected / orders.length : null,
+    refundedAmount: Math.round(refunded * 100) / 100,
+  };
+}
+
+/** Orders and revenue by local weekday (0 = Sunday) × hour (0–23). */
+export function heatmapMatrix(orders) {
+  const counts  = Array.from({ length: 7 }, () => Array(24).fill(0));
+  const revenue = Array.from({ length: 7 }, () => Array(24).fill(0));
+  let peak = null;
+  for (const o of orders) {
+    const d = new Date(o.create_timestamp * 1000);
+    const w = d.getDay(), h = d.getHours();
+    counts[w][h]++;
+    revenue[w][h] += money(o.grandtotal);
+    if (!peak || counts[w][h] > peak.count) peak = { day: w, hour: h, count: counts[w][h] };
+  }
+  return { counts, revenue, peak };
+}

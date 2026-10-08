@@ -400,6 +400,63 @@
       </div>
     </div>
 
+    <div class="ins-section">
+      <div class="ins-section-head">
+        <div class="ins-section-title">Products &amp; Orders</div>
+        <div class="ins-note">orders in the selected period</div>
+      </div>
+      <div class="ochart-panel ins-gap">
+        <div class="ochart-header"><div><div class="ochart-title">Best-Selling Variations</div><div class="ochart-subtitle" id="ins-var-sub">—</div></div></div>
+        <div class="ins-body" id="ins-variations"></div>
+      </div>
+      <div class="ins-grid ins-gap">
+        <div class="ochart-panel">
+          <div class="ochart-header"><div><div class="ochart-title">Items per Order</div><div class="ochart-subtitle" id="ins-units-sub">—</div></div></div>
+          <div class="ochart-canvas">
+            <svg class="ochart-svg" id="ins-units-svg" style="height:160px"></svg>
+            <div class="ochart-tooltip" id="ins-units-tooltip"></div>
+          </div>
+        </div>
+        <div class="ochart-panel">
+          <div class="ochart-header"><div><div class="ochart-title">Order Values</div><div class="ochart-subtitle" id="ins-values-sub">—</div></div></div>
+          <div class="ochart-canvas">
+            <svg class="ochart-svg" id="ins-values-svg" style="height:160px"></svg>
+            <div class="ochart-tooltip" id="ins-values-tooltip"></div>
+          </div>
+        </div>
+      </div>
+      <div class="ins-kpis" id="ins-discounts"></div>
+    </div>
+
+    <div class="ins-section">
+      <div class="ins-section-head">
+        <div class="ins-section-title">Operations</div>
+        <div class="ins-note">orders in the selected period · canceled and refunded orders still count in Total Gross</div>
+      </div>
+      <div class="ins-grid ins-gap">
+        <div class="ochart-panel">
+          <div class="ochart-header"><div><div class="ochart-title">Time to Ship</div><div class="ochart-subtitle">days from payment until marked shipped</div></div></div>
+          <div class="ins-body" id="ins-ship-tiles"></div>
+          <div class="ochart-canvas">
+            <svg class="ochart-svg" id="ins-ship-svg" style="height:140px"></svg>
+            <div class="ochart-tooltip" id="ins-ship-tooltip"></div>
+          </div>
+        </div>
+        <div class="ochart-panel">
+          <div class="ochart-header"><div><div class="ochart-title">Not Shipped Yet</div><div class="ochart-subtitle">physical orders by days since payment</div></div></div>
+          <div class="ins-body" id="ins-backlog"></div>
+        </div>
+      </div>
+      <div class="ins-kpis ins-gap" id="ins-refunds"></div>
+      <div class="ochart-panel">
+        <div class="ochart-header"><div><div class="ochart-title">When Orders Come In</div><div class="ochart-subtitle" id="ins-heat-sub">—</div></div></div>
+        <div class="ochart-canvas">
+          <svg class="ochart-svg" id="ins-heat-svg"></svg>
+          <div class="ochart-tooltip" id="ins-heat-tooltip"></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 

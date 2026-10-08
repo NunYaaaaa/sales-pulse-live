@@ -1,11 +1,14 @@
 // ─── INSIGHTS TAB (rendering) ──────────────────────────────────────────────
 // Draws the Insights panels from state. The numbers come from the pure
 // functions in insights.js; this module only formats and escapes them.
-import { FEE_GROUPS, LABEL_FEES, LABEL_REFUNDS, PALETTE } from './config.js';
-import { animateBars, drawBarChart, drawLineChart, setToggleActive } from './charts.js';
-import { adSpend, customerStats, feeRateSeries, geography, payoutStats, revenueComposition, shippingPnL } from './insights.js';
+import { FEE_GROUPS, FEE_OTHER_COLOR, LABEL_FEES, LABEL_REFUNDS, PALETTE } from './config.js';
+import { animateBars, DAY_NAMES, drawBarChart, drawHeatmap, drawLineChart, hourLabel, setToggleActive } from './charts.js';
+import {
+  adSpend, backlog, basketStats, customerStats, discountStats, feeRateSeries, fulfilment, geography,
+  heatmapMatrix, payoutStats, refundStats, revenueComposition, shippingPnL, variationStats,
+} from './insights.js';
 import { lineItems, state } from './state.js';
-import { escHtml, fmtMoney, pickBucket } from './util.js';
+import { escHtml, fmtMoney, getCurrency, pickBucket } from './util.js';
 
 const $ = id => document.getElementById(id);
 
@@ -64,6 +67,8 @@ export function renderInsights() {
     renderSnapshot();
     renderProfitability(orders);
     renderCustomers(orders);
+    renderProducts(orders);
+    renderOperations(orders, Math.floor(Date.now() / 1000));
   });
 }
 
@@ -267,4 +272,142 @@ function renderGeo(orders) {
     value: r => r.revenue, fmt: r => fmtMoney(r.revenue),
     sub: r => `${plural(r.orders, 'order')} · ${pct(r.orders / g.known)}`,
   }) + note);
+}
+
+// ─── PRODUCTS & ORDERS ──────────────────────────────────────────────────────
+
+/** Money without forced cents, for chart bins ("$25", "$2.5"). */
+function fmtShort(n) {
+  try { return new Intl.NumberFormat('en-US', { style:'currency', currency: getCurrency(), minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n); }
+  catch { return fmtMoney(n); }
+}
+
+function renderProducts(orders) {
+  renderVariations(orders);
+  renderBasket(orders);
+  renderDiscounts(orders);
+}
+
+function renderVariations(orders) {
+  const el = $('ins-variations'), sub = $('ins-var-sub');
+  const products = variationStats(orders);
+  if (!products.length) {
+    sub.textContent = '—';
+    el.innerHTML = empty(orders.length ? 'None of these orders has variations such as size or color.' : NO_ORDERS);
+    return;
+  }
+  sub.textContent = `top ${products.length} product${products.length === 1 ? '' : 's'} with variations · by units sold`;
+  el.innerHTML = products.map(p => {
+    const segs = p.combos.map((c, i) => ({ ...c, color: c.other ? FEE_OTHER_COLOR : PALETTE[i % PALETTE.length], pct: c.units / p.units * 100 }));
+    const title = escHtml(p.title);
+    return `<div class="ins-var">
+      <div class="ins-var-head">
+        <span class="top-prod-name" title="${title}">${title}</span>
+        <span class="top-prod-sub">${plural(p.units, 'unit')}${p.dims ? ` · ${escHtml(p.dims)}` : ''}</span>
+      </div>
+      <div class="ins-seg">${segs.map(c => `<span style="width:${c.pct.toFixed(2)}%;background:${c.color}" title="${escHtml(c.label)}: ${c.units}"></span>`).join('')}</div>
+      <div class="ins-legend">${segs.map(c => `<span><i style="background:${c.color}"></i>${escHtml(c.label)}<b>${c.units}</b></span>`).join('')}</div>
+    </div>`;
+  }).join('') + caveat('Units by variation combination. Personalization text is left out.');
+}
+
+function renderBasket(orders) {
+  const uSvg = $('ins-units-svg'), vSvg = $('ins-values-svg');
+  if (!orders.length) {
+    uSvg.innerHTML = vSvg.innerHTML = '';
+    $('ins-units-sub').textContent = $('ins-values-sub').textContent = NO_ORDERS;
+    return;
+  }
+  const b = basketStats(orders);
+  const orderCount = d => plural(d.count, 'order');
+
+  $('ins-units-sub').textContent = b.avgUnits == null ? 'line items not loaded yet'
+    : `avg. ${b.avgUnits.toFixed(2)} units · ${pct(b.multiShare)} of orders have 2+`;
+  drawBarChart(uSvg, $('ins-units-tooltip'), b.unitBins, 'count', v => plural(v, 'order'), '#5a3d9e',
+    d => `<strong>${d.label} unit${d.label === '1' ? '' : 's'}</strong><br>${orderCount(d)}`);
+
+  const range = d => d.max == null ? `${fmtShort(d.min)} or more` : `${fmtShort(d.min)} – ${fmtShort(d.max)}`;
+  const data  = b.valueBins.map(d => ({ ...d, label: d.max == null ? `${fmtShort(d.min)}+` : fmtShort(d.min) }));
+  $('ins-values-sub').textContent = `order totals incl. shipping + tax · ${fmtShort(b.step)} bands`;
+  drawBarChart(vSvg, $('ins-values-tooltip'), data, 'count', v => plural(v, 'order'), '#2563eb',
+    d => `<strong>${range(d)}</strong><br>${orderCount(d)}`);
+}
+
+function renderDiscounts(orders) {
+  const el = $('ins-discounts');
+  if (!orders.length) { el.innerHTML = ''; return; }
+  const d = discountStats(orders);
+  const avg = v => v == null ? '—' : fmtMoney(v);
+  el.innerHTML = [
+    kpi('Discounted Orders', fmtNum(d.discounted), `${pct(d.share)} of orders`),
+    kpi('Discounts Given', fmtMoney(d.totalDiscount), 'percent and fixed-amount coupons', d.totalDiscount ? 'red' : ''),
+    kpi('Avg. Order, Discounted', avg(d.aovWith), 'orders with a discount'),
+    kpi('Avg. Order, Full Price', avg(d.aovWithout), 'orders without one'),
+  ].join('');
+}
+
+// ─── OPERATIONS ─────────────────────────────────────────────────────────────
+
+const dayCount = label => label === '0' ? 'Under a day' : label === '1' ? '1 day' : `${label} days`;
+
+function renderOperations(orders, now) {
+  renderShipTime(orders);
+  renderBacklog(orders, now);
+  renderRefunds(orders);
+  renderHeatmap(orders);
+}
+
+function renderShipTime(orders) {
+  const svg = $('ins-ship-svg'), body = $('ins-ship-tiles');
+  const f = fulfilment(orders);
+  if (!f.shipped) {
+    svg.innerHTML = '';
+    body.innerHTML = empty(orders.length ? 'No physical orders in this period have been marked shipped.' : NO_ORDERS);
+    return;
+  }
+  body.innerHTML = tiles(
+    tile('Median', `${f.medianDays.toFixed(1)} days`),
+    tile('On time', pct(f.onTimeRate), f.withExpected ? "by Etsy's expected ship date" : 'no expected dates'),
+    tile('Shipped', fmtNum(f.shipped), 'physical orders'),
+  ) + caveat("Until the order was marked shipped. Etsy's API has no delivery dates.");
+  drawBarChart(svg, $('ins-ship-tooltip'), f.bins, 'count', v => plural(v, 'order'), '#3a7d4c',
+    d => `<strong>${dayCount(d.label)}</strong><br>${plural(d.count, 'order')}`);
+}
+
+function renderBacklog(orders, now) {
+  const el = $('ins-backlog');
+  if (!orders.length) { el.innerHTML = empty(NO_ORDERS); return; }
+  const b = backlog(orders, now);
+  if (!b.count) { el.innerHTML = empty('Every physical order in this period has been marked shipped.'); return; }
+  setHtml(el,
+    tiles(
+      tile('Not shipped', fmtNum(b.count)),
+      tile('Past due', fmtNum(b.overdue), "past Etsy's expected date", b.overdue ? 'red' : ''),
+      tile('Oldest', `${Math.floor(b.oldestDays)} days`),
+    ) +
+    `<div class="top-prod-rows">${barRows(b.bins, {
+      name: r => r.label, value: r => r.count, fmt: r => fmtNum(r.count), sub: () => 'since payment',
+    })}</div>` +
+    caveat('Only orders from the selected period are counted.'));
+}
+
+function renderRefunds(orders) {
+  const el = $('ins-refunds');
+  if (!orders.length) { el.innerHTML = ''; return; }
+  const r = refundStats(orders);
+  el.innerHTML = [
+    kpi('Canceled', fmtNum(r.canceled), 'orders'),
+    kpi('Fully Refunded', fmtNum(r.fullyRefunded), 'orders'),
+    kpi('Partially Refunded', fmtNum(r.partiallyRefunded), 'orders'),
+    kpi('Refunded', fmtMoney(r.refundedAmount), `${pct(r.rate)} of orders affected`, r.refundedAmount ? 'red' : ''),
+  ].join('');
+}
+
+function renderHeatmap(orders) {
+  const svg = $('ins-heat-svg'), sub = $('ins-heat-sub');
+  if (!orders.length) { svg.innerHTML = ''; sub.textContent = NO_ORDERS; return; }
+  const m = heatmapMatrix(orders);
+  const p = m.peak;
+  sub.textContent = `your local time · busiest: ${DAY_NAMES[p.day]} ${hourLabel(p.hour)}–${hourLabel((p.hour + 1) % 24)} (${plural(p.count, 'order')})`;
+  drawHeatmap(svg, $('ins-heat-tooltip'), m.counts, m.revenue, '#d4622a', fmtMoney);
 }

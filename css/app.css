@@ -501,6 +501,15 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
 .ins-caveat { font-family:'DM Mono',monospace; font-size:0.58rem; line-height:1.6; color:var(--muted2); margin-top:0.6rem; }
 .ins-empty { font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted2); padding:0.5rem 0; }
 .ins-body .top-prod-rows { padding:0; }
+.ins-var { margin-bottom:1rem; }
+.ins-var-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:6px; }
+.ins-var-head .top-prod-name { min-width:0; }
+.ins-var-head .top-prod-sub { flex-shrink:0; }
+.ins-seg { display:flex; height:10px; border-radius:999px; overflow:hidden; background:var(--border); }
+.ins-seg span { display:block; height:100%; }
+.ins-legend { display:flex; flex-wrap:wrap; gap:4px 14px; margin-top:6px; font-family:'DM Mono',monospace; font-size:0.6rem; color:var(--muted); }
+.ins-legend i { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:5px; }
+.ins-legend b { font-weight:500; color:var(--ink); margin-left:3px; }
 
 /* Dashboard error banner (the connect card has its own #error-banner) */
 #dash-error { align-items:flex-start; justify-content:space-between; gap:1rem; margin:0 0 1rem; }

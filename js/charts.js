@@ -165,6 +165,52 @@ function positionTooltip(tip, svgEl, svgX, svgY) {
   tip.style.top  = Math.max(0, top) + 'px';
 }
 
+export const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+/** 0 → "12a", 13 → "1p". */
+export const hourLabel = h => `${h % 12 || 12}${h < 12 ? 'a' : 'p'}`;
+
+/**
+ * Draw a weekday × hour grid (rows Sun–Sat, columns 0–23). counts[w][h] sets
+ * each cell's shade; the tooltip also shows revenue[w][h] through fmtFn.
+ */
+export function drawHeatmap(svgEl, tooltipEl, counts, revenue, color, fmtFn) {
+  const W = svgEl.clientWidth || 400;
+  const LEFT = 30, TOP = 4, ROW = 16, GAP = 2, BOTTOM = 18;
+  const H = TOP + 7 * ROW + BOTTOM;
+  const cellW = (W - LEFT) / 24;
+  const max = Math.max(1, ...counts.flat());
+
+  let out = '';
+  for (let w = 0; w < 7; w++) {
+    const y = TOP + w * ROW;
+    out += `<text x="${LEFT - 6}" y="${y + ROW / 2 + 3}" text-anchor="end" font-family="monospace" font-size="8" fill="var(--muted2)">${DAY_NAMES[w]}</text>`;
+    for (let h = 0; h < 24; h++) {
+      const c = counts[w][h];
+      out += `<rect x="${(LEFT + h * cellW + GAP / 2).toFixed(1)}" y="${y + GAP / 2}" width="${Math.max(1, cellW - GAP).toFixed(1)}" height="${ROW - GAP}" rx="2"
+        fill="${c ? color : 'var(--paper)'}" opacity="${c ? (0.15 + 0.85 * c / max).toFixed(2) : 1}" data-w="${w}" data-h="${h}"/>`;
+    }
+  }
+  for (let h = 0; h < 24; h += 3) {
+    out += `<text x="${(LEFT + h * cellW + cellW / 2).toFixed(1)}" y="${H - 4}" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">${hourLabel(h)}</text>`;
+  }
+
+  svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svgEl.style.height = `${H}px`;
+  svgEl.innerHTML = out;
+
+  // One handler on the svg (assigned, not added, so redraws don't stack them)
+  svgEl.onmouseover = ev => {
+    const cell = ev.target.closest('rect[data-w]');
+    if (!cell) return;
+    const w = +cell.dataset.w, h = +cell.dataset.h, c = counts[w][h];
+    tooltipEl.innerHTML = `<strong>${DAY_NAMES[w]} ${hourLabel(h)}–${hourLabel((h + 1) % 24)}</strong><br>${c} order${c === 1 ? '' : 's'}${c ? `<br>${fmtFn(revenue[w][h])}` : ''}`;
+    tooltipEl.classList.add('visible');
+    positionTooltip(tooltipEl, svgEl, parseFloat(cell.getAttribute('x')) + cellW / 2, parseFloat(cell.getAttribute('y')));
+  };
+  svgEl.onmouseleave = () => tooltipEl.classList.remove('visible');
+}
+
 /** Toggle the active button within one chart's toggle group. */
 export function setToggleActive(btn) {
   btn.closest('.ochart-toggle').querySelectorAll('.ochart-toggle-btn').forEach(b => {
@@ -204,7 +250,6 @@ function renderDowChart() {
   const subEl = $('dow-chart-sub');
   if (!svgEl || !state.allOrders.length) return;
 
-  const DAYS  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const tally = Array(7).fill(0).map(() => ({ revenue:0, count:0, days: new Set() }));
 
   for (const o of state.allOrders) {
@@ -217,7 +262,7 @@ function renderDowChart() {
 
   const isRev = state.dowChartMode === 'revenue';
   // Compute average per occurrence of that weekday
-  const data = DAYS.map((label, i) => {
+  const data = DAY_NAMES.map((label, i) => {
     const occ = tally[i].days.size || 1;
     return {
       label,
