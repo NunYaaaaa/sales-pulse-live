@@ -137,6 +137,13 @@ export function fetchOrders({ from = null, to = null, signal } = {}) {
     'Order fetch', { signal });
 }
 
+/** Shop reviews left since `from` (unix seconds) up to now. */
+export function fetchReviews(from, { signal, onPage } = {}) {
+  return fetchAllPages(
+    offset => `/application/shops/${session.get('shop_id')}/reviews?min_created=${from}&limit=${PAGE}&offset=${offset}`,
+    'Reviews fetch', { signal, onPage });
+}
+
 /** Every listing in one state ('active', 'sold_out', …), with Etsy's lifetime views and favorites. */
 export function fetchListings(listingState, { signal, onPage } = {}) {
   return fetchAllPages(

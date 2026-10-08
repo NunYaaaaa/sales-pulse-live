@@ -424,6 +424,60 @@ export function listingStats(listings, orders, { lowStock = 2 } = {}) {
   };
 }
 
+// ─── REVIEWS (extra calls) ──────────────────────────────────────────────────
+
+/**
+ * Ratings from reviews left within [from, to] (stars, monthly average,
+ * per-listing average for listings with minReviews+, recent ratings of 3 or
+ * less), and coverage: the share of these orders' line items that have a
+ * review so far, joined on transaction_id (`reviews` may run past `to`).
+ */
+export function reviewStats(reviews, orders, { from = null, to = null, minReviews = 3, recentLow = 5 } = {}) {
+  const period = reviews.filter(r =>
+    r.rating >= 1 && r.rating <= 5 &&
+    (from == null || r.created_timestamp >= from) && (to == null || r.created_timestamp <= to));
+
+  const stars = [5, 4, 3, 2, 1].map(n => ({ stars: n, count: 0 }));
+  for (const r of period) stars[5 - Math.round(r.rating)].count++;
+
+  const months = new Map(), listings = new Map();
+  for (const r of period) {
+    const b = bucketStart(r.created_timestamp, 'month');
+    const m = months.get(b.key) ?? { label: b.label, ts: b.ts, total: 0, count: 0 };
+    m.total += r.rating; m.count++;
+    months.set(b.key, m);
+    if (r.listing_id != null) {
+      const l = listings.get(r.listing_id) ?? { id: r.listing_id, total: 0, count: 0 };
+      l.total += r.rating; l.count++;
+      listings.set(r.listing_id, l);
+    }
+  }
+
+  const reviewed = new Set(reviews.map(r => r.transaction_id).filter(id => id != null).map(String));
+  let items = 0, itemsReviewed = 0;
+  for (const o of orders) {
+    for (const t of o.transactions || []) {
+      if (t.transaction_id == null) continue;
+      items++;
+      if (reviewed.has(String(t.transaction_id))) itemsReviewed++;
+    }
+  }
+
+  return {
+    count: period.length,
+    avg: period.length ? sum(period, r => r.rating) / period.length : null,
+    stars,
+    monthly: [...months.values()].sort((a, b) => a.ts - b.ts)
+      .map(m => ({ label: m.label, ts: m.ts, count: m.count, avg: m.total / m.count })),
+    byListing: [...listings.values()].filter(l => l.count >= minReviews)
+      .map(l => ({ id: l.id, count: l.count, avg: l.total / l.count }))
+      .sort((a, b) => b.count - a.count || a.avg - b.avg),
+    low: period.filter(r => r.rating <= 3).sort((a, b) => b.created_timestamp - a.created_timestamp).slice(0, recentLow),
+    items, itemsReviewed,
+    coverage: items ? itemsReviewed / items : null,
+  };
+}
+
 /** Orders and revenue by local weekday (0 = Sunday) × hour (0–23). */
 export function heatmapMatrix(orders) {
   const counts  = Array.from({ length: 7 }, () => Array(24).fill(0));

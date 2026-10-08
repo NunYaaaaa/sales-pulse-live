@@ -131,7 +131,33 @@ function buildData() {
   for (let d = 0; d < 400; d += 7) addLedger(now - d * DAY, 'DISBURSE2', -20000, 'disbursement', d);
   for (let d = 0; d < 400; d++) addLedger(now - d * DAY - 7200, 'prolist', -(80 + Math.floor(rand2() * 220)), 'shop', SHOP_ID);
   receipts.sort((a, b) => b.create_timestamp - a.create_timestamp);
-  return { receipts, ledger, listings: buildListings() };
+  return { receipts, ledger, listings: buildListings(), reviews: buildReviews(receipts, now) };
+}
+
+// Reviews: ~40% of shipped items, 5–20 days after the order, mostly 5 stars.
+// One recent 2-star review carries an XSS payload in its text.
+const REVIEW_TEXT = {
+  good: ['Beautiful work, arrived quickly!', 'Exactly as pictured.', 'Lovely quality, would buy again.'],
+  poor: ['Took a long time to arrive.', 'Not quite what I expected.'],
+};
+function buildReviews(receipts, now) {
+  const reviews = [];
+  for (const r of receipts) { // newest first
+    if (!r.is_shipped || r.status === 'canceled') continue;
+    for (const t of r.transactions) {
+      if (rand2() > 0.4) continue;
+      const created = r.create_timestamp + (5 + Math.floor(rand2() * 15)) * DAY;
+      if (created > now) continue;
+      const x = rand2(), bad = reviews.length === 4;
+      const rating = bad ? 2 : x < 0.75 ? 5 : x < 0.9 ? 4 : x < 0.95 ? 3 : x < 0.98 ? 2 : 1;
+      reviews.push({
+        shop_id: SHOP_ID, listing_id: t.listing_id, transaction_id: t.transaction_id, buyer_user_id: r.buyer_user_id,
+        rating, created_timestamp: created,
+        review: bad ? `Odd ${XSS}` : pick(rating >= 4 ? REVIEW_TEXT.good : REVIEW_TEXT.poor),
+      });
+    }
+  }
+  return reviews;
 }
 
 // Listings: the products above (Linen Pillowcase left out, as if deactivated,
@@ -158,7 +184,7 @@ const json = (body, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
 export function installMockApi({ latencyMs = 5 } = {}) {
-  const { receipts, ledger, listings } = buildData();
+  const { receipts, ledger, listings, reviews } = buildData();
   const realFetch = window.fetch.bind(window);
   window.mockStats = { requests: 0, byPath: {} };
 
@@ -212,6 +238,10 @@ export function installMockApi({ latencyMs = 5 } = {}) {
     }
     if (/^\/application\/shops\/\d+\/listings$/.test(p)) {
       const all = listings.filter(l => l.state === (q.get('state') || 'active'));
+      return json({ count: all.length, results: all.slice(offset, offset + limit) });
+    }
+    if (/^\/application\/shops\/\d+\/reviews$/.test(p)) {
+      const all = reviews.filter(r => inRange(r.created_timestamp));
       return json({ count: all.length, results: all.slice(offset, offset + limit) });
     }
     return json({ error: `mock: no route for ${p}` }, 404);

@@ -3,7 +3,7 @@
 import { drawBarChart, drawHeatmap, drawLineChart, hourLabel } from '../js/charts.js';
 import {
   adSpend, backlog, basketStats, customerStats, discountStats, feeRateSeries, fulfilment, geography,
-  heatmapMatrix, listingStats, payoutStats, refundStats, revenueComposition, shippingPnL, variationStats,
+  heatmapMatrix, listingStats, payoutStats, refundStats, revenueComposition, reviewStats, shippingPnL, variationStats,
 } from '../js/insights.js';
 import { bucketStart, pickBucket } from '../js/util.js';
 
@@ -250,5 +250,26 @@ export const tests = [
     eq([L.active, L.soldOut, L.noSales, L.lowStock], [2, 1, 1, 1]);
     eq(L.favPer100Views.toFixed(2), (60 / 1400 * 100).toFixed(2), 'only listings with views count');
     eq(L.gone, { listings: 1, units: 3, revenue: 30 });
+  }],
+  ['reviewStats: ratings in the period; coverage counts later reviews of its items', () => {
+    const rev = (rating, day, extra = {}) => ({ rating, created_timestamp: at(2026, 3, day), ...extra });
+    const r = reviewStats([
+      rev(5, 5,  { transaction_id: 11, listing_id: 1 }),
+      rev(4, 12, { transaction_id: 12, listing_id: 1 }),
+      rev(2, 20, { transaction_id: 13, listing_id: 1, review: 'Late' }),
+      rev(5, 28, { transaction_id: 21, listing_id: 2 }),
+      rev(5, 2,  { transaction_id: 99, listing_id: 2 }),                                  // before the period
+      { rating: 3, created_timestamp: at(2026, 4, 10), transaction_id: 14, listing_id: 3 }, // after it, but for one of its items
+      rev(0, 15),                                                                         // not a valid rating
+    ], [
+      { transactions: [{ transaction_id: 11 }, { transaction_id: 12 }, { transaction_id: 13 }, { transaction_id: 14 }] },
+      { transactions: [{ transaction_id: 15 }, { transaction_id: 16 }, { transaction_id: 21 }, {}] },
+    ], { from: at(2026, 3, 3, 0), to: at(2026, 3, 31, 23) });
+    eq([r.count, r.avg], [4, 4]);
+    eq(r.stars.map(s => s.count), [2, 1, 0, 1, 0], '5★ to 1★');
+    eq(r.monthly.map(m => [m.label, m.count, m.avg]), [['Mar 2026', 4, 4]]);
+    eq(r.byListing, [{ id: 1, count: 3, avg: 11 / 3 }], 'listings with 3+ reviews only');
+    eq(r.low.map(x => x.review), ['Late']);
+    eq([r.items, r.itemsReviewed, r.coverage], [7, 5, 5 / 7]);
   }],
 ];

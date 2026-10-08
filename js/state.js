@@ -15,6 +15,8 @@ export const state = {
   listings:       null,    // active + sold-out listings
   listingsAt:     0,
   listingsStatus: null,    // { loading, done, total } | { error } | null
+  reviews:        null,    // reviews since the period started (see reviewsCache)
+  reviewsStatus:  null,
 
   // Per-receipt caches, kept across date-range changes (a receipt's
   // details don't depend on the range it was fetched for).
@@ -54,9 +56,21 @@ export function cachedRange() {
   return hit && Date.now() - hit.at < RANGE_TTL_MS ? hit : null;
 }
 
+// Reviews per period start, for the same TTL (they're fetched up to "now").
+const reviewsCache = new Map();
+export function cacheReviews(reviews) {
+  reviewsCache.set(String(state.filterFrom), { reviews, at: Date.now() });
+}
+export function cachedReviews() {
+  const hit = reviewsCache.get(String(state.filterFrom));
+  return hit && Date.now() - hit.at < RANGE_TTL_MS ? hit.reviews : null;
+}
+
 /** Reset the data shown for the current range. */
 export function clearRangeData() {
   state.allOrders     = [];
+  state.reviews       = null;
+  state.reviewsStatus = null;
   state.ledgerEntries = null;
   state.ledgerSpan    = null;
   state.detailsLoaded = false;
@@ -74,4 +88,5 @@ export function clearData() {
   state.listingsAt     = 0;
   state.listingsStatus = null;
   rangeCache.clear();
+  reviewsCache.clear();
 }

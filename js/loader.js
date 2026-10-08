@@ -1,10 +1,10 @@
 // ─── DATA LOADING PIPELINE + DATE FILTER ───────────────────────────────────
-import { ApiError, AuthError, etsyFetch, fetchLedger, fetchListings, fetchOrders, fetchPayment, fetchTransactions, isAbort } from './api.js';
+import { ApiError, AuthError, etsyFetch, fetchLedger, fetchListings, fetchOrders, fetchPayment, fetchReviews, fetchTransactions, isAbort } from './api.js';
 import { renderOrderCharts } from './charts.js';
 import { renderInsights } from './insights-view.js';
 import { renderFinances, renderKPIs, renderTable } from './render.js';
 import { session } from './session.js';
-import { cacheCurrentRange, cachedRange, clearRangeData, lineItems, state } from './state.js';
+import { cacheCurrentRange, cachedRange, cachedReviews, cacheReviews, clearRangeData, lineItems, state } from './state.js';
 import { clearError, setFetchStatus, showConnect, showDashboard, showError, showLoading, showSkeletons } from './ui.js';
 import { dateStrToTs, daysAgoStr, setCurrency, todayStr, ytdStr } from './util.js';
 
@@ -246,9 +246,36 @@ export async function loadAllDetails(background = false, signal = currentLoad?.s
 }
 
 // ─── INSIGHTS DATA ──────────────────────────────────────────────────────────
-// Listings are only used by the Insights tab, so they're fetched the first
-// time it's open after a range has fully loaded, and reused for 10 minutes.
+// Listings and reviews are only used by the Insights tab, so they're fetched
+// the first time it's open after a range has fully loaded. Listings don't
+// depend on the range and are reused for 10 minutes; reviews are cached per
+// period start like the range data.
 let insightsRunFor = null; // the load signal the last run belonged to
+
+/**
+ * Run one Insights fetch, tracking its progress or error in state[statusKey].
+ * run(progress) does the fetching and stores the result. Returns false on failure.
+ */
+async function insightsStep(statusKey, signal, run) {
+  const progress = (done, total) => {
+    state[statusKey] = { loading: true, done, total };
+    renderInsights();
+  };
+  try {
+    progress(0, null);
+    await run(progress);
+    if (signal.aborted) return true;
+    state[statusKey] = null;
+  } catch (e) {
+    if (isAbort(e)) return true;
+    if (e instanceof AuthError) { handleLoadError(e, 'Insights data'); return true; }
+    state[statusKey] = { error: e.message };
+    return false;
+  } finally {
+    if (!signal.aborted) renderInsights();
+  }
+  return true;
+}
 
 /** Fetch the Insights tab's extra data if it's showing and the range has loaded. */
 export async function ensureInsightsData() {
@@ -256,29 +283,36 @@ export async function ensureInsightsData() {
   if (state.activeTab !== 'insights' || !signal || signal.aborted || !state.detailsLoaded) return;
   if (insightsRunFor === signal) return; // already ran (or running) for this load
   insightsRunFor = signal;
+  let ok = true;
 
-  try {
-    if (!state.listings || Date.now() - state.listingsAt > LISTINGS_TTL_MS) {
-      const progress = (done, total) => {
-        state.listingsStatus = { loading: true, done, total };
-        renderInsights();
-      };
-      progress(0, null);
+  if (!state.listings || Date.now() - state.listingsAt > LISTINGS_TTL_MS) {
+    ok = await insightsStep('listingsStatus', signal, async progress => {
       const active  = await fetchListings('active',   { signal, onPage: progress });
       const soldOut = await fetchListings('sold_out', { signal });
       if (signal.aborted) return;
-      state.listings       = [...active, ...soldOut];
-      state.listingsAt     = Date.now();
-      state.listingsStatus = null;
+      state.listings   = [...active, ...soldOut];
+      state.listingsAt = Date.now();
+    }) && ok;
+  }
+  if (signal.aborted) return;
+
+  if (!state.reviews) {
+    state.reviews = cachedReviews();
+    if (!state.reviews) {
+      // Up to now, so reviews of this period's orders count even if left later; at most a year back.
+      const from = Math.max(state.filterFrom ?? 0, Math.floor(Date.now() / 1000) - MAX_LOOKBACK);
+      ok = await insightsStep('reviewsStatus', signal, async progress => {
+        const reviews = await fetchReviews(from, { signal, onPage: progress });
+        if (signal.aborted) return;
+        state.reviews = reviews;
+        cacheReviews(reviews);
+      }) && ok;
+    } else {
       renderInsights();
     }
-  } catch (e) {
-    if (isAbort(e)) return;
-    insightsRunFor = null; // let the retry button run it again
-    if (e instanceof AuthError) { handleLoadError(e, 'Listings fetch'); return; }
-    state.listingsStatus = { error: e.message };
-    renderInsights();
   }
+
+  if (!ok) insightsRunFor = null; // let the retry button run it again
 }
 
 /**

@@ -5,7 +5,7 @@ import { FEE_GROUPS, FEE_OTHER_COLOR, LABEL_FEES, LABEL_REFUNDS, PALETTE } from 
 import { animateBars, DAY_NAMES, drawBarChart, drawHeatmap, drawLineChart, hourLabel, setToggleActive } from './charts.js';
 import {
   adSpend, backlog, basketStats, customerStats, discountStats, feeRateSeries, fulfilment, geography,
-  heatmapMatrix, listingStats, payoutStats, refundStats, revenueComposition, shippingPnL, variationStats,
+  heatmapMatrix, listingStats, payoutStats, refundStats, revenueComposition, reviewStats, shippingPnL, variationStats,
 } from './insights.js';
 import { lineItems, state } from './state.js';
 import { escHtml, fmtMoney, getCurrency, pickBucket } from './util.js';
@@ -70,6 +70,7 @@ export function renderInsights() {
     renderProducts(orders);
     renderOperations(orders, Math.floor(Date.now() / 1000));
     renderListings(orders);
+    renderReviews(orders);
   });
 }
 
@@ -476,4 +477,74 @@ function renderListings(orders) {
   }
   el.innerHTML = `<div class="table-wrap ins-scroll"><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>` +
     caveat(notes.join(' '));
+}
+
+// ─── REVIEWS ────────────────────────────────────────────────────────────────
+
+const STAR_COLORS = { 5: '#3a7d4c', 4: '#65a30d', 3: '#b8860b', 2: '#d4622a', 1: '#b91c1c' };
+const starText = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+
+/** listing_id → title, from loaded listings or else from the orders' line items. */
+function listingTitles(orders) {
+  const titles = new Map();
+  for (const o of orders) for (const t of o.transactions || []) if (t.listing_id != null && t.title) titles.set(String(t.listing_id), t.title);
+  for (const l of state.listings || []) if (l.title) titles.set(String(l.listing_id), l.title);
+  return id => titles.get(String(id)) || `Listing #${id}`;
+}
+
+function renderReviews(orders) {
+  const status = $('ins-reviews-status'), body = $('ins-reviews-body');
+  if (!state.reviews) {
+    const st = state.reviewsStatus;
+    body.style.display = 'none';
+    status.innerHTML = st?.error
+      ? empty(`Couldn't load reviews: ${escHtml(st.error)}`) + '<button class="apply-btn" data-action="insights-retry">Retry</button>'
+      : st?.loading
+        ? empty(`Loading reviews…${st.total ? ` ${fmtNum(st.done)} of ${fmtNum(st.total)}` : ''}`)
+        : empty('Reviews load once the orders and ledger for this period are in.');
+    return;
+  }
+  status.innerHTML = '';
+  body.style.display = '';
+
+  const r = reviewStats(state.reviews, orders, { from: state.filterFrom, to: state.filterTo });
+  const fiveStar = r.count ? r.stars[0].count / r.count : null;
+  const lowCount = r.stars.slice(2).reduce((s, x) => s + x.count, 0);
+  $('ins-review-kpis').innerHTML = [
+    kpi('Average Rating', r.avg == null ? '—' : `${r.avg.toFixed(2)} ★`, `${plural(r.count, 'review')} this period`),
+    kpi('5-Star Reviews', pct(fiveStar, 0), 'of reviews this period', 'green'),
+    kpi('Rated 3 or Less', fmtNum(lowCount), 'reviews this period', lowCount ? 'red' : ''),
+    kpi('Items Reviewed', pct(r.coverage, 0), r.items ? `${fmtNum(r.itemsReviewed)} of ${fmtNum(r.items)} items sold this period, so far` : 'no items to match'),
+  ].join('');
+
+  const title = listingTitles(orders);
+  if (!r.count) {
+    $('ins-stars').innerHTML = $('ins-review-listings').innerHTML = $('ins-low-reviews').innerHTML = empty('No reviews were left in this period.');
+    $('ins-rating-svg').innerHTML = '';
+    $('ins-rating-sub').textContent = '—';
+    return;
+  }
+
+  setHtml($('ins-stars'), `<div class="top-prod-rows">${barRows(r.stars.map(s => ({ ...s, color: STAR_COLORS[s.stars] })), {
+    name: s => `${s.stars} star${s.stars === 1 ? '' : 's'}`, value: s => s.count, fmt: s => fmtNum(s.count),
+    sub: s => pct(s.count / r.count, 0),
+  })}</div>` + caveat("Buyers review days or weeks after delivery, so recent periods show fewer reviews."));
+
+  $('ins-rating-sub').textContent = `${r.monthly.length} month${r.monthly.length === 1 ? '' : 's'} · hover a bar for its review count`;
+  drawBarChart($('ins-rating-svg'), $('ins-rating-tooltip'), r.monthly, 'avg', v => `${v.toFixed(2)} ★`, '#b8860b',
+    d => `<strong>${escHtml(d.label)}</strong><br>${d.avg.toFixed(2)} ★ average<br>${plural(d.count, 'review')}`);
+
+  const top = r.byListing.slice(0, 8);
+  setHtml($('ins-review-listings'), top.length
+    ? `<div class="top-prod-rows">${barRows(top, {
+        name: l => title(l.id), value: l => l.avg, fmt: l => `${l.avg.toFixed(2)} ★`, sub: l => plural(l.count, 'review'),
+      })}</div>`
+    : empty('No listing has 3 or more reviews in this period.'));
+
+  $('ins-low-reviews').innerHTML = r.low.length
+    ? r.low.map(v => `<div class="ins-review">
+        <div class="ins-review-head"><span class="stars">${starText(Math.round(v.rating))}</span><span class="what">${escHtml(title(v.listing_id))} · ${fmtDate(v.created_timestamp)}</span></div>
+        <p>${v.review ? escHtml(v.review) : '<span class="ins-empty">(no written review)</span>'}</p>
+      </div>`).join('')
+    : empty('No reviews of 3 stars or fewer in this period.');
 }

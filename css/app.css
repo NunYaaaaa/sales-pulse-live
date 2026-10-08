@@ -513,6 +513,13 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
 .ins-title-cell a { color:var(--ink); text-decoration:none; }
 .ins-title-cell a:hover { color:var(--orange); text-decoration:underline; }
 .ins-flags { display:inline-flex; gap:4px; margin-left:6px; vertical-align:middle; }
+#ins-reviews-status .apply-btn { margin-top:0.5rem; }
+.ins-review { padding:0.6rem 0; border-top:1px solid var(--border); }
+.ins-review:first-child { border-top:none; padding-top:0; }
+.ins-review-head { display:flex; justify-content:space-between; gap:10px; font-family:'DM Mono',monospace; font-size:0.6rem; color:var(--muted2); margin-bottom:3px; }
+.ins-review-head .stars { color:var(--gold); letter-spacing:0.08em; flex-shrink:0; }
+.ins-review-head .what { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ins-review p { font-size:0.8rem; color:var(--ink); line-height:1.55; font-weight:300; overflow-wrap:anywhere; }
 .ins-var { margin-bottom:1rem; }
 .ins-var-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:6px; }
 .ins-var-head .top-prod-name { min-width:0; }

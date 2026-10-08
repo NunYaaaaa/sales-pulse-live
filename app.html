@@ -472,6 +472,38 @@
       </div>
     </div>
 
+    <div class="ins-section">
+      <div class="ins-section-head">
+        <div class="ins-section-title">Reviews</div>
+        <div class="ins-note">reviews left in the selected period (at most the last 12 months)</div>
+      </div>
+      <div id="ins-reviews-status"></div>
+      <div id="ins-reviews-body">
+        <div class="ins-kpis ins-gap" id="ins-review-kpis"></div>
+        <div class="ins-grid">
+          <div class="ochart-panel">
+            <div class="ochart-header"><div><div class="ochart-title">Star Ratings</div><div class="ochart-subtitle">reviews by stars</div></div></div>
+            <div class="ins-body" id="ins-stars"></div>
+          </div>
+          <div class="ochart-panel">
+            <div class="ochart-header"><div><div class="ochart-title">Average Rating by Month</div><div class="ochart-subtitle" id="ins-rating-sub">—</div></div></div>
+            <div class="ochart-canvas">
+              <svg class="ochart-svg" id="ins-rating-svg" style="height:160px"></svg>
+              <div class="ochart-tooltip" id="ins-rating-tooltip"></div>
+            </div>
+          </div>
+          <div class="ochart-panel">
+            <div class="ochart-header"><div><div class="ochart-title">Ratings by Listing</div><div class="ochart-subtitle">listings with 3+ reviews, most reviewed first</div></div></div>
+            <div class="ins-body" id="ins-review-listings"></div>
+          </div>
+          <div class="ochart-panel">
+            <div class="ochart-header"><div><div class="ochart-title">Recent Low Ratings</div><div class="ochart-subtitle">3 stars or fewer</div></div></div>
+            <div class="ins-body" id="ins-low-reviews"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
