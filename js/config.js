@@ -115,5 +115,13 @@ export const FEE_GROUPS = [
 ];
 export const FEE_OTHER_COLOR = '#a89e90';
 
+// Ledger types the Insights tab reports on separately (they're also counted in the fee totals).
+// Refund types map to the fee type they reverse.
+export const AD_FEES       = { prolist: 'Etsy Ads', offsite_ads_fee: 'Offsite Ads' };
+export const AD_REFUNDS    = { offsite_ads_fee_refund: 'offsite_ads_fee' };
+export const LABEL_FEES    = new Set(['shipping_labels']);
+export const LABEL_REFUNDS = new Set(['shipping_label_refund']);
+export const PAYOUT_TYPES  = new Set(['DISBURSE', 'DISBURSE2']);
+
 // Shared categorical palette for order charts and top-products bars
 export const PALETTE = ['#d4622a','#3a7d4c','#5a3d9e','#b8860b','#2563eb','#db2777','#0891b2','#65a30d'];

@@ -61,6 +61,35 @@ export function ytdStr() {
 }
 
 /**
+ * The local calendar bucket a unix timestamp falls in.
+ * size: 'day' | 'week' (starting Monday) | 'month'. Returns { key, label, ts }.
+ */
+export function bucketStart(ts, size) {
+  const d = new Date(ts * 1000);
+  let start, label;
+  if (size === 'day') {
+    start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    label = start.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  } else if (size === 'week') {
+    const day = d.getDay();
+    start = new Date(d.getFullYear(), d.getMonth(), d.getDate() + (day === 0 ? -6 : 1 - day));
+    label = start.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  } else {
+    start = new Date(d.getFullYear(), d.getMonth(), 1);
+    label = start.toLocaleDateString('en-US', { month:'short', year:'numeric' });
+  }
+  return { key: localDateKey(start), label, ts: Math.floor(start.getTime() / 1000) };
+}
+
+/** Bucket size that gives a readable number of points for a span (unix seconds). */
+export function pickBucket(minTs, maxTs) {
+  const spanDays = (maxTs - minTs) / 86400;
+  if (spanDays <= 35)  return 'day';
+  if (spanDays <= 180) return 'week';
+  return 'month';
+}
+
+/**
  * Convert a date string (YYYY-MM-DD) to a unix timestamp.
  * "from" is start of that local day (00:00:00).
  * "to"   is end of that local day (23:59:59).

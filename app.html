@@ -149,6 +149,7 @@
   <div class="tabs">
     <button class="tab-btn active" data-action="tab" data-tab="orders">Order History</button>
     <button class="tab-btn" data-action="tab" data-tab="finances">Finances</button>
+    <button class="tab-btn" data-action="tab" data-tab="insights">Insights</button>
   </div>
 
   <!-- ORDERS TAB -->
@@ -321,6 +322,84 @@
         </table>
       </div>
     </div>
+  </div>
+
+  <!-- INSIGHTS TAB (filled by js/insights-view.js) -->
+  <div class="tab-panel" id="tab-insights">
+
+    <div class="ins-section" id="ins-snapshot-section">
+      <div class="ins-section-head">
+        <div class="ins-section-title">Shop Snapshot</div>
+        <div class="ins-note" id="ins-snapshot-note">Etsy's own counts, not limited to the selected period</div>
+      </div>
+      <div class="ins-kpis" id="ins-snapshot"></div>
+    </div>
+
+    <div class="ins-section">
+      <div class="ins-section-head">
+        <div class="ins-section-title">Profitability</div>
+        <div class="ins-note" id="ins-ledger-note"></div>
+      </div>
+      <div class="ochart-panel ins-gap">
+        <div class="ochart-header">
+          <div>
+            <div class="ochart-title">Fees &amp; Margin Over Time</div>
+            <div class="ochart-subtitle" id="ins-fee-sub">—</div>
+          </div>
+          <div class="ochart-toggle">
+            <button class="ochart-toggle-btn active" data-action="insight-mode" data-key="insFeeMode" data-mode="all">All fees</button>
+            <button class="ochart-toggle-btn" data-action="insight-mode" data-key="insFeeMode" data-mode="excl-postage">Excl. postage</button>
+          </div>
+        </div>
+        <div class="ochart-canvas">
+          <svg class="ochart-svg" id="ins-fee-svg" style="height:160px"></svg>
+          <div class="ochart-tooltip" id="ins-fee-tooltip"></div>
+        </div>
+      </div>
+      <div class="ins-grid">
+        <div class="ochart-panel">
+          <div class="ochart-header"><div><div class="ochart-title">Advertising</div><div class="ochart-subtitle">Etsy Ads + Offsite Ads fees</div></div></div>
+          <div class="ins-body" id="ins-ads"></div>
+        </div>
+        <div class="ochart-panel">
+          <div class="ochart-header"><div><div class="ochart-title">Shipping Charged vs Labels</div><div class="ochart-subtitle">what buyers paid vs Etsy labels bought</div></div></div>
+          <div class="ins-body" id="ins-shipping"></div>
+        </div>
+        <div class="ochart-panel">
+          <div class="ochart-header"><div><div class="ochart-title">What Buyers Paid For</div><div class="ochart-subtitle">parts of Total Gross</div></div></div>
+          <div class="ins-body" id="ins-composition"></div>
+        </div>
+        <div class="ochart-panel">
+          <div class="ochart-header"><div><div class="ochart-title">Payouts</div><div class="ochart-subtitle">transfers to your bank</div></div></div>
+          <div class="ins-body" id="ins-payouts"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ins-section">
+      <div class="ins-section-head">
+        <div class="ins-section-title">Customers</div>
+        <div class="ins-note">orders in the selected period</div>
+      </div>
+      <div class="ins-kpis ins-gap" id="ins-customers"></div>
+      <div class="ins-grid">
+        <div class="ochart-panel">
+          <div class="ochart-header"><div><div class="ochart-title">Top Customers</div><div class="ochart-subtitle">by spend in this period</div></div></div>
+          <div class="top-prod-rows" id="ins-top-customers"></div>
+        </div>
+        <div class="ochart-panel">
+          <div class="ochart-header">
+            <div><div class="ochart-title">Where Orders Ship</div><div class="ochart-subtitle" id="ins-geo-sub">—</div></div>
+            <div class="ochart-toggle">
+              <button class="ochart-toggle-btn active" data-action="insight-mode" data-key="insGeoMode" data-mode="country">Countries</button>
+              <button class="ochart-toggle-btn" data-action="insight-mode" data-key="insGeoMode" data-mode="us-state">US states</button>
+            </div>
+          </div>
+          <div class="top-prod-rows" id="ins-geo"></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 

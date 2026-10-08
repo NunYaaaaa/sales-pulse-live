@@ -110,7 +110,7 @@ tbody td { padding:0.75rem 1.25rem; color:var(--ink); vertical-align:middle; whi
 .expanded .expand-icon { transform:rotate(90deg); }
 
 /* STATUS BADGES */
-.status-badge { font-family:'DM Mono',monospace; font-size:0.58rem; letter-spacing:0.06em; padding:3px 8px; border-radius:999px; border:1px solid; }
+.status-badge { font-family:'DM Mono',monospace; font-size:0.58rem; letter-spacing:0.06em; padding:3px 8px; border-radius:999px; border:1px solid; text-transform:capitalize; }
 .s-paid      { background:var(--green-bg);  border-color:var(--green-bd);  color:var(--green); }
 .s-completed { background:var(--purple-bg); border-color:var(--purple-bd); color:var(--purple); }
 .s-shipped   { background:var(--purple-bg); border-color:var(--purple-bd); color:var(--purple); }
@@ -408,6 +408,7 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
 }
 .ochart-header {
   display:flex; align-items:baseline; justify-content:space-between;
+  flex-wrap:wrap; gap:6px 12px;
   padding:1rem 1.25rem 0.5rem;
 }
 .ochart-title {
@@ -449,6 +450,11 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
 .top-prod-bar-fill  { height:100%; border-radius:999px; background:var(--orange); transition:width 0.5s cubic-bezier(.4,0,.2,1); }
 .top-prod-val { font-family:'Fraunces',serif; font-size:0.95rem; font-weight:700; color:var(--ink); text-align:right; }
 .top-prod-cnt { font-family:'DM Mono',monospace; font-size:0.6rem; color:var(--muted2); text-align:right; }
+/* Phones: the bar gets its own full-width line under the name and value */
+@media(max-width:500px){
+  .top-prod-row { grid-template-columns:1fr auto; row-gap:6px; }
+  .top-prod-row > :nth-child(2) { grid-column:1 / -1; grid-row:2; }
+}
 
 /* Chart toggle pills */
 .ochart-toggle { display:flex; gap:4px; }
@@ -456,6 +462,7 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
   font-family:'DM Mono',monospace; font-size:0.58rem; letter-spacing:0.05em;
   padding:2px 8px; border-radius:999px; border:1px solid var(--border2);
   background:var(--cream); color:var(--muted); cursor:pointer; transition:all 0.15s;
+  white-space:nowrap;
 }
 .ochart-toggle-btn.active { background:var(--ink); border-color:var(--ink); color:var(--cream); }
 
@@ -471,6 +478,29 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
 .lt-payout   { background:var(--purple-bg);  border-color:var(--purple-bd); color:var(--purple); }
 .lt-tax      { background:var(--paper);      border-color:var(--border2);   color:var(--muted2); }
 .lt-other    { background:var(--paper);      border-color:var(--border2);   color:var(--muted); }
+
+/* ── INSIGHTS TAB ─────────────────────────────────────── */
+#tab-insights { padding-top:0.5rem; }
+.ins-section { margin-top:1.5rem; }
+.ins-section-head { display:flex; align-items:baseline; justify-content:space-between; gap:0.5rem 1rem; flex-wrap:wrap; margin-bottom:0.75rem; }
+.ins-section-title { font-family:'Fraunces',serif; font-size:1.15rem; font-weight:700; letter-spacing:-0.02em; color:var(--ink); }
+.ins-note { font-family:'DM Mono',monospace; font-size:0.6rem; letter-spacing:0.05em; color:var(--muted2); }
+.ins-note.warn { color:var(--gold); }
+.ins-gap { margin-bottom:14px; }
+.ins-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media(max-width:700px){ .ins-grid{ grid-template-columns:1fr; } }
+.ins-kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; }
+.ins-body { padding:0.25rem 1.25rem 1.1rem; }
+.ins-tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(110px, 1fr)); gap:8px; margin-bottom:0.75rem; }
+.ins-tile { background:var(--cream); border:1px solid var(--border); border-radius:10px; padding:0.6rem 0.75rem; }
+.ins-tile-label { font-family:'DM Mono',monospace; font-size:0.54rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted2); margin-bottom:0.3rem; }
+.ins-tile-val { font-family:'Fraunces',serif; font-size:1.1rem; font-weight:700; letter-spacing:-0.02em; color:var(--ink); line-height:1.1; }
+.ins-tile-val.green { color:var(--green); }
+.ins-tile-val.red   { color:var(--red); }
+.ins-tile-sub { font-size:0.66rem; color:var(--muted2); margin-top:3px; font-weight:300; }
+.ins-caveat { font-family:'DM Mono',monospace; font-size:0.58rem; line-height:1.6; color:var(--muted2); margin-top:0.6rem; }
+.ins-empty { font-family:'DM Mono',monospace; font-size:0.7rem; color:var(--muted2); padding:0.5rem 0; }
+.ins-body .top-prod-rows { padding:0; }
 
 /* Dashboard error banner (the connect card has its own #error-banner) */
 #dash-error { align-items:flex-start; justify-content:space-between; gap:1rem; margin:0 0 1rem; }

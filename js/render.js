@@ -3,6 +3,7 @@ import { LEDGER_LABEL, PAGE_SIZE } from './config.js';
 import { fetchPayment, fetchTransactions } from './api.js';
 import { renderFeeChart, renderOrderCharts } from './charts.js';
 import { categoriseEntry, computeLedgerTotals, ledgerType } from './finance.js';
+import { renderInsights } from './insights-view.js';
 import { lineItems, state } from './state.js';
 import { escHtml, fmtMoney, getStatus, money, statusClass } from './util.js';
 
@@ -304,8 +305,10 @@ export function switchTab(name, btn) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   $(`tab-${name}`).classList.add('active');
   btn.classList.add('active');
+  state.activeTab = name;
   if (name === 'finances' && state.detailsLoaded) renderFinances();
   if (name === 'orders') requestAnimationFrame(() => renderOrderCharts());
+  if (name === 'insights') renderInsights();
 }
 
 // ─── PAGINATION ────────────────────────────────────────────────────────────

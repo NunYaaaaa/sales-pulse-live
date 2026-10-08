@@ -2,6 +2,7 @@
 import { handleCallback, startOAuth } from './auth.js';
 import { highlightFee, renderOrderCharts, setChartMode } from './charts.js';
 import { exportCSV, exportFinancesCSV, exportFinancesJSON, exportJSON } from './export.js';
+import { renderInsights, setInsightMode } from './insights-view.js';
 import { applyCustomRange, applyPreset, cancelLoad, loadAllDetails, loadDashboard } from './loader.js';
 import { goPage, switchTab } from './render.js';
 import { session } from './session.js';
@@ -44,6 +45,7 @@ const ACTIONS = {
   'apply-range':     () => applyCustomRange(),
   'tab':             el => switchTab(el.dataset.tab, el),
   'chart-mode':      el => setChartMode(el.dataset.chart, el.dataset.mode, el),
+  'insight-mode':    el => setInsightMode(el.dataset.key, el.dataset.mode, el),
   'page':            el => goPage(parseInt(el.dataset.page, 10)),
   'dismiss-error':   () => clearError(),
 };
@@ -69,7 +71,9 @@ let resizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
-    if ($('dashboard').style.display === 'block') renderOrderCharts();
+    if ($('dashboard').style.display !== 'block') return;
+    renderOrderCharts();
+    renderInsights(); // no-op unless the Insights tab is showing
   }, 150);
 });
 

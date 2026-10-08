@@ -1,6 +1,7 @@
 // ─── DATA LOADING PIPELINE + DATE FILTER ───────────────────────────────────
 import { ApiError, AuthError, etsyFetch, fetchLedger, fetchOrders, fetchPayment, fetchTransactions, isAbort } from './api.js';
 import { renderOrderCharts } from './charts.js';
+import { renderInsights } from './insights-view.js';
 import { renderFinances, renderKPIs, renderTable } from './render.js';
 import { session } from './session.js';
 import { cacheCurrentRange, cachedRange, clearRangeData, lineItems, state } from './state.js';
@@ -68,6 +69,7 @@ export async function loadDashboard() {
     session.set('shop_id',   shopId);
     session.set('shop_name', shopName);
     setCurrency(shop.currency_code);
+    state.shop = shop;
   } catch(e) {
     showConnect();
     showError(`Could not connect: ${e.message}`);
@@ -107,6 +109,7 @@ function renderAll() {
   renderTable();
   renderOrderCharts();
   renderFinances();
+  renderInsights();
 }
 
 /** Show orders, then full details, for the active date filter (from cache when fresh). */
@@ -127,6 +130,7 @@ async function reload() {
   if (hit) {
     state.allOrders     = hit.orders;
     state.ledgerEntries = hit.ledger;
+    state.ledgerSpan    = hit.ledgerSpan;
     markDetailsLoaded();
     renderAll();
     setFetchStatus(`${hit.orders.length} orders (cached)`, true);
@@ -143,6 +147,7 @@ async function reload() {
     renderKPIs();
     renderTable();
     renderOrderCharts();
+    renderInsights();
     setFetchStatus(`${orders.length} orders loaded`, false);
   } catch(e) {
     if (!handleLoadError(e, 'Order fetch')) {
@@ -212,6 +217,7 @@ export async function loadAllDetails(background = false, signal = currentLoad?.s
     const entries = await fetchLedger(floor, ceiling, { signal });
     if (signal?.aborted) return;
     state.ledgerEntries = entries;
+    state.ledgerSpan    = { from: floor, to: ceiling };
     markDetailsLoaded();
     cacheCurrentRange();
 
@@ -223,6 +229,7 @@ export async function loadAllDetails(background = false, signal = currentLoad?.s
     renderFinances();
     renderKPIs();
     renderOrderCharts(); // refresh top products now we have line items
+    renderInsights();
     setFetchStatus('All data loaded ✓', true);
 
   } catch (err) {

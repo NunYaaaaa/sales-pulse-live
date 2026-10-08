@@ -12,6 +12,8 @@
   Dev harness: loads the real app.html markup + js/main.js against a fake
   Etsy API (test/mock-api.js), so the dashboard can be exercised without
   OAuth. Open http://localhost:8000/test/mock.html
+  ?tab=finances|insights opens that tab once the dashboard shows;
+  ?preset=7d|30d|90d|ytd|1y|all picks a period (handy for headless screenshots).
 -->
 <script type="module">
 import { installMockApi } from './mock-api.js';
@@ -32,6 +34,15 @@ sessionStorage.setItem('spl_api_key',       'mockkey');
 sessionStorage.setItem('spl_shared_secret', 'mocksecret');
 
 await import('../js/main.js');
+
+// Optional ?preset= / ?tab= switches, clicked once the dashboard is showing
+const click = sel => document.querySelector(sel)?.click();
+const timer = setInterval(() => {
+  if (document.getElementById('dashboard').style.display !== 'block') return;
+  clearInterval(timer);
+  if (qs.get('preset')) click(`.preset-chip[data-preset="${CSS.escape(qs.get('preset'))}"]`);
+  if (qs.get('tab'))    click(`.tab-btn[data-tab="${CSS.escape(qs.get('tab'))}"]`);
+}, 50);
 </script>
 </body>
 </html>

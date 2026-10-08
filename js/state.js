@@ -6,6 +6,9 @@ export const state = {
   currentPage:   1,
   detailsLoaded: false, // ledger + every order's line items are in
   expandedRow:   null,
+  activeTab:     'orders', // 'orders' | 'finances' | 'insights'
+  shop:          null,     // the Etsy shop object (counts, reviews, currency)
+  ledgerSpan:    null,     // { from, to } the ledger actually covers (capped at 365 days)
 
   // Per-receipt caches, kept across date-range changes (a receipt's
   // details don't depend on the range it was fetched for).
@@ -20,6 +23,8 @@ export const state = {
   revChartMode: 'revenue',
   dowChartMode: 'revenue',
   topProdMode:  'revenue',
+  insFeeMode:   'all',     // 'all' | 'excl-postage'
+  insGeoMode:   'country', // 'country' | 'us-state'
 
   feeSegments: [],      // last-drawn donut segments, for cross-highlighting
 };
@@ -36,7 +41,7 @@ const rangeCache = new Map();
 const rangeKey = () => `${state.filterFrom}|${state.filterTo}`;
 
 export function cacheCurrentRange() {
-  rangeCache.set(rangeKey(), { orders: state.allOrders, ledger: state.ledgerEntries, at: Date.now() });
+  rangeCache.set(rangeKey(), { orders: state.allOrders, ledger: state.ledgerEntries, ledgerSpan: state.ledgerSpan, at: Date.now() });
 }
 export function cachedRange() {
   const hit = rangeCache.get(rangeKey());
@@ -47,6 +52,7 @@ export function cachedRange() {
 export function clearRangeData() {
   state.allOrders     = [];
   state.ledgerEntries = null;
+  state.ledgerSpan    = null;
   state.detailsLoaded = false;
   state.currentPage   = 1;
   state.expandedRow   = null;
@@ -57,5 +63,6 @@ export function clearData() {
   clearRangeData();
   state.lineItems = {};
   state.payments  = {};
+  state.shop      = null;
   rangeCache.clear();
 }

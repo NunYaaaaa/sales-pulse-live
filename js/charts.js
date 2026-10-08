@@ -2,41 +2,24 @@
 import { FEE_GROUPS, FEE_OTHER_COLOR, PALETTE } from './config.js';
 import { categoriseEntry, ledgerType } from './finance.js';
 import { lineItems, state } from './state.js';
-import { escHtml, fmtMoney, localDateKey, money } from './util.js';
+import { bucketStart, escHtml, fmtMoney, localDateKey, money, pickBucket } from './util.js';
 
 const $ = id => document.getElementById(id);
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Group orders by calendar period.
+ * Group orders by local calendar period.
  * Returns array of { label, ts (unix), revenue, count } sorted by ts.
  * bucketSize: 'day' | 'week' | 'month'
  */
 export function bucketOrders(orders, bucketSize) {
   const map = {};
   for (const o of orders) {
-    const d    = new Date(o.create_timestamp * 1000);
-    let key, label, ts;
-    // All keys use the local calendar, matching the date filter
-    let start;
-    if (bucketSize === 'day') {
-      start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      label = start.toLocaleDateString('en-US', { month:'short', day:'numeric' });
-    } else if (bucketSize === 'week') {
-      // ISO week start (Monday)
-      const day = d.getDay();
-      start = new Date(d.getFullYear(), d.getMonth(), d.getDate() + (day === 0 ? -6 : 1 - day));
-      label = start.toLocaleDateString('en-US', { month:'short', day:'numeric' });
-    } else {
-      start = new Date(d.getFullYear(), d.getMonth(), 1);
-      label = start.toLocaleDateString('en-US', { month:'short', year:'numeric' });
-    }
-    key = localDateKey(start);
-    ts  = Math.floor(start.getTime() / 1000);
-    if (!map[key]) map[key] = { label, ts, revenue:0, count:0 };
-    map[key].revenue += money(o.grandtotal);
-    map[key].count++;
+    const b = bucketStart(o.create_timestamp, bucketSize);
+    map[b.key] ??= { label: b.label, ts: b.ts, revenue:0, count:0 };
+    map[b.key].revenue += money(o.grandtotal);
+    map[b.key].count++;
   }
   return Object.values(map).sort((a, b) => a.ts - b.ts);
 }
@@ -45,14 +28,14 @@ export function bucketOrders(orders, bucketSize) {
 function autoBucket(orders) {
   if (!orders.length) return 'day';
   const ts = orders.map(o => o.create_timestamp);
-  const spanDays = (Math.max(...ts) - Math.min(...ts)) / 86400;
-  if (spanDays <= 35)  return 'day';
-  if (spanDays <= 180) return 'week';
-  return 'month';
+  return pickBucket(Math.min(...ts), Math.max(...ts));
 }
 
-/** Draw a smooth line + area chart into an SVG element */
-function drawLineChart(svgEl, tooltipEl, data, valueKey, fmtFn, color) {
+/**
+ * Draw a smooth line + area chart into an SVG element.
+ * tooltipHtml(d) overrides the default tooltip; it must escape any API text itself.
+ */
+export function drawLineChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, tooltipHtml = null) {
   const W = svgEl.clientWidth || 400;
   const H = 140;
   const PAD = { top:12, right:12, bottom:28, left:8 };
@@ -86,7 +69,7 @@ function drawLineChart(svgEl, tooltipEl, data, valueKey, fmtFn, color) {
   const xLabels = data.map((d, i) => {
     if (i % labelStep !== 0 && i !== data.length - 1) return '';
     return `<text x="${xOf(i).toFixed(1)}" y="${H - 4}" text-anchor="middle"
-      font-family="monospace" font-size="8" fill="var(--muted2)">${d.label}</text>`;
+      font-family="monospace" font-size="8" fill="var(--muted2)">${escHtml(d.label)}</text>`;
   }).join('');
 
   const uid = 'g' + Math.random().toString(36).slice(2,7);
@@ -110,7 +93,7 @@ function drawLineChart(svgEl, tooltipEl, data, valueKey, fmtFn, color) {
   svgEl.querySelectorAll('.chart-dot').forEach(dot => {
     dot.addEventListener('mouseenter', () => {
       const d = data[parseInt(dot.dataset.i)];
-      tooltipEl.innerHTML = `<strong>${d.label}</strong><br>${fmtFn(d[valueKey])}`;
+      tooltipEl.innerHTML = tooltipHtml ? tooltipHtml(d) : `<strong>${escHtml(d.label)}</strong><br>${fmtFn(d[valueKey])}`;
       tooltipEl.classList.add('visible');
       positionTooltip(tooltipEl, svgEl, parseFloat(dot.getAttribute('cx')), parseFloat(dot.getAttribute('cy')));
     });
@@ -118,8 +101,8 @@ function drawLineChart(svgEl, tooltipEl, data, valueKey, fmtFn, color) {
   });
 }
 
-/** Draw a vertical bar chart. tooltipHtml(d) overrides the default tooltip. */
-function drawBarChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, tooltipHtml = null) {
+/** Draw a vertical bar chart. tooltipHtml(d) overrides the default tooltip; it must escape any API text itself. */
+export function drawBarChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, tooltipHtml = null) {
   const W = svgEl.clientWidth || 400;
   const H = 140;
   const PAD = { top:12, right:8, bottom:28, left:8 };
@@ -145,7 +128,7 @@ function drawBarChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, tooltipHtm
   svgEl.innerHTML = data.map((d, i) => {
     const x = xOf(i), y = yOf(d[valueKey]), h = hOf(d[valueKey]);
     const lbl = (i % labelStep === 0 || i === n-1)
-      ? `<text x="${(x + barW/2).toFixed(1)}" y="${H-4}" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">${d.label}</text>`
+      ? `<text x="${(x + barW/2).toFixed(1)}" y="${H-4}" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">${escHtml(d.label)}</text>`
       : '';
     return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(h,1).toFixed(1)}"
         rx="3" fill="${color}" opacity="0.85" class="chart-bar" data-i="${i}" style="cursor:pointer;transition:opacity 0.15s"/>
@@ -155,7 +138,7 @@ function drawBarChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, tooltipHtm
   svgEl.querySelectorAll('.chart-bar').forEach(bar => {
     bar.addEventListener('mouseenter', () => {
       const d = data[parseInt(bar.dataset.i)];
-      tooltipEl.innerHTML = tooltipHtml ? tooltipHtml(d) : `<strong>${d.label}</strong><br>${fmtFn(d[valueKey])}`;
+      tooltipEl.innerHTML = tooltipHtml ? tooltipHtml(d) : `<strong>${escHtml(d.label)}</strong><br>${fmtFn(d[valueKey])}`;
       tooltipEl.classList.add('visible');
       const bx = parseFloat(bar.getAttribute('x')) + parseFloat(bar.getAttribute('width')) / 2;
       const by = parseFloat(bar.getAttribute('y'));
@@ -183,7 +166,7 @@ function positionTooltip(tip, svgEl, svgX, svgY) {
 }
 
 /** Toggle the active button within one chart's toggle group. */
-function setToggleActive(btn) {
+export function setToggleActive(btn) {
   btn.closest('.ochart-toggle').querySelectorAll('.ochart-toggle-btn').forEach(b => {
     b.classList.toggle('active', b === btn);
   });
@@ -318,7 +301,7 @@ function renderTopProducts() {
   animateBars(wrap, '.top-prod-bar-fill');
 }
 
-function animateBars(root, selector) {
+export function animateBars(root, selector) {
   requestAnimationFrame(() => {
     root.querySelectorAll(selector).forEach(el => { el.style.width = el.dataset.target + '%'; });
   });

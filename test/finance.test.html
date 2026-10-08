@@ -12,7 +12,10 @@
 <h1>Finance tests</h1>
 <pre id="out"></pre>
 <script type="module">
-import { tests } from './finance.tests.js';
+import { tests as financeTests } from './finance.tests.js';
+import { tests as insightTests } from './insights.tests.js';
+
+const tests = [...financeTests, ...insightTests];
 
 const out = document.getElementById('out');
 let failed = 0;
