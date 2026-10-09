@@ -79,7 +79,7 @@ export function renderFinances() {
       collected:   'lt-tax',
       passthrough: (t_key === 'DISBURSE' || t_key === 'DISBURSE2') ? 'lt-payout' : 'lt-tax',
     }[cat] || 'lt-other';
-    const badgeLabel = { revenue:'sale', fee:'fee', refund:'refund', collected: t_key === 'buyer_fee' ? 'buyer fee' : 'sales tax', passthrough: isPayout ? 'payout' : 'pass-through' }[cat] || cat;
+    const badgeLabel = { revenue:'sale', fee:'fee', refund:'refund', collected: t_key === 'buyer_fee' ? 'delivery fee' : 'sales tax', passthrough: isPayout ? 'payout' : 'pass-through' }[cat] || cat;
     const typeBadge = `<span class="ledger-type-badge ${badgeClass}">${badgeLabel}</span>`;
 
     // Reference cell

@@ -67,7 +67,7 @@ function buildData() {
     const giftWrap  = isGift ? 300 : 0;
     const subtotal  = itemTotal - discount;
     const shipping = 500, tax = Math.round(subtotal * 0.08);
-    const buyerFee = i % 33 === 8 ? 31 : 0; // Etsy's buyer fee: in the order total, then debited from the seller
+    const buyerFee = i % 33 === 8 ? 31 : 0; // Colorado retail delivery fee: in the order total, then debited like tax
 
     // Status, refunds and shipping
     let status = baseStatus;

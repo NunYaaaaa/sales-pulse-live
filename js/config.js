@@ -59,7 +59,7 @@ export const LEDGER_TAXONOMY = {
   collected: new Set([
     'sales_tax',
     'sales_tax_refund',
-    'buyer_fee',       // Etsy's fee charged to the buyer, included in the order total
+    'buyer_fee',       // state retail delivery fee (e.g. Colorado's) the buyer paid; Etsy remits it like tax
   ]),
   // ── PASS-THROUGHS: excluded from both gross and fees ──
   passthrough: new Set([
@@ -93,7 +93,7 @@ export const LEDGER_LABEL = {
   'REFUND':                     'Refund',
   'REFUND_GROSS':               'Refund (buyer)',
   'REFUND_PROCESSING_FEE':      'Processing fee refund',
-  'buyer_fee':                  'Buyer fee',
+  'buyer_fee':                  'Retail delivery fee (paid by buyer)',
   'sales_tax_refund':           'Sales tax refund',
   'transaction_refund':         'Transaction fee refund',
   'transaction_quantity_refund':'Qty transaction fee refund',
