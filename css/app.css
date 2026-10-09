@@ -444,6 +444,7 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
   transition:background 0.15s;
 }
 .top-prod-row:hover { background:var(--paper); }
+.top-prod-row > * { min-width:0; }
 .top-prod-name { font-size:0.8rem; font-weight:500; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .top-prod-sub  { font-family:'DM Mono',monospace; font-size:0.6rem; color:var(--muted2); }
 .top-prod-bar-track { height:8px; background:var(--border); border-radius:999px; overflow:hidden; }
@@ -452,7 +453,7 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
 .top-prod-cnt { font-family:'DM Mono',monospace; font-size:0.6rem; color:var(--muted2); text-align:right; }
 /* Phones: the bar gets its own full-width line under the name and value */
 @media(max-width:500px){
-  .top-prod-row { grid-template-columns:1fr auto; row-gap:6px; }
+  .top-prod-row { grid-template-columns:minmax(0,1fr) auto; row-gap:6px; } /* minmax: long names ellipsize instead of pushing the value off-screen */
   .top-prod-row > :nth-child(2) { grid-column:1 / -1; grid-row:2; }
 }
 
