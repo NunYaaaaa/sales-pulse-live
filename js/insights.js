@@ -3,7 +3,7 @@
 // Covered by test/insights.tests.js. Orders are Etsy receipts with their line
 // items in `transactions`; ledger amounts are integer cents; receipt money
 // objects go through money(). Anything time-dependent takes `now` as an argument.
-import { AD_FEES, AD_REFUNDS, LABEL_FEES, LABEL_REFUNDS, PAYOUT_TYPES } from './config.js';
+import { AD_FEES, AD_REFUNDS, LABEL_FEES, LABEL_REFUNDS, PAYOUT_REVERSALS, PAYOUT_TYPES } from './config.js';
 import { computeLedgerTotals, ledgerType } from './finance.js';
 import { bucketStart, money } from './util.js';
 
@@ -77,10 +77,15 @@ export function shippingPnL(orders, entries, span) {
   return { chargedCents, labelsCents, diffCents: chargedCents - labelsCents, labelCount };
 }
 
-/** Payouts to the bank and the latest running balance, in cents. */
+/**
+ * Payouts to the bank and the latest running balance, in cents. A payout
+ * that bounced back (and was usually sent again) counts once.
+ */
 export function payoutStats(entries) {
-  const payouts = entries.filter(e => PAYOUT_TYPES.has(ledgerType(e)));
-  const totalCents = -sum(payouts, e => e.amount);
+  const sent     = entries.filter(e => PAYOUT_TYPES.has(ledgerType(e)));
+  const returned = entries.filter(e => PAYOUT_REVERSALS.has(ledgerType(e)));
+  const payouts  = sent.slice(0, Math.max(0, sent.length - returned.length)); // for the count only
+  const totalCents = -sum(sent, e => e.amount) - sum(returned, e => e.amount);
   const latest = entries.reduce((best, e) =>
     !best || e.created_timestamp > best.created_timestamp ||
     (e.created_timestamp === best.created_timestamp && (e.sequence_number ?? 0) > (best.sequence_number ?? 0)) ? e : best, null);
@@ -88,7 +93,7 @@ export function payoutStats(entries) {
     count: payouts.length,
     totalCents,
     avgCents: payouts.length ? Math.round(totalCents / payouts.length) : 0,
-    lastPayoutTs: payouts.length ? Math.max(...payouts.map(e => e.created_timestamp)) : null,
+    lastPayoutTs: sent.length ? Math.max(...sent.map(e => e.created_timestamp)) : null,
     balanceCents: latest ? latest.balance : null,
   };
 }

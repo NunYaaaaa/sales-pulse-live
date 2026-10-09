@@ -70,7 +70,7 @@ export function renderFinances() {
     const label = escHtml(LEDGER_LABEL[t_key] || e.description || t_key || '');
 
     // Type badge
-    const isPayout = t_key.startsWith('DISBURSE') || t_key === 'deposit';
+    const isPayout = t_key.startsWith('DISBURSE') || t_key === 'deposit' || t_key === 'ADYENBALANCE_REVERSAL';
     const badgeClass = {
       revenue:     'lt-revenue',
       fee:         'lt-fee',

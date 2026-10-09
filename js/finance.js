@@ -19,9 +19,8 @@ export function ledgerType(e) {
  *  3. Explicit refund types → 'refund'
  *  4. Explicit fee types with negative amount → 'fee'
  *  5. Explicit revenue types with positive amount → 'revenue'
- *  6. Other positive "…credit" / "…refund" types → 'refund' (fee credits, not sales)
- *  7. Any other positive amount → 'revenue'
- *  8. Any other negative amount → 'fee'
+ *  6. Any other positive amount → 'refund' (a fee credit: sales always arrive as PAYMENT_GROSS)
+ *  7. Any other negative amount → 'fee'
  */
 export function categoriseEntry(e) {
   const t   = ledgerType(e);
@@ -33,9 +32,8 @@ export function categoriseEntry(e) {
   if (LEDGER_TAXONOMY.fees.has(t) && amt < 0) return 'fee';
   if (LEDGER_TAXONOMY.revenue.has(t) && amt > 0) return 'revenue';
   // Fallback by sign. Sales always arrive as PAYMENT_GROSS, so an unknown
-  // credit or refund is far more likely to be money back on fees.
-  if (amt > 0 && /credit|refund/i.test(t)) return 'refund';
-  if (amt > 0) return 'revenue';
+  // credit is money back on fees, never a sale.
+  if (amt > 0) return 'refund';
   if (amt < 0) return 'fee';
   return 'passthrough'; // zero-value entries
 }

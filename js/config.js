@@ -50,6 +50,7 @@ export const LEDGER_TAXONOMY = {
     'shipping_label_refund',
     'shipping_label_usps_adjustment_credit', // USPS postage adjustment credited back
     'SELLER_DRIVEN_TRAFFIC_CREDIT',          // Share & Save: 4% of a sale the seller's own link brought in
+    'MISC_CR_SL',                            // miscellaneous credit, shipping label
   ]),
   // ── COLLECTED FROM THE BUYER for someone else: PAYMENT_GROSS includes
   //    the sales tax and Etsy buyer fee the buyer paid; Etsy then debits
@@ -64,6 +65,9 @@ export const LEDGER_TAXONOMY = {
   passthrough: new Set([
     'DISBURSE',     // payout to your bank — just a fund movement
     'DISBURSE2',
+    'ADYENBALANCE_REVERSAL', // a payout that bounced back to the Etsy balance
+    'RECOUP',       // Etsy charged the seller's card to cover a negative balance
+    'billing_payment', // the seller paid an Etsy bill into a negative balance
     'deposit',
   ]),
 };
@@ -105,6 +109,10 @@ export const LEDGER_LABEL = {
   'SELLER_DRIVEN_TRAFFIC_CREDIT':          'Share & Save credit',
   'DISBURSE':                   'Payout to bank',
   'DISBURSE2':                  'Payout to bank',
+  'ADYENBALANCE_REVERSAL':      'Payout returned to balance',
+  'RECOUP':                     'Balance top-up from your card',
+  'billing_payment':            'Bill payment from your card',
+  'MISC_CR_SL':                 'Shipping label credit',
   'deposit':                    'Deposit',
   'sale':                       'Sale',
 };
@@ -144,6 +152,7 @@ export const FEE_REFUND_OF = {
   shipping_label_refund:                 'shipping_labels',
   shipping_label_usps_adjustment_credit: 'shipping_labels',
   SELLER_DRIVEN_TRAFFIC_CREDIT:          'transaction', // credited against the sale's fees
+  MISC_CR_SL:                            'shipping_labels',
 };
 
 // Ledger types the Insights tab reports on separately (they're also counted in the fee totals).
@@ -151,8 +160,9 @@ export const FEE_REFUND_OF = {
 export const AD_FEES       = { prolist: 'Etsy Ads', offsite_ads_fee: 'Offsite Ads' };
 export const AD_REFUNDS    = { offsite_ads_fee_refund: 'offsite_ads_fee' };
 export const LABEL_FEES    = new Set(['shipping_labels']);
-export const LABEL_REFUNDS = new Set(['shipping_label_refund', 'shipping_label_usps_adjustment_credit']);
+export const LABEL_REFUNDS = new Set(['shipping_label_refund', 'shipping_label_usps_adjustment_credit', 'MISC_CR_SL']);
 export const PAYOUT_TYPES  = new Set(['DISBURSE', 'DISBURSE2']);
+export const PAYOUT_REVERSALS = new Set(['ADYENBALANCE_REVERSAL']); // payouts returned to the balance
 
 // Shared categorical palette for order charts and top-products bars
 export const PALETTE = ['#d4622a','#3a7d4c','#5a3d9e','#b8860b','#2563eb','#db2777','#0891b2','#65a30d'];

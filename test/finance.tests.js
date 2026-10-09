@@ -35,6 +35,16 @@ export const tests = [
       eq(categoriseEntry(entry(t, 5000)), 'collected', t);
     }
   }],
+  ['bounced payouts and card top-ups are pass-throughs, not income', () => {
+    for (const t of ['ADYENBALANCE_REVERSAL', 'RECOUP', 'billing_payment']) eq(categoriseEntry(entry(t, 500)), 'passthrough', t);
+    // A payout bounced and was re-sent; Etsy charged the card to clear a negative balance
+    const t = computeLedgerTotals([
+      entry('PAYMENT_GROSS', 30000), entry('transaction', -1950),
+      entry('DISBURSE2', -29236), entry('ADYENBALANCE_REVERSAL', 29236), entry('DISBURSE2', -29236),
+      entry('shipping_labels', -1678), entry('RECOUP', 1678),
+    ]);
+    eq([t.grossCents, t.feesCents, t.netCents], [30000, -3628, 26372]);
+  }],
   ['Share & Save and unknown credits reduce fees instead of counting as sales', () => {
     eq(categoriseEntry(entry('SELLER_DRIVEN_TRAFFIC_CREDIT', 116)), 'refund');
     eq(categoriseEntry(entry('SOME_NEW_CREDIT', 50)), 'refund');
@@ -53,8 +63,8 @@ export const tests = [
     eq(categoriseEntry(entry('REFUND_GROSS', -3322)), 'refund');
     eq(categoriseEntry(entry('transaction_refund', 65)), 'refund');
   }],
-  ['unknown types fall back to sign; zero is pass-through', () => {
-    eq(categoriseEntry(entry('mystery', 10)), 'revenue');
+  ['unknown types fall back to sign (credits reduce fees, never count as sales); zero is pass-through', () => {
+    eq(categoriseEntry(entry('mystery', 10)), 'refund');
     eq(categoriseEntry(entry('mystery', -10)), 'fee');
     eq(categoriseEntry(entry('mystery', 0)), 'passthrough');
   }],
