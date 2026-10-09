@@ -221,7 +221,7 @@ function renderPayouts(entries) {
     tile('Average payout', fmtC(p.avgCents)),
     tile('Last payout', fmtDate(p.lastPayoutTs)),
     balance,
-  );
+  ) + caveat('Payouts move money you already earned from your Etsy balance to your bank. They aren\'t extra income, so gross, fees and net leave them out.');
 }
 
 // ─── CUSTOMERS ──────────────────────────────────────────────────────────────
