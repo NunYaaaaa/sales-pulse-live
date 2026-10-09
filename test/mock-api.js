@@ -123,7 +123,7 @@ function buildData() {
     if (i % 5 === 0) addLedger(ts, 'LISTING_FEE', -20, 'listing', rid);
     if (i % 3 === 0) addLedger(ts, 'shipping_labels', -450, 'shipping_label', rid);
     if (i % 45 === 0) addLedger(ts + DAY, 'shipping_label_refund', 450, 'shipping_label', rid);
-    if (i % 45 === 21) addLedger(ts + 4 * DAY, 'shipping_label_usps_adjustment_credit', 102, 'shipping_label', rid);
+    if (i % 45 === 21) addLedger(ts + 4 * DAY, 'shipping_label_usps_adjustment_credit', 150, 'shipping_label', rid);
     if (i % 12 === 5) addLedger(ts, 'offsite_ads_fee', -Math.round((subtotal + shipping) * 0.15), 'receipt', rid);
     if (i === 17) addLedger(ts + DAY, 'offsite_ads_fee_refund', Math.round((subtotal + shipping) * 0.15), 'receipt', rid);
     if (refundCents) {

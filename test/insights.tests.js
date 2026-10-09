@@ -89,8 +89,8 @@ export const tests = [
     eq(p.lastPayoutTs, at(2026, 3, 8));
     eq(payoutStats([]).balanceCents, null, 'empty');
     // A payout that bounced back and was sent again counts once
-    const b = payoutStats([le('DISBURSE2', -29236), le('ADYENBALANCE_REVERSAL', 29236), le('DISBURSE2', -29236)]);
-    eq([b.count, b.totalCents], [1, 29236], 'bounced payout');
+    const b = payoutStats([le('DISBURSE2', -25000), le('ADYENBALANCE_REVERSAL', 25000), le('DISBURSE2', -25000)]);
+    eq([b.count, b.totalCents], [1, 25000], 'bounced payout');
   }],
   ['revenueComposition: parts add up to gross, with a residual', () => {
     const c = revenueComposition([

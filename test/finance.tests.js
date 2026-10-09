@@ -40,7 +40,7 @@ export const tests = [
     // A payout bounced and was re-sent; Etsy charged the card to clear a negative balance
     const t = computeLedgerTotals([
       entry('PAYMENT_GROSS', 30000), entry('transaction', -1950),
-      entry('DISBURSE2', -29236), entry('ADYENBALANCE_REVERSAL', 29236), entry('DISBURSE2', -29236),
+      entry('DISBURSE2', -25000), entry('ADYENBALANCE_REVERSAL', 25000), entry('DISBURSE2', -25000),
       entry('shipping_labels', -1678), entry('RECOUP', 1678),
     ]);
     eq([t.grossCents, t.feesCents, t.netCents], [30000, -3628, 26372]);
@@ -49,15 +49,15 @@ export const tests = [
     eq(categoriseEntry(entry('SELLER_DRIVEN_TRAFFIC_CREDIT', 116)), 'refund');
     eq(categoriseEntry(entry('SOME_NEW_CREDIT', 50)), 'refund');
     eq(categoriseEntry(entry('mystery_refund', 50)), 'refund');
-    const entries = [entry('PAYMENT_GROSS', 3131), entry('sales_tax', -232), entry('transaction', -154), entry('SELLER_DRIVEN_TRAFFIC_CREDIT', 116)];
+    const entries = [entry('PAYMENT_GROSS', 5400), entry('sales_tax', -400), entry('transaction', -325), entry('SELLER_DRIVEN_TRAFFIC_CREDIT', 200)];
     const t = computeLedgerTotals(entries);
-    eq([t.grossCents, t.feesCents, t.netCents], [2899, -38, 2861]);
-    eq(feeTally(entries), { transaction: 38 });
+    eq([t.grossCents, t.feesCents, t.netCents], [5000, -125, 4875]);
+    eq(feeTally(entries), { transaction: 125 });
   }],
   ['USPS label adjustment credit is a refund that reduces fees', () => {
-    eq(categoriseEntry(entry('shipping_label_usps_adjustment_credit', 102)), 'refund');
-    const t = computeLedgerTotals([entry('PAYMENT_GROSS', 5000), entry('shipping_labels', -840), entry('shipping_label_usps_adjustment_credit', 102)]);
-    eq([t.grossCents, t.feesCents, t.netCents], [5000, -738, 4262]);
+    eq(categoriseEntry(entry('shipping_label_usps_adjustment_credit', 150)), 'refund');
+    const t = computeLedgerTotals([entry('PAYMENT_GROSS', 5000), entry('shipping_labels', -840), entry('shipping_label_usps_adjustment_credit', 150)]);
+    eq([t.grossCents, t.feesCents, t.netCents], [5000, -690, 4310]);
   }],
   ['refund types are refunds regardless of sign', () => {
     eq(categoriseEntry(entry('REFUND_GROSS', -3322)), 'refund');
@@ -87,8 +87,8 @@ export const tests = [
     eq(t.collectedCents, -800, 'tax');
   }],
   ['computeLedgerTotals: buyer fee is in the sale and taken back out, not a seller fee', () => {
-    const t = computeLedgerTotals([entry('PAYMENT_GROSS', 2611), entry('sales_tax', -189), entry('buyer_fee', -31), entry('transaction', -120)]);
-    eq([t.grossCents, t.feesCents, t.netCents], [2391, -120, 2271]);
+    const t = computeLedgerTotals([entry('PAYMENT_GROSS', 3230), entry('sales_tax', -200), entry('buyer_fee', -30), entry('transaction', -180)]);
+    eq([t.grossCents, t.feesCents, t.netCents], [3000, -180, 2820]);
   }],
   ['computeLedgerTotals: full refund with tax; net equals the non-payout balance change', () => {
     const entries = [
@@ -126,17 +126,17 @@ export const tests = [
   ['feeTally nets fee refunds against their fee and matches Total Fees', () => {
     const entries = [
       entry('PAYMENT_GROSS', 10000), entry('transaction', -650), entry('transaction_refund', 200),
-      entry('shipping_labels', -840), entry('shipping_label_usps_adjustment_credit', 102),
+      entry('shipping_labels', -840), entry('shipping_label_usps_adjustment_credit', 150),
       entry('REFUND_GROSS', -3000), entry('mystery_credit_refund', 0), entry('sales_tax', -800),
     ];
     const tally = feeTally(entries);
-    eq(tally, { transaction: 450, shipping_labels: 738 });
+    eq(tally, { transaction: 450, shipping_labels: 690 });
     eq(Object.values(tally).reduce((s, c) => s + c, 0), -computeLedgerTotals(entries).feesCents, 'sums to Total Fees');
   }],
   ['orderSales leaves out sales tax and delivery fees', () => {
     const usd = amount => ({ amount, divisor: 100 });
-    // Real Colorado order: 18.50 items + 5.39 shipping + 1.89 tax + 0.31 delivery fee = 26.09
-    eq(orderSales({ subtotal: usd(1850), total_shipping_cost: usd(539), total_tax_cost: usd(189), grandtotal: usd(2609) }), 23.89);
+    // Delivery-fee order: 20.00 items + 5.00 shipping + 1.60 tax + 0.30 delivery fee = 26.90
+    eq(orderSales({ subtotal: usd(2000), total_shipping_cost: usd(500), total_tax_cost: usd(160), grandtotal: usd(2690) }), 25);
     eq(orderSales({ subtotal: usd(1000), total_shipping_cost: usd(500), gift_wrap_price: usd(300), grandtotal: usd(1900) }), 18);
     eq(orderSales({ grandtotal: usd(1080), total_tax_cost: usd(80) }), 10, 'no subtotal: grand total less tax');
   }],
