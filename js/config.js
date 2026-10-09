@@ -48,11 +48,18 @@ export const LEDGER_TAXONOMY = {
     'renew_sold_auto_refund',
     'listing_private_refund',
     'shipping_label_refund',
+    'shipping_label_usps_adjustment_credit', // USPS postage adjustment credited back
+  ]),
+  // ── SALES TAX: PAYMENT_GROSS includes the tax the buyer paid; Etsy then
+  //    debits it (sales_tax, negative) and credits it back on refunds
+  //    (sales_tax_refund, positive). Adding these to gross by their sign
+  //    leaves gross excluding tax. ──
+  tax: new Set([
+    'sales_tax',
+    'sales_tax_refund',
   ]),
   // ── PASS-THROUGHS: excluded from both gross and fees ──
   passthrough: new Set([
-    'sales_tax',    // collected on behalf of tax authority — not your money
-    'sales_tax_refund', // tax returned to the buyer — never was your money either
     'DISBURSE',     // payout to your bank — just a fund movement
     'DISBURSE2',
     'deposit',
@@ -92,6 +99,7 @@ export const LEDGER_LABEL = {
   'renew_sold_auto_refund':     'Auto-renew fee refund',
   'listing_private_refund':     'Private listing fee refund',
   'shipping_label_refund':      'Shipping label refund',
+  'shipping_label_usps_adjustment_credit': 'USPS label adjustment credit',
   'DISBURSE':                   'Payout to bank',
   'DISBURSE2':                  'Payout to bank',
   'deposit':                    'Deposit',
@@ -115,12 +123,27 @@ export const FEE_GROUPS = [
 ];
 export const FEE_OTHER_COLOR = '#a89e90';
 
+// The fee type each fee-refund credit reverses, so fee breakdowns can net
+// refunds against the fee they undo (unmapped credits reduce "Other").
+export const FEE_REFUND_OF = {
+  REFUND_PROCESSING_FEE:                 'PAYMENT_PROCESSING_FEE',
+  transaction_refund:                    'transaction',
+  transaction_quantity_refund:           'transaction_quantity',
+  listing_refund:                        'listing',
+  shipping_transaction_refund:           'shipping_transaction',
+  offsite_ads_fee_refund:                'offsite_ads_fee',
+  renew_sold_auto_refund:                'renew_sold_auto',
+  listing_private_refund:                'listing_private',
+  shipping_label_refund:                 'shipping_labels',
+  shipping_label_usps_adjustment_credit: 'shipping_labels',
+};
+
 // Ledger types the Insights tab reports on separately (they're also counted in the fee totals).
 // Refund types map to the fee type they reverse.
 export const AD_FEES       = { prolist: 'Etsy Ads', offsite_ads_fee: 'Offsite Ads' };
 export const AD_REFUNDS    = { offsite_ads_fee_refund: 'offsite_ads_fee' };
 export const LABEL_FEES    = new Set(['shipping_labels']);
-export const LABEL_REFUNDS = new Set(['shipping_label_refund']);
+export const LABEL_REFUNDS = new Set(['shipping_label_refund', 'shipping_label_usps_adjustment_credit']);
 export const PAYOUT_TYPES  = new Set(['DISBURSE', 'DISBURSE2']);
 
 // Shared categorical palette for order charts and top-products bars

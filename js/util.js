@@ -81,6 +81,18 @@ export function bucketStart(ts, size) {
   return { key: localDateKey(start), label, ts: Math.floor(start.getTime() / 1000) };
 }
 
+/**
+ * How many times each weekday (0 = Sunday) occurs among the local calendar
+ * days from the day of fromTs to the day of toTs, inclusive.
+ */
+export function weekdayCounts(fromTs, toTs) {
+  const counts = Array(7).fill(0);
+  const s = new Date(fromTs * 1000), e = new Date(toTs * 1000);
+  const end = new Date(e.getFullYear(), e.getMonth(), e.getDate());
+  for (const d = new Date(s.getFullYear(), s.getMonth(), s.getDate()); d <= end; d.setDate(d.getDate() + 1)) counts[d.getDay()]++;
+  return counts;
+}
+
 /** Bucket size that gives a readable number of points for a span (unix seconds). */
 export function pickBucket(minTs, maxTs) {
   const spanDays = (maxTs - minTs) / 86400;

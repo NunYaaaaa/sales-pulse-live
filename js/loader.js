@@ -83,9 +83,9 @@ export async function loadDashboard() {
 
   // Default date filter
   if (state.filterFrom === null && state.filterTo === null) {
-    state.filterFrom = dateStrToTs(daysAgoStr(30), false);
+    state.filterFrom = dateStrToTs(daysAgoStr(29), false);
     state.filterTo   = dateStrToTs(todayStr(),     true);
-    $('filter-from').value = daysAgoStr(30);
+    $('filter-from').value = daysAgoStr(29);
     $('filter-to').value   = todayStr();
   }
 
@@ -334,12 +334,13 @@ export async function ensurePayments(orders, onProgress = () => {}) {
 }
 
 // ─── DATE FILTER ────────────────────────────────────────────────────────────
+// "N days" is today plus the N - 1 days before it
 const PRESETS = {
-  '7d':  () => [daysAgoStr(7),   todayStr()],
-  '30d': () => [daysAgoStr(30),  todayStr()],
-  '90d': () => [daysAgoStr(90),  todayStr()],
+  '7d':  () => [daysAgoStr(6),   todayStr()],
+  '30d': () => [daysAgoStr(29),  todayStr()],
+  '90d': () => [daysAgoStr(89),  todayStr()],
   'ytd': () => [ytdStr(),        todayStr()],
-  '1y':  () => [daysAgoStr(365), todayStr()],
+  '1y':  () => [daysAgoStr(364), todayStr()],
   'all': () => [null, null],
 };
 

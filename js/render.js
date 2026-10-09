@@ -25,8 +25,12 @@ export function renderKPIs() {
     const { feesCents, netCents } = computeLedgerTotals(state.ledgerEntries);
     $('kpi-fees').textContent     = fmtMoney(Math.abs(feesCents / 100));
     $('kpi-net').textContent      = fmtMoney(netCents / 100);
-    $('kpi-fees-sub').textContent = 'txn + processing + ads + listing + labels';
-    $('kpi-net-sub').textContent  = 'gross minus all fees';
+    // The ledger only goes back 365 days; say so when the orders go further
+    const span    = state.ledgerSpan;
+    const clipped = span && state.allOrders.some(o => o.create_timestamp < span.from);
+    const note    = clipped ? ' · last 365 days only' : '';
+    $('kpi-fees-sub').textContent = 'txn + processing + ads + listing + labels' + note;
+    $('kpi-net-sub').textContent  = 'after fees, refunds & sales tax' + note;
   }
 }
 
@@ -72,9 +76,10 @@ export function renderFinances() {
       revenue:     'lt-revenue',
       fee:         'lt-fee',
       refund:      'lt-refund',
+      tax:         'lt-tax',
       passthrough: (t_key === 'DISBURSE' || t_key === 'DISBURSE2') ? 'lt-payout' : 'lt-tax',
     }[cat] || 'lt-other';
-    const badgeLabel = { revenue:'sale', fee:'fee', refund:'refund', passthrough: isPayout ? 'payout' : 'pass-through' }[cat] || cat;
+    const badgeLabel = { revenue:'sale', fee:'fee', refund:'refund', tax:'sales tax', passthrough: isPayout ? 'payout' : 'pass-through' }[cat] || cat;
     const typeBadge = `<span class="ledger-type-badge ${badgeClass}">${badgeLabel}</span>`;
 
     // Reference cell

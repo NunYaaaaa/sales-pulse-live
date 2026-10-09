@@ -1,8 +1,8 @@
 // ─── CHARTS (pure SVG, no libraries) ───────────────────────────────────────
-import { FEE_GROUPS, FEE_OTHER_COLOR, PALETTE } from './config.js';
+import { FEE_GROUPS, FEE_OTHER_COLOR, FEE_REFUND_OF, PALETTE } from './config.js';
 import { categoriseEntry, ledgerType } from './finance.js';
 import { lineItems, state } from './state.js';
-import { bucketStart, escHtml, fmtMoney, localDateKey, money, pickBucket } from './util.js';
+import { bucketStart, escHtml, fmtMoney, money, pickBucket, weekdayCounts } from './util.js';
 
 const $ = id => document.getElementById(id);
 
@@ -250,20 +250,25 @@ function renderDowChart() {
   const subEl = $('dow-chart-sub');
   if (!svgEl || !state.allOrders.length) return;
 
-  const tally = Array(7).fill(0).map(() => ({ revenue:0, count:0, days: new Set() }));
+  const tally = Array(7).fill(0).map(() => ({ revenue:0, count:0 }));
 
   for (const o of state.allOrders) {
-    const d   = new Date(o.create_timestamp * 1000);
-    const dow = d.getDay();
+    const dow = new Date(o.create_timestamp * 1000).getDay();
     tally[dow].revenue += money(o.grandtotal);
     tally[dow].count++;
-    tally[dow].days.add(localDateKey(d));
   }
 
+  // Average over every occurrence of that weekday in the period, including
+  // days without sales (the period runs from the filter start, or the oldest
+  // order, up to the filter end or now, whichever is earlier)
+  const now  = Math.floor(Date.now() / 1000);
+  const from = state.filterFrom ?? Math.min(...state.allOrders.map(o => o.create_timestamp));
+  const to   = Math.min(state.filterTo ?? now, now);
+  const days = weekdayCounts(from, to);
+
   const isRev = state.dowChartMode === 'revenue';
-  // Compute average per occurrence of that weekday
   const data = DAY_NAMES.map((label, i) => {
-    const occ = tally[i].days.size || 1;
+    const occ = days[i] || 1;
     return {
       label,
       revenue: tally[i].revenue / occ,
@@ -395,27 +400,38 @@ export function groupFees(tally) {
   return [...byLabel.values()].sort((a, b) => b.cents - a.cents);
 }
 
+/**
+ * Fee cost by ledger type in positive cents, net of fee-refund credits
+ * (each credit is taken off the fee it reverses, per FEE_REFUND_OF), so the
+ * values sum to the Total Fees figure from computeLedgerTotals.
+ */
+export function feeTally(entries) {
+  const tally = {};
+  for (const e of entries) {
+    const cat = categoriseEntry(e);
+    let key;
+    if (cat === 'fee') key = ledgerType(e) || 'other';
+    else if (cat === 'refund' && e.amount > 0) key = FEE_REFUND_OF[ledgerType(e)] || 'other';
+    else continue;
+    tally[key] = (tally[key] || 0) - e.amount; // fees are negative, credits positive
+  }
+  return tally;
+}
+
+let feeTotalCents = 0; // total shown in the donut centre when nothing is highlighted
+
 export function renderFeeChart(entries) {
   const panel = $('fee-chart-panel');
 
-  // Tally absolute fee amounts by type key
-  const tally = {};
-  let totalFeesCents = 0;
-
-  for (const e of entries) {
-    if (categoriseEntry(e) !== 'fee') continue;
-    const key   = ledgerType(e) || 'other';
-    const cents = Math.abs(e.amount); // store as positive
-    tally[key] = (tally[key] || 0) + cents;
-    totalFeesCents += cents;
-  }
-
-  if (totalFeesCents === 0) { panel.style.display = 'none'; return; }
+  const tally = feeTally(entries);
+  const total = Object.values(tally).reduce((s, c) => s + c, 0);
+  if (total <= 0) { panel.style.display = 'none'; return; }
   panel.style.display = 'block';
+  feeTotalCents = total;
 
-  const rows = groupFees(tally);
+  // A group can net below zero if its refunds outweigh its fees in the period
+  const rows = groupFees(tally).filter(r => r.cents > 0);
 
-  const total = totalFeesCents;
   $('fee-chart-total').textContent = fmtMoney(total / 100);
   $('fee-donut-center-val').textContent = fmtMoney(total / 100);
 
@@ -492,8 +508,7 @@ export function highlightFee(idx) {
     tooltip.textContent   = `${s.label}: ${(s.frac * 100).toFixed(1)}%`;
     tooltip.classList.add('visible');
   } else {
-    const total = segs.reduce((s, r) => s + r.cents, 0);
-    centerVal.textContent = fmtMoney(total / 100);
+    centerVal.textContent = fmtMoney(feeTotalCents / 100);
     centerLbl.textContent = 'total fees';
     tooltip.classList.remove('visible');
   }

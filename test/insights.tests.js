@@ -31,9 +31,9 @@ export const tests = [
   }],
   ['feeRateSeries: per-bucket rates, pass-throughs ignored, empty buckets null', () => {
     const s = feeRateSeries([
-      le('PAYMENT_GROSS', 10000, at(2026, 3, 10)),
+      le('PAYMENT_GROSS', 10800, at(2026, 3, 10)), // includes 800 of tax
       le('transaction', -650, at(2026, 3, 10)),
-      le('sales_tax', 800, at(2026, 3, 10)),
+      le('sales_tax', -800, at(2026, 3, 10)),
       le('DISBURSE2', -5000, at(2026, 3, 11)),
       le('prolist', -100, at(2026, 3, 17)), // next week: fees but no sales
     ], { bucket: 'week' });

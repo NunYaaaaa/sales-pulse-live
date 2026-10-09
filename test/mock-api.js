@@ -112,19 +112,23 @@ function buildData() {
       refunds: refundCents ? [{ amount: usd(refundCents), created_timestamp: ts + 2 * DAY, reason: 'buyer request', status: 'completed' }] : [],
     });
 
-    addLedger(ts, 'PAYMENT_GROSS', subtotal + shipping + giftWrap, 'receipt', rid);
-    addLedger(ts, 'sales_tax', tax, 'receipt', rid);
+    // As in real ledgers: the sale includes the buyer's tax, then Etsy debits the tax
+    addLedger(ts, 'PAYMENT_GROSS', subtotal + shipping + giftWrap + tax, 'receipt', rid);
+    addLedger(ts, 'sales_tax', -tax, 'receipt', rid);
     addLedger(ts, 'transaction', -Math.round(subtotal * 0.065), 'transaction', rid);
     addLedger(ts, 'PAYMENT_PROCESSING_FEE', -Math.round((subtotal + shipping) * 0.03 + 25), 'payment', rid);
     addLedger(ts, 'listing', -20, 'listing', rid);
     if (i % 5 === 0) addLedger(ts, 'LISTING_FEE', -20, 'listing', rid);
     if (i % 3 === 0) addLedger(ts, 'shipping_labels', -450, 'shipping_label', rid);
     if (i % 45 === 0) addLedger(ts + DAY, 'shipping_label_refund', 450, 'shipping_label', rid);
-    if (i % 40 === 0) addLedger(ts + 3600, 'sales_tax_refund', -tax, 'receipt', rid);
+    if (i % 45 === 21) addLedger(ts + 4 * DAY, 'shipping_label_usps_adjustment_credit', 102, 'shipping_label', rid);
     if (i % 12 === 5) addLedger(ts, 'offsite_ads_fee', -Math.round((subtotal + shipping) * 0.15), 'receipt', rid);
     if (i === 17) addLedger(ts + DAY, 'offsite_ads_fee_refund', Math.round((subtotal + shipping) * 0.15), 'receipt', rid);
     if (refundCents) {
-      addLedger(ts + 2 * DAY, 'REFUND_GROSS', -refundCents, 'receipt', rid);
+      // A full refund returns the buyer's tax too, and Etsy credits that tax back
+      const fullRefund = status !== 'partially refunded';
+      addLedger(ts + 2 * DAY, 'REFUND_GROSS', -(refundCents + (fullRefund ? tax : 0)), 'receipt', rid);
+      if (fullRefund) addLedger(ts + 2 * DAY, 'sales_tax_refund', tax, 'receipt', rid);
       addLedger(ts + 2 * DAY, 'transaction_refund', Math.round(refundCents * 0.065), 'transaction', rid);
     }
   }

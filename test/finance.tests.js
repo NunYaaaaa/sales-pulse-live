@@ -1,8 +1,8 @@
 // Unit tests for the pure helpers — run via test/finance.test.html in a browser.
-import { bucketOrders, groupFees } from '../js/charts.js';
+import { bucketOrders, feeTally, groupFees } from '../js/charts.js';
 import { csvCell } from '../js/export.js';
 import { categoriseEntry, computeLedgerTotals } from '../js/finance.js';
-import { dateStrToTs, escHtml, localDateKey } from '../js/util.js';
+import { dateStrToTs, escHtml, localDateKey, weekdayCounts } from '../js/util.js';
 
 function eq(actual, expected, msg = '') {
   const a = JSON.stringify(actual), e = JSON.stringify(expected);
@@ -25,11 +25,20 @@ export const tests = [
       eq(categoriseEntry(entry(t, -100)), 'fee', t);
     }
   }],
-  ['payouts and sales tax are pass-through', () => {
-    for (const t of ['DISBURSE', 'DISBURSE2', 'deposit', 'sales_tax', 'sales_tax_refund']) {
+  ['payouts are pass-through; sales tax is its own category', () => {
+    for (const t of ['DISBURSE', 'DISBURSE2', 'deposit']) {
       eq(categoriseEntry(entry(t, -5000)), 'passthrough', t);
       eq(categoriseEntry(entry(t, 5000)), 'passthrough', t);
     }
+    for (const t of ['sales_tax', 'sales_tax_refund']) {
+      eq(categoriseEntry(entry(t, -5000)), 'tax', t);
+      eq(categoriseEntry(entry(t, 5000)), 'tax', t);
+    }
+  }],
+  ['USPS label adjustment credit is a refund that reduces fees', () => {
+    eq(categoriseEntry(entry('shipping_label_usps_adjustment_credit', 102)), 'refund');
+    const t = computeLedgerTotals([entry('PAYMENT_GROSS', 5000), entry('shipping_labels', -840), entry('shipping_label_usps_adjustment_credit', 102)]);
+    eq([t.grossCents, t.feesCents, t.netCents], [5000, -738, 4262]);
   }],
   ['refund types are refunds regardless of sign', () => {
     eq(categoriseEntry(entry('REFUND_GROSS', -3322)), 'refund');
@@ -42,19 +51,32 @@ export const tests = [
   }],
   ['ledger_type wins over type/description fallbacks', () => {
     eq(categoriseEntry({ ledger_type: 'DISBURSE2', type: 'sale', amount: -100 }), 'passthrough');
-    eq(categoriseEntry({ description: 'sales_tax', amount: 50 }), 'passthrough');
+    eq(categoriseEntry({ description: 'sales_tax', amount: -50 }), 'tax');
   }],
-  ['computeLedgerTotals: sale, fees, payout, tax', () => {
+  ['computeLedgerTotals: sale incl. tax, tax debit, fees, payout', () => {
+    // Etsy records the sale with the buyer's tax, then debits the tax
     const t = computeLedgerTotals([
-      entry('PAYMENT_GROSS', 10000),
+      entry('PAYMENT_GROSS', 10800),
+      entry('sales_tax', -800),
       entry('transaction', -650),
       entry('PAYMENT_PROCESSING_FEE', -325),
-      entry('sales_tax', 800),
       entry('DISBURSE2', -9000),
     ]);
-    eq(t.grossCents, 10000, 'gross');
+    eq(t.grossCents, 10000, 'gross excludes tax');
     eq(t.feesCents, -975, 'fees');
     eq(t.netCents, 9025, 'net');
+    eq(t.taxCents, -800, 'tax');
+  }],
+  ['computeLedgerTotals: full refund with tax; net equals the non-payout balance change', () => {
+    const entries = [
+      entry('PAYMENT_GROSS', 10800), entry('sales_tax', -800), entry('transaction', -650),
+      entry('REFUND_GROSS', -10800), entry('sales_tax_refund', 800), entry('transaction_refund', 650),
+      entry('prolist', -120), entry('DISBURSE2', -500),
+    ];
+    const t = computeLedgerTotals(entries);
+    eq([t.grossCents, t.feesCents, t.netCents], [0, -120, -120]);
+    const nonPayout = entries.filter(e => e.ledger_type !== 'DISBURSE2').reduce((s, e) => s + e.amount, 0);
+    eq(t.netCents, nonPayout, 'net = balance change excluding payouts');
   }],
   ['computeLedgerTotals: refund reduces gross, fee refund reduces fees', () => {
     const t = computeLedgerTotals([
@@ -70,11 +92,28 @@ export const tests = [
     eq(t.refundFeesCents, 195, 'refundFees');
   }],
   ['computeLedgerTotals: empty input', () => {
-    eq(computeLedgerTotals([]), { grossCents: 0, feesCents: 0, netCents: 0, refundGrossCents: 0, refundFeesCents: 0 });
+    eq(computeLedgerTotals([]), { grossCents: 0, feesCents: 0, netCents: 0, refundGrossCents: 0, refundFeesCents: 0, taxCents: 0 });
   }],
   ['groupFees merges listing + LISTING_FEE and sums to the total', () => {
     const rows = groupFees({ listing: 20, LISTING_FEE: 20, transaction: 100, mystery_fee: 5, renew_sold: 5 });
     eq(rows.map(r => [r.label, r.cents]), [['Transaction Fees', 100], ['Listing Fees', 40], ['Other', 10]]);
+  }],
+  ['feeTally nets fee refunds against their fee and matches Total Fees', () => {
+    const entries = [
+      entry('PAYMENT_GROSS', 10000), entry('transaction', -650), entry('transaction_refund', 200),
+      entry('shipping_labels', -840), entry('shipping_label_usps_adjustment_credit', 102),
+      entry('REFUND_GROSS', -3000), entry('mystery_credit_refund', 0), entry('sales_tax', -800),
+    ];
+    const tally = feeTally(entries);
+    eq(tally, { transaction: 450, shipping_labels: 738 });
+    eq(Object.values(tally).reduce((s, c) => s + c, 0), -computeLedgerTotals(entries).feesCents, 'sums to Total Fees');
+  }],
+  ['weekdayCounts counts every calendar day in the range, inclusive', () => {
+    const ts = (y, m, d, h = 12) => new Date(y, m - 1, d, h).getTime() / 1000;
+    // Sun 1 Mar 2026 .. Sat 14 Mar 2026: two of each weekday
+    eq(weekdayCounts(ts(2026, 3, 1, 0), ts(2026, 3, 14, 23)), [2, 2, 2, 2, 2, 2, 2]);
+    // Mon 9 Mar .. Wed 11 Mar, times of day don't matter
+    eq(weekdayCounts(ts(2026, 3, 9, 23), ts(2026, 3, 11, 1)), [0, 1, 1, 1, 0, 0, 0]);
   }],
   ['dateStrToTs uses local-day boundaries', () => {
     const from = dateStrToTs('2026-03-10'), to = dateStrToTs('2026-03-10', true);
