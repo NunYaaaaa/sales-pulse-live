@@ -1,7 +1,6 @@
 // ─── DATA LOADING PIPELINE + DATE FILTER ───────────────────────────────────
 import { ApiError, AuthError, etsyFetch, fetchLedger, fetchListings, fetchOrders, fetchPayment, fetchReviews, fetchTransactions, isAbort } from './api.js';
 import { renderOrderCharts } from './charts.js';
-import { MAX_LOOKBACK } from './config.js';
 import { renderInsights } from './insights-view.js';
 import { renderFinances, renderKPIs, renderTable } from './render.js';
 import { session } from './session.js';
@@ -208,12 +207,13 @@ export async function loadAllDetails(background = false, signal = currentLoad?.s
     if (!background) { ptext.textContent = 'Fetching financial ledger…'; fill.style.width = '85%'; }
     else setFetchStatus('Fetching ledger…');
 
-    // Respect the active date filter for the ledger too.
-    // Without a lower bound, go back to the oldest order (max 1 year).
+    // Same period as the orders, so gross, fees and net cover the same days.
+    // Without a lower bound, go back to the oldest order (Etsy keeps the
+    // whole ledger; it only limits each request to 31 days).
     const now         = Math.floor(Date.now() / 1000);
     const timestamps  = orders.map(o => o.create_timestamp).filter(t => t > 0);
-    const oldestOrder = timestamps.length ? Math.min(...timestamps) : now - MAX_LOOKBACK;
-    const floor   = Math.max(state.filterFrom ?? oldestOrder, now - MAX_LOOKBACK);
+    const oldestOrder = timestamps.length ? Math.min(...timestamps) : now - 30 * 86400;
+    const floor   = state.filterFrom ?? oldestOrder;
     const ceiling = state.filterTo ? Math.min(state.filterTo, now) : now;
 
     const entries = await fetchLedger(floor, ceiling, { signal });
@@ -299,8 +299,8 @@ export async function ensureInsightsData() {
   if (!state.reviews) {
     state.reviews = cachedReviews();
     if (!state.reviews) {
-      // Up to now, so reviews of this period's orders count even if left later; at most a year back.
-      const from = Math.max(state.filterFrom ?? 0, Math.floor(Date.now() / 1000) - MAX_LOOKBACK);
+      // Up to now, so reviews of this period's orders count even if left later.
+      const from = state.filterFrom ?? 0;
       ok = await insightsStep('reviewsStatus', signal, async progress => {
         const reviews = await fetchReviews(from, { signal, onPage: progress });
         if (signal.aborted) return;

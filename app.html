@@ -121,7 +121,7 @@
     <div class="kpi-card">
       <div class="kpi-label">Total Gross</div>
       <div class="kpi-val" id="kpi-revenue">—</div>
-      <div class="kpi-sub">buyer payments incl. shipping + tax</div>
+      <div class="kpi-sub" id="kpi-revenue-sub">sales excl. tax</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Total Fees</div>
@@ -141,7 +141,7 @@
     <div class="kpi-card">
       <div class="kpi-label">Avg. Order Value</div>
       <div class="kpi-val" id="kpi-aov">—</div>
-      <div class="kpi-sub">mean transaction</div>
+      <div class="kpi-sub">sales per order, excl. tax</div>
     </div>
   </div>
 
@@ -249,7 +249,7 @@
       <div class="kpi-card">
         <div class="kpi-label">Total Gross Revenue</div>
         <div class="kpi-val" id="fin-gross">—</div>
-        <div class="kpi-sub">buyer payments (incl. shipping + tax)</div>
+        <div class="kpi-sub">sales after refunds, excl. tax</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Total Fees</div>
@@ -259,7 +259,7 @@
       <div class="kpi-card">
         <div class="kpi-label">Net Earnings</div>
         <div class="kpi-val green" id="fin-net">—</div>
-        <div class="kpi-sub">gross minus all fees</div>
+        <div class="kpi-sub">gross minus fees</div>
       </div>
     </div>
 
@@ -475,7 +475,7 @@
     <div class="ins-section">
       <div class="ins-section-head">
         <div class="ins-section-title">Reviews</div>
-        <div class="ins-note">reviews left in the selected period (at most the last 12 months)</div>
+        <div class="ins-note">reviews left in the selected period</div>
       </div>
       <div id="ins-reviews-status"></div>
       <div id="ins-reviews-body">

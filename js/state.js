@@ -8,7 +8,7 @@ export const state = {
   expandedRow:   null,
   activeTab:     'orders', // 'orders' | 'finances' | 'insights'
   shop:          null,     // the Etsy shop object (counts, reviews, currency)
-  ledgerSpan:    null,     // { from, to } the ledger actually covers (capped at 365 days)
+  ledgerSpan:    null,     // { from, to } the ledger covers (the period, or back to the oldest order)
 
   // Insights-only data, fetched when that tab is opened. Listings don't depend
   // on the date range, so they're kept across ranges for LISTINGS_TTL_MS.

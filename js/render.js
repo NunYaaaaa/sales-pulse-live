@@ -5,32 +5,31 @@ import { renderFeeChart, renderOrderCharts } from './charts.js';
 import { categoriseEntry, computeLedgerTotals, ledgerType } from './finance.js';
 import { renderInsights } from './insights-view.js';
 import { lineItems, state } from './state.js';
-import { escHtml, fmtMoney, getStatus, money, statusClass } from './util.js';
+import { escHtml, fmtMoney, getStatus, money, orderSales, statusClass } from './util.js';
 
 const $ = id => document.getElementById(id);
 
 // ─── KPIs ──────────────────────────────────────────────────────────────────
 export function renderKPIs() {
-  // Gross from receipts (what the buyer paid, including shipping + tax)
-  const gross = state.allOrders.reduce((s, o) => s + money(o.grandtotal), 0);
+  // Sales excl. sales tax from the orders until the ledger is in; then the
+  // ledger's gross (after refunds), so Gross − Fees = Net exactly.
+  const sales = state.allOrders.reduce((s, o) => s + orderSales(o), 0);
   const count = state.allOrders.length;
-  const aov   = count ? gross / count : 0;
 
-  $('kpi-revenue').textContent = fmtMoney(gross);
+  $('kpi-revenue').textContent = fmtMoney(sales);
+  $('kpi-revenue-sub').textContent = 'sales excl. tax · refunds load next';
   $('kpi-orders').textContent  = count;
-  $('kpi-aov').textContent     = fmtMoney(aov);
+  $('kpi-aov').textContent     = fmtMoney(count ? sales / count : 0);
   $('order-count').textContent = `${count} order${count !== 1 ? 's' : ''}`;
 
   if (state.detailsLoaded && state.ledgerEntries) {
-    const { feesCents, netCents } = computeLedgerTotals(state.ledgerEntries);
+    const { grossCents, feesCents, netCents } = computeLedgerTotals(state.ledgerEntries);
+    $('kpi-revenue').textContent     = fmtMoney(grossCents / 100);
+    $('kpi-revenue-sub').textContent = 'sales after refunds, excl. tax';
     $('kpi-fees').textContent     = fmtMoney(Math.abs(feesCents / 100));
     $('kpi-net').textContent      = fmtMoney(netCents / 100);
-    // The ledger only goes back 365 days; say so when the orders go further
-    const span    = state.ledgerSpan;
-    const clipped = span && state.allOrders.some(o => o.create_timestamp < span.from);
-    const note    = clipped ? ' · last 365 days only' : '';
-    $('kpi-fees-sub').textContent = 'txn + processing + ads + listing + labels' + note;
-    $('kpi-net-sub').textContent  = 'after fees, refunds & sales tax' + note;
+    $('kpi-fees-sub').textContent = 'txn + processing + ads + listing + labels';
+    $('kpi-net-sub').textContent  = 'gross minus fees';
   }
 }
 

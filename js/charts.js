@@ -2,7 +2,7 @@
 import { FEE_GROUPS, FEE_OTHER_COLOR, FEE_REFUND_OF, PALETTE } from './config.js';
 import { categoriseEntry, ledgerType } from './finance.js';
 import { lineItems, state } from './state.js';
-import { bucketStart, escHtml, fmtMoney, money, pickBucket, weekdayCounts } from './util.js';
+import { bucketStart, escHtml, fmtMoney, money, orderSales, pickBucket, weekdayCounts } from './util.js';
 
 const $ = id => document.getElementById(id);
 
@@ -18,7 +18,7 @@ export function bucketOrders(orders, bucketSize) {
   for (const o of orders) {
     const b = bucketStart(o.create_timestamp, bucketSize);
     map[b.key] ??= { label: b.label, ts: b.ts, revenue:0, count:0 };
-    map[b.key].revenue += money(o.grandtotal);
+    map[b.key].revenue += orderSales(o);
     map[b.key].count++;
   }
   return Object.values(map).sort((a, b) => a.ts - b.ts);
@@ -229,9 +229,9 @@ function renderRevChart() {
   const bucket = autoBucket(orders);
   const data   = bucketOrders(orders, bucket);
   const isRev  = state.revChartMode === 'revenue';
-  const total  = orders.reduce((s, o) => s + (isRev ? money(o.grandtotal) : 1), 0);
+  const total  = orders.reduce((s, o) => s + (isRev ? orderSales(o) : 1), 0);
   subEl.textContent = isRev
-    ? `${fmtMoney(total)} total · by ${bucket}`
+    ? `${fmtMoney(total)} in sales excl. tax · by ${bucket}`
     : `${total} orders · by ${bucket}`;
 
   const color = isRev ? '#d4622a' : '#3a7d4c';
@@ -254,7 +254,7 @@ function renderDowChart() {
 
   for (const o of state.allOrders) {
     const dow = new Date(o.create_timestamp * 1000).getDay();
-    tally[dow].revenue += money(o.grandtotal);
+    tally[dow].revenue += orderSales(o);
     tally[dow].count++;
   }
 

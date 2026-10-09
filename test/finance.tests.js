@@ -2,7 +2,7 @@
 import { bucketOrders, feeTally, groupFees } from '../js/charts.js';
 import { csvCell } from '../js/export.js';
 import { categoriseEntry, computeLedgerTotals } from '../js/finance.js';
-import { dateStrToTs, escHtml, localDateKey, weekdayCounts } from '../js/util.js';
+import { dateStrToTs, escHtml, localDateKey, orderSales, weekdayCounts } from '../js/util.js';
 
 function eq(actual, expected, msg = '') {
   const a = JSON.stringify(actual), e = JSON.stringify(expected);
@@ -122,6 +122,13 @@ export const tests = [
     const tally = feeTally(entries);
     eq(tally, { transaction: 450, shipping_labels: 738 });
     eq(Object.values(tally).reduce((s, c) => s + c, 0), -computeLedgerTotals(entries).feesCents, 'sums to Total Fees');
+  }],
+  ['orderSales leaves out sales tax and delivery fees', () => {
+    const usd = amount => ({ amount, divisor: 100 });
+    // Real Colorado order: 18.50 items + 5.39 shipping + 1.89 tax + 0.31 delivery fee = 26.09
+    eq(orderSales({ subtotal: usd(1850), total_shipping_cost: usd(539), total_tax_cost: usd(189), grandtotal: usd(2609) }), 23.89);
+    eq(orderSales({ subtotal: usd(1000), total_shipping_cost: usd(500), gift_wrap_price: usd(300), grandtotal: usd(1900) }), 18);
+    eq(orderSales({ grandtotal: usd(1080), total_tax_cost: usd(80) }), 10, 'no subtotal: grand total less tax');
   }],
   ['weekdayCounts counts every calendar day in the range, inclusive', () => {
     const ts = (y, m, d, h = 12) => new Date(y, m - 1, d, h).getTime() / 1000;

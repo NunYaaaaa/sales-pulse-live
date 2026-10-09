@@ -239,6 +239,8 @@ export function installMockApi({ latencyMs = 5 } = {}) {
       return json({ count: 1, results: [{ status: 'settled', amount_gross: usd(gross), amount_fees: usd(fees), amount_net: usd(gross - fees) }] });
     }
     if (/^\/application\/shops\/\d+\/payment-account\/ledger-entries$/.test(p)) {
+      // Like Etsy: the whole ledger is available, 31 days per request at most
+      if (max - min > 2678400) return json({ error: 'Time window between min_created and max_created must be no more than 2678400 seconds (31 days).' }, 400);
       const all = ledger.filter(e => inRange(e.created_timestamp));
       return json({ count: all.length, results: all.slice(offset, offset + limit) });
     }

@@ -12,6 +12,15 @@ export function money(obj) {
   if (!obj) return 0;
   return (obj.amount || 0) / (obj.divisor || 100);
 }
+/**
+ * An order's sales: items after discounts, plus shipping and gift wrap. Leaves
+ * out sales tax and state delivery fees, which the buyer pays but Etsy takes
+ * back out, so it matches the order's sale in the ledger before refunds.
+ */
+export function orderSales(o) {
+  if (!o.subtotal) return money(o.grandtotal) - money(o.total_tax_cost);
+  return money(o.subtotal) + money(o.total_shipping_cost) + money(o.gift_wrap_price);
+}
 // Shop currency (ISO 4217), set once the shop is loaded
 let currency = 'USD';
 export function setCurrency(code) { currency = code || 'USD'; }
