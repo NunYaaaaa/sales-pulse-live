@@ -49,6 +49,7 @@ export const LEDGER_TAXONOMY = {
     'listing_private_refund',
     'shipping_label_refund',
     'shipping_label_usps_adjustment_credit', // USPS postage adjustment credited back
+    'SELLER_DRIVEN_TRAFFIC_CREDIT',          // Share & Save: 4% of a sale the seller's own link brought in
   ]),
   // ── SALES TAX: PAYMENT_GROSS includes the tax the buyer paid; Etsy then
   //    debits it (sales_tax, negative) and credits it back on refunds
@@ -100,6 +101,7 @@ export const LEDGER_LABEL = {
   'listing_private_refund':     'Private listing fee refund',
   'shipping_label_refund':      'Shipping label refund',
   'shipping_label_usps_adjustment_credit': 'USPS label adjustment credit',
+  'SELLER_DRIVEN_TRAFFIC_CREDIT':          'Share & Save credit',
   'DISBURSE':                   'Payout to bank',
   'DISBURSE2':                  'Payout to bank',
   'deposit':                    'Deposit',
@@ -136,6 +138,7 @@ export const FEE_REFUND_OF = {
   listing_private_refund:                'listing_private',
   shipping_label_refund:                 'shipping_labels',
   shipping_label_usps_adjustment_credit: 'shipping_labels',
+  SELLER_DRIVEN_TRAFFIC_CREDIT:          'transaction', // credited against the sale's fees
 };
 
 // Ledger types the Insights tab reports on separately (they're also counted in the fee totals).

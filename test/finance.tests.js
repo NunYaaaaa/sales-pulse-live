@@ -35,6 +35,15 @@ export const tests = [
       eq(categoriseEntry(entry(t, 5000)), 'tax', t);
     }
   }],
+  ['Share & Save and unknown credits reduce fees instead of counting as sales', () => {
+    eq(categoriseEntry(entry('SELLER_DRIVEN_TRAFFIC_CREDIT', 116)), 'refund');
+    eq(categoriseEntry(entry('SOME_NEW_CREDIT', 50)), 'refund');
+    eq(categoriseEntry(entry('mystery_refund', 50)), 'refund');
+    const entries = [entry('PAYMENT_GROSS', 3131), entry('sales_tax', -232), entry('transaction', -154), entry('SELLER_DRIVEN_TRAFFIC_CREDIT', 116)];
+    const t = computeLedgerTotals(entries);
+    eq([t.grossCents, t.feesCents, t.netCents], [2899, -38, 2861]);
+    eq(feeTally(entries), { transaction: 38 });
+  }],
   ['USPS label adjustment credit is a refund that reduces fees', () => {
     eq(categoriseEntry(entry('shipping_label_usps_adjustment_credit', 102)), 'refund');
     const t = computeLedgerTotals([entry('PAYMENT_GROSS', 5000), entry('shipping_labels', -840), entry('shipping_label_usps_adjustment_credit', 102)]);
