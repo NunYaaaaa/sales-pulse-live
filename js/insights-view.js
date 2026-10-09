@@ -1,7 +1,7 @@
 // ─── INSIGHTS TAB (rendering) ──────────────────────────────────────────────
 // Draws the Insights panels from state. The numbers come from the pure
 // functions in insights.js; this module only formats and escapes them.
-import { FEE_GROUPS, FEE_OTHER_COLOR, LABEL_FEES, LABEL_REFUNDS, PALETTE } from './config.js';
+import { FEE_GROUPS, FEE_OTHER_COLOR, LABEL_FEES, LABEL_REFUNDS, MAX_LOOKBACK, PALETTE } from './config.js';
 import { animateBars, DAY_NAMES, drawBarChart, drawHeatmap, drawLineChart, hourLabel, setToggleActive } from './charts.js';
 import {
   adSpend, backlog, basketStats, customerStats, discountStats, feeRateSeries, fulfilment, geography,
@@ -507,19 +507,24 @@ function renderReviews(orders) {
   status.innerHTML = '';
   body.style.display = '';
 
-  const r = reviewStats(state.reviews, orders, { from: state.filterFrom, to: state.filterTo });
+  // Reviews are fetched for the last 365 days at most (see ensureInsightsData).
+  // When the period is longer, compare them with that window's orders only.
+  const reviewsFrom = Math.max(state.filterFrom ?? 0, Math.floor(Date.now() / 1000) - MAX_LOOKBACK);
+  const clipped = orders.some(o => o.create_timestamp < reviewsFrom);
+  const when    = clipped ? 'in the last 12 months' : 'this period';
+  const r = reviewStats(state.reviews, orders.filter(o => o.create_timestamp >= reviewsFrom), { from: reviewsFrom, to: state.filterTo });
   const fiveStar = r.count ? r.stars[0].count / r.count : null;
   const lowCount = r.stars.slice(2).reduce((s, x) => s + x.count, 0);
   $('ins-review-kpis').innerHTML = [
-    kpi('Average Rating', r.avg == null ? '—' : `${r.avg.toFixed(2)} ★`, `${plural(r.count, 'review')} this period`),
-    kpi('5-Star Reviews', pct(fiveStar, 0), 'of reviews this period', 'green'),
-    kpi('Rated 3 or Less', fmtNum(lowCount), 'reviews this period', lowCount ? 'red' : ''),
-    kpi('Items Reviewed', pct(r.coverage, 0), r.items ? `${fmtNum(r.itemsReviewed)} of ${fmtNum(r.items)} items sold this period, so far` : 'no items to match'),
+    kpi('Average Rating', r.avg == null ? '—' : `${r.avg.toFixed(2)} ★`, `${plural(r.count, 'review')} ${when}`),
+    kpi('5-Star Reviews', pct(fiveStar, 0), `of reviews ${when}`, 'green'),
+    kpi('Rated 3 or Less', fmtNum(lowCount), `reviews ${when}`, lowCount ? 'red' : ''),
+    kpi('Items Reviewed', pct(r.coverage, 0), r.items ? `${fmtNum(r.itemsReviewed)} of ${fmtNum(r.items)} items sold ${when}, so far` : 'no items to match'),
   ].join('');
 
   const title = listingTitles(orders);
   if (!r.count) {
-    $('ins-stars').innerHTML = $('ins-review-listings').innerHTML = $('ins-low-reviews').innerHTML = empty('No reviews were left in this period.');
+    $('ins-stars').innerHTML = $('ins-review-listings').innerHTML = $('ins-low-reviews').innerHTML = empty(`No reviews were left ${when}.`);
     $('ins-rating-svg').innerHTML = '';
     $('ins-rating-sub').textContent = '—';
     return;
@@ -528,7 +533,8 @@ function renderReviews(orders) {
   setHtml($('ins-stars'), `<div class="top-prod-rows">${barRows(r.stars.map(s => ({ ...s, color: STAR_COLORS[s.stars] })), {
     name: s => `${s.stars} star${s.stars === 1 ? '' : 's'}`, value: s => s.count, fmt: s => fmtNum(s.count),
     sub: s => pct(s.count / r.count, 0),
-  })}</div>` + caveat("Buyers review days or weeks after delivery, so recent periods show fewer reviews."));
+  })}</div>` + caveat("Buyers review days or weeks after delivery, so recent periods show fewer reviews." +
+    (clipped ? ' Reviews are loaded for the last 12 months only.' : '')));
 
   $('ins-rating-sub').textContent = `${r.monthly.length} month${r.monthly.length === 1 ? '' : 's'} · hover a bar for its review count`;
   drawBarChart($('ins-rating-svg'), $('ins-rating-tooltip'), r.monthly, 'avg', v => `${v.toFixed(2)} ★`, '#b8860b',

@@ -5,6 +5,7 @@ export const ETSY_TOKEN_URL = `${WORKER_BASE}/token`;
 export const ETSY_API_BASE  = WORKER_BASE;
 export const SCOPES         = 'transactions_r listings_r shops_r';
 export const PAGE_SIZE      = 25;
+export const MAX_LOOKBACK   = 365 * 24 * 60 * 60; // ledger and reviews are fetched at most this far back (seconds)
 
 // ─── LEDGER TAXONOMY ───────────────────────────────────────────────────────
 // How each ledger entry type should be categorised for financial reporting.

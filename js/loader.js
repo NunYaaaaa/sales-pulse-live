@@ -1,6 +1,7 @@
 // ─── DATA LOADING PIPELINE + DATE FILTER ───────────────────────────────────
 import { ApiError, AuthError, etsyFetch, fetchLedger, fetchListings, fetchOrders, fetchPayment, fetchReviews, fetchTransactions, isAbort } from './api.js';
 import { renderOrderCharts } from './charts.js';
+import { MAX_LOOKBACK } from './config.js';
 import { renderInsights } from './insights-view.js';
 import { renderFinances, renderKPIs, renderTable } from './render.js';
 import { session } from './session.js';
@@ -13,7 +14,6 @@ const $ = id => document.getElementById(id);
 const FINANCES_PLACEHOLDER =
   `<tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">Click "⚡ Load full details" to fetch ledger data.</td></tr>`;
 
-const MAX_LOOKBACK = 365 * 24 * 60 * 60;
 const LISTINGS_TTL_MS = 10 * 60 * 1000;
 
 // Only one load runs at a time. Starting a new one aborts the previous run,
