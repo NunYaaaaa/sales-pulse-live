@@ -1,11 +1,11 @@
 // ─── EXPORTS ───────────────────────────────────────────────────────────────
 import { LEDGER_LABEL } from './config.js';
 import { categoriseEntry, computeLedgerTotals } from './finance.js';
-import { bestPaymentAmount, hasRefund } from './render.js';
+import { bestPaymentAmount, refundedAmount } from './render.js';
 import { ensurePayments } from './loader.js';
 import { showError } from './ui.js';
 import { lineItems, state } from './state.js';
-import { getCurrency, getStatus, localDateKey, money } from './util.js';
+import { getCurrency, getStatus, localDateKey, money, orderSales } from './util.js';
 
 /**
  * Quote a CSV cell. Text starting with = + - @ (or tab/CR) is prefixed with '
@@ -49,7 +49,7 @@ export const exportJSON = btn => withPayments(btn, ordersJSON);
 
 function ordersCSV() {
   const cur = getCurrency();
-  const headers = ['Receipt ID','Date','Buyer','Items','Payment Method','Status',`Gross (${cur})`,`Shipping (${cur})`,`Tax (${cur})`,`Discount (${cur})`,`Processing Fee (${cur})`,`Net after proc. fee (${cur})`,'Refunded'];
+  const headers = ['Receipt ID','Date','Buyer','Items','Payment Method','Status',`Order Total (${cur})`,`Sales excl. tax (${cur})`,`Shipping (${cur})`,`Tax (${cur})`,`Discount (${cur})`,`Processing Fee (${cur})`,`Net after proc. fee (${cur})`,`Refunded (${cur})`];
   const rows = state.allOrders.map(o => {
     const pay = state.payments[o.receipt_id];
     return [
@@ -60,12 +60,13 @@ function ordersCSV() {
       o.payment_method || '',
       getStatus(o),
       money(o.grandtotal).toFixed(2),
+      orderSales(o).toFixed(2),
       money(o.total_shipping_cost).toFixed(2),
       money(o.total_tax_cost).toFixed(2),
       money(o.discount_amt).toFixed(2),
       pay ? Math.abs(bestPaymentAmount(pay, 'fees')).toFixed(2) : '',
       pay ? bestPaymentAmount(pay, 'net').toFixed(2) : '',
-      hasRefund(pay) ? 'Yes' : 'No',
+      refundedAmount(o, pay).toFixed(2),
     ];
   });
   download('orders_export.csv', toCSV([headers, ...rows]), 'text/csv');
@@ -85,13 +86,14 @@ function ordersJSON() {
       is_gift:            o.is_gift || false,
       gift_message:       o.gift_message || null,
       ship_to:            [o.city, o.state, o.country_iso].filter(Boolean).join(', ') || null,
-      gross:              money(o.grandtotal),
+      order_total:        money(o.grandtotal),   // what the buyer paid, incl. tax
+      sales_excl_tax:     Math.round(orderSales(o) * 100) / 100,
       shipping:           money(o.total_shipping_cost),
       tax:                money(o.total_tax_cost),
       discount:           money(o.discount_amt),
       processing_fee:     pay ? Math.abs(bestPaymentAmount(pay, 'fees')) : null,
       net_after_proc_fee: pay ? bestPaymentAmount(pay, 'net') : null,
-      refunded:           hasRefund(pay),
+      refunded:           refundedAmount(o, pay),
       pay_status:         pay?.status || null,
       line_items: (lineItems(o) || []).map(t => ({
         title:    t.title || null,

@@ -216,6 +216,17 @@ export function hasRefund(pay) {
   return !!(pay && pay.adjusted_gross && pay.adjusted_gross.amount != null);
 }
 
+/**
+ * Amount refunded to the buyer. The receipt's own refunds come first: an
+ * order canceled before shipping never gets a payment record, so the payment
+ * can't be the only source. Falls back to the payment's adjusted gross.
+ */
+export function refundedAmount(o, pay) {
+  const fromReceipt = (o.refunds || []).reduce((s, r) => s + money(r.amount), 0);
+  if (fromReceipt) return Math.round(fromReceipt * 100) / 100;
+  return hasRefund(pay) ? Math.round((money(pay.amount_gross) - money(pay.adjusted_gross)) * 100) / 100 : 0;
+}
+
 function renderDetailPanel(td, o, detail) {
   const pay = detail?.payment;
   const txs = detail?.transactions || [];
@@ -230,7 +241,7 @@ function renderDetailPanel(td, o, detail) {
   // Total Etsy fees only appear in the ledger.
   const netAmt   = pay ? bestPaymentAmount(pay, 'net')  : null;
   const feesAmt  = pay ? bestPaymentAmount(pay, 'fees') : null;
-  const refunded = hasRefund(pay);
+  const refunded = refundedAmount(o, pay);
 
   const addr      = [o.city, o.state, o.country_iso].filter(Boolean).join(', ') || '—';
   const payMethod = o.payment_method ? escHtml(o.payment_method.replace(/_/g, ' ')) : '—';
@@ -242,7 +253,7 @@ function renderDetailPanel(td, o, detail) {
     { label:'Shipping',    val:fmtMoney(shipping),   cls:'' },
     { label:'Tax',         val:fmtMoney(tax),        cls:'' },
     ...(discount > 0 ? [{ label:'Discount', val:`−${fmtMoney(discount)}`, cls:'red' }] : []),
-    ...(refunded ? [{ label:'⚠ Refunded', val:'(see adjusted)', cls:'red' }] : []),
+    ...(refunded ? [{ label:'⚠ Refunded', val:`−${fmtMoney(refunded)}`, cls:'red' }] : []),
     ...(pay ? [
       { sep:true },
       { label:'Processing Fee', val:`−${fmtMoney(Math.abs(feesAmt))}`, cls:'red' },
