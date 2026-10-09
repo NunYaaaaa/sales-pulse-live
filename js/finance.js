@@ -15,7 +15,7 @@ export function ledgerType(e) {
  *
  * Rules (applied in order):
  *  1. Pass-throughs (DISBURSE, DISBURSE2, deposit) → 'passthrough'
- *  2. Sales tax (sales_tax, sales_tax_refund) → 'tax'
+ *  2. Collected for others (sales_tax, sales_tax_refund, buyer_fee) → 'collected'
  *  3. Explicit refund types → 'refund'
  *  4. Explicit fee types with negative amount → 'fee'
  *  5. Explicit revenue types with positive amount → 'revenue'
@@ -28,7 +28,7 @@ export function categoriseEntry(e) {
   const amt = e.amount; // in cents, may be negative
 
   if (LEDGER_TAXONOMY.passthrough.has(t)) return 'passthrough';
-  if (LEDGER_TAXONOMY.tax.has(t))         return 'tax';
+  if (LEDGER_TAXONOMY.collected.has(t))   return 'collected';
   if (LEDGER_TAXONOMY.refunds.has(t))     return 'refund';
   if (LEDGER_TAXONOMY.fees.has(t) && amt < 0) return 'fee';
   if (LEDGER_TAXONOMY.revenue.has(t) && amt > 0) return 'revenue';
@@ -42,19 +42,19 @@ export function categoriseEntry(e) {
 
 /**
  * Compute totals from ledger entries.
- * Returns { grossCents, feesCents, netCents, refundGrossCents, refundFeesCents, taxCents }
+ * Returns { grossCents, feesCents, netCents, refundGrossCents, refundFeesCents, collectedCents }
  *
- * Sales are recorded including the tax the buyer paid, and Etsy then takes
- * the tax back out, so tax entries are added to gross by their sign: gross
- * and net exclude sales tax, and net equals the balance change from
- * everything except payouts.
+ * Sales are recorded including the sales tax and buyer fee the buyer paid,
+ * and Etsy then takes them back out, so those entries are added to gross by
+ * their sign: gross and net exclude them, and net equals the balance change
+ * from everything except payouts.
  *
  * Etsy's refund entries are *negative* debits on the revenue side (the buyer
  * gets money back) and *positive* credits on the fee side (Etsy partially
  * refunds fees). We treat both correctly by always adding the raw amount.
  */
 export function computeLedgerTotals(entries) {
-  let grossCents = 0, feesCents = 0, refundGrossCents = 0, refundFeesCents = 0, taxCents = 0;
+  let grossCents = 0, feesCents = 0, refundGrossCents = 0, refundFeesCents = 0, collectedCents = 0;
 
   for (const e of entries) {
     const cat = categoriseEntry(e);
@@ -62,7 +62,7 @@ export function computeLedgerTotals(entries) {
 
     if (cat === 'revenue')     { grossCents += amt; }
     else if (cat === 'fee')    { feesCents  += amt; } // amt is negative → increases total fee magnitude
-    else if (cat === 'tax')    { taxCents   += amt; } // tax debits (negative) and tax refund credits (positive)
+    else if (cat === 'collected') { collectedCents += amt; } // tax / buyer-fee debits (negative), tax refund credits (positive)
     else if (cat === 'refund') {
       // Refund entries can be either negative (buyer refund reducing gross)
       // or positive (fee partial-refund crediting fees back).
@@ -73,9 +73,9 @@ export function computeLedgerTotals(entries) {
   }
 
   // Merge refund adjustments into the main buckets
-  const adjGrossCents = grossCents + refundGrossCents + taxCents; // net revenue after refunds, excl. sales tax
+  const adjGrossCents = grossCents + refundGrossCents + collectedCents; // net revenue after refunds, excl. tax and buyer fees
   const adjFeesCents  = feesCents  + refundFeesCents;      // net fees after refund credits (still negative)
   const netCents      = adjGrossCents + adjFeesCents;      // fees are negative, so this subtracts them
 
-  return { grossCents: adjGrossCents, feesCents: adjFeesCents, netCents, refundGrossCents, refundFeesCents, taxCents };
+  return { grossCents: adjGrossCents, feesCents: adjFeesCents, netCents, refundGrossCents, refundFeesCents, collectedCents };
 }

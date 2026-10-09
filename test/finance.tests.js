@@ -25,14 +25,14 @@ export const tests = [
       eq(categoriseEntry(entry(t, -100)), 'fee', t);
     }
   }],
-  ['payouts are pass-through; sales tax is its own category', () => {
+  ['payouts are pass-through; sales tax and buyer fees are collected for others', () => {
     for (const t of ['DISBURSE', 'DISBURSE2', 'deposit']) {
       eq(categoriseEntry(entry(t, -5000)), 'passthrough', t);
       eq(categoriseEntry(entry(t, 5000)), 'passthrough', t);
     }
-    for (const t of ['sales_tax', 'sales_tax_refund']) {
-      eq(categoriseEntry(entry(t, -5000)), 'tax', t);
-      eq(categoriseEntry(entry(t, 5000)), 'tax', t);
+    for (const t of ['sales_tax', 'sales_tax_refund', 'buyer_fee']) {
+      eq(categoriseEntry(entry(t, -5000)), 'collected', t);
+      eq(categoriseEntry(entry(t, 5000)), 'collected', t);
     }
   }],
   ['Share & Save and unknown credits reduce fees instead of counting as sales', () => {
@@ -60,7 +60,7 @@ export const tests = [
   }],
   ['ledger_type wins over type/description fallbacks', () => {
     eq(categoriseEntry({ ledger_type: 'DISBURSE2', type: 'sale', amount: -100 }), 'passthrough');
-    eq(categoriseEntry({ description: 'sales_tax', amount: -50 }), 'tax');
+    eq(categoriseEntry({ description: 'sales_tax', amount: -50 }), 'collected');
   }],
   ['computeLedgerTotals: sale incl. tax, tax debit, fees, payout', () => {
     // Etsy records the sale with the buyer's tax, then debits the tax
@@ -74,7 +74,11 @@ export const tests = [
     eq(t.grossCents, 10000, 'gross excludes tax');
     eq(t.feesCents, -975, 'fees');
     eq(t.netCents, 9025, 'net');
-    eq(t.taxCents, -800, 'tax');
+    eq(t.collectedCents, -800, 'tax');
+  }],
+  ['computeLedgerTotals: buyer fee is in the sale and taken back out, not a seller fee', () => {
+    const t = computeLedgerTotals([entry('PAYMENT_GROSS', 2611), entry('sales_tax', -189), entry('buyer_fee', -31), entry('transaction', -120)]);
+    eq([t.grossCents, t.feesCents, t.netCents], [2391, -120, 2271]);
   }],
   ['computeLedgerTotals: full refund with tax; net equals the non-payout balance change', () => {
     const entries = [
@@ -101,11 +105,13 @@ export const tests = [
     eq(t.refundFeesCents, 195, 'refundFees');
   }],
   ['computeLedgerTotals: empty input', () => {
-    eq(computeLedgerTotals([]), { grossCents: 0, feesCents: 0, netCents: 0, refundGrossCents: 0, refundFeesCents: 0, taxCents: 0 });
+    eq(computeLedgerTotals([]), { grossCents: 0, feesCents: 0, netCents: 0, refundGrossCents: 0, refundFeesCents: 0, collectedCents: 0 });
   }],
   ['groupFees merges listing + LISTING_FEE and sums to the total', () => {
-    const rows = groupFees({ listing: 20, LISTING_FEE: 20, transaction: 100, mystery_fee: 5, renew_sold: 5 });
+    const rows = groupFees({ listing: 20, LISTING_FEE: 20, transaction: 100, mystery_fee: 5, other_mystery: 5 });
     eq(rows.map(r => [r.label, r.cents]), [['Transaction Fees', 100], ['Listing Fees', 40], ['Other', 10]]);
+    const more = groupFees({ transaction: 100, transaction_quantity: 20, listing_private: 20, renew_sold_auto: 20, renew_sold: 20 });
+    eq(more.map(r => [r.label, r.cents]), [['Transaction Fees', 120], ['Listing Renewals', 40], ['Listing Fees', 20]]);
   }],
   ['feeTally nets fee refunds against their fee and matches Total Fees', () => {
     const entries = [

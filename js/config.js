@@ -51,13 +51,14 @@ export const LEDGER_TAXONOMY = {
     'shipping_label_usps_adjustment_credit', // USPS postage adjustment credited back
     'SELLER_DRIVEN_TRAFFIC_CREDIT',          // Share & Save: 4% of a sale the seller's own link brought in
   ]),
-  // ── SALES TAX: PAYMENT_GROSS includes the tax the buyer paid; Etsy then
-  //    debits it (sales_tax, negative) and credits it back on refunds
-  //    (sales_tax_refund, positive). Adding these to gross by their sign
-  //    leaves gross excluding tax. ──
-  tax: new Set([
+  // ── COLLECTED FROM THE BUYER for someone else: PAYMENT_GROSS includes
+  //    the sales tax and Etsy buyer fee the buyer paid; Etsy then debits
+  //    them (negative) and credits tax back on refunds (positive). Adding
+  //    these to gross by their sign leaves gross excluding them. ──
+  collected: new Set([
     'sales_tax',
     'sales_tax_refund',
+    'buyer_fee',       // Etsy's fee charged to the buyer, included in the order total
   ]),
   // ── PASS-THROUGHS: excluded from both gross and fees ──
   passthrough: new Set([
@@ -120,8 +121,12 @@ export const FEE_GROUPS = [
   { key:'LISTING_FEE',           label:'Listing Fees',       color:'#65a30d' }, // merged with 'listing' by label
   { key:'marketing',             label:'Marketing',          color:'#7c3aed' },
   { key:'gift_wrap_fees',        label:'Gift Wrap',          color:'#be185d' },
-  { key:'buyer_fee',             label:'Buyer Fees',         color:'#92400e' },
   { key:'auto_renew_expired',    label:'Expired Renewals',   color:'#6b7280' },
+  // Merged into the rows above by label
+  { key:'transaction_quantity',  label:'Transaction Fees',   color:'#3a7d4c' },
+  { key:'listing_private',       label:'Listing Fees',       color:'#65a30d' },
+  { key:'renew_sold',            label:'Listing Renewals',   color:'#db2777' },
+  { key:'renew_expired',         label:'Expired Renewals',   color:'#6b7280' },
 ];
 export const FEE_OTHER_COLOR = '#a89e90';
 

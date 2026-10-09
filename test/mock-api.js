@@ -67,6 +67,7 @@ function buildData() {
     const giftWrap  = isGift ? 300 : 0;
     const subtotal  = itemTotal - discount;
     const shipping = 500, tax = Math.round(subtotal * 0.08);
+    const buyerFee = i % 33 === 8 ? 31 : 0; // Etsy's buyer fee: in the order total, then debited from the seller
 
     // Status, refunds and shipping
     let status = baseStatus;
@@ -104,7 +105,7 @@ function buildData() {
       message_from_buyer: i === 1 ? '=HYPERLINK("http://evil")' : '',
       total_price: usd(itemTotal), subtotal: usd(subtotal), total_shipping_cost: usd(shipping),
       total_tax_cost: usd(tax), discount_amt: usd(discount), gift_wrap_price: usd(giftWrap),
-      grandtotal: usd(subtotal + shipping + tax + giftWrap),
+      grandtotal: usd(subtotal + shipping + tax + giftWrap + buyerFee),
       transaction_count: n, transactions,
       shipments: isShipped && !digital
         ? [{ receipt_shipping_id: rid, shipment_notification_timestamp: shippedTs, carrier_name: 'USPS', tracking_code: `9400${rid}` }]
@@ -113,8 +114,9 @@ function buildData() {
     });
 
     // As in real ledgers: the sale includes the buyer's tax, then Etsy debits the tax
-    addLedger(ts, 'PAYMENT_GROSS', subtotal + shipping + giftWrap + tax, 'receipt', rid);
+    addLedger(ts, 'PAYMENT_GROSS', subtotal + shipping + giftWrap + tax + buyerFee, 'receipt', rid);
     addLedger(ts, 'sales_tax', -tax, 'receipt', rid);
+    if (buyerFee) addLedger(ts, 'buyer_fee', -buyerFee, 'receipt', rid);
     addLedger(ts, 'transaction', -Math.round(subtotal * 0.065), 'transaction', rid);
     addLedger(ts, 'PAYMENT_PROCESSING_FEE', -Math.round((subtotal + shipping) * 0.03 + 25), 'payment', rid);
     addLedger(ts, 'listing', -20, 'listing', rid);

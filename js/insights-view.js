@@ -208,7 +208,7 @@ function renderComposition(orders) {
       fmt: r => (r.amt < 0 ? '−' : '') + fmtMoney(Math.abs(r.amt)),
       sub: r => c.grand ? `${pct(r.amt / c.grand)} of gross` : '',
     })}</div>` +
-    caveat(`These add up to Total Gross (${fmtMoney(c.grand)}). Sales tax is collected for the tax authority. "Other" is anything the parts don't explain, such as VAT.`));
+    caveat(`These add up to Total Gross (${fmtMoney(c.grand)}). Sales tax is collected for the tax authority. "Other" is anything the parts don't explain, such as Etsy's buyer fee or VAT.`));
 }
 
 function renderPayouts(entries) {
