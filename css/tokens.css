@@ -3,7 +3,7 @@
 :root {
   --cream:#fdf6ee; --offwhite:#f7f2eb; --paper:#f0ebe2;
   --border:#e2ddd4; --border2:#d4cec5;
-  --ink:#1a1108; --ink2:#3d3022; --muted:#7a6a58; --muted2:#a89e90;
+  --ink:#1a1108; --ink2:#3d3022; --muted:#7a6a58; --muted2:#857a6b; /* muted2 was #a89e90: 2.3:1 on these backgrounds, too faint for small text; now ~3.8:1, still lighter than muted */
   --orange:#d4622a; --green:#3a7d4c; --purple:#5a3d9e; --gold:#b8860b;
   --orange-bg:#fde8d8; --orange-bd:#f5c5a8;
   --green-bg:#d8eddf;  --green-bd:#a8d4b5;
