@@ -14,7 +14,7 @@ import { bucketOptions, chooseBucket, escHtml, fmtMoney, getCurrency, markPartia
 const $ = id => document.getElementById(id);
 
 const POSTAGE = new Set([...LABEL_FEES, ...LABEL_REFUNDS]);
-const NO_ORDERS     = 'No orders to show yet.';
+const NO_ORDERS     = 'No orders in this period.'; // as the charts say it; "yet" read oddly for a past period
 const LEDGER_WAIT   = 'Financial details are still loading.';
 
 const pct     = (x, digits = 1) => x == null || !isFinite(x) ? '—' : `${(x * 100).toFixed(digits)}%`;
