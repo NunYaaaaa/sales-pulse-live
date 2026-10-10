@@ -210,8 +210,10 @@ function positionTooltip(tip, svgEl, svgX, svgY) {
   const scaleY = rect.height / (parseFloat(svgEl.getAttribute('viewBox')?.split(' ')[3]) || rect.height);
   const left = (rect.left - cRect.left) + svgX * scaleX;
   const top  = (rect.top  - cRect.top)  + svgY * scaleY - 52;
-  // Keep inside canvas
-  tip.style.left = Math.max(0, left - 50) + 'px';
+  // Keep inside the canvas on both sides: the content is already set, and the tooltip
+  // doesn't wrap, so its width is known (the last point's tooltip used to run off the right)
+  const maxLeft = Math.max(0, cRect.width - tip.offsetWidth);
+  tip.style.left = Math.min(Math.max(0, left - 50), maxLeft) + 'px';
   tip.style.top  = Math.max(0, top) + 'px';
 }
 
