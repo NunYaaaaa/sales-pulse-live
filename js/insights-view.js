@@ -316,7 +316,7 @@ function renderGeo(orders) {
   setHtml(el, barRows(rows, {
     name: r => byState ? r.key : countryName(r.key),
     value: r => r.revenue, fmt: r => fmtMoney(r.revenue),
-    sub: r => `${plural(r.orders, 'order')} · ${pct(r.orders / g.known)}`,
+    sub: r => `${plural(r.orders, 'order')} (${pct(r.orders / g.known)})`, // the share is of orders; bars and values are revenue
   }) + note);
 }
 
