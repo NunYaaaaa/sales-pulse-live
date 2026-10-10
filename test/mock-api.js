@@ -223,7 +223,7 @@ export function installMockApi({ latencyMs = 5 } = {}) {
     if (/^\/application\/users\/\d+\/shops$/.test(p)) {
       return json({
         shop_id: SHOP_ID, shop_name: 'MockShop', currency_code: window.mockCurrency || 'USD',
-        num_favorers: 1843, listing_active_count: 132, digital_listing_count: 4, transaction_sold_count: 2318,
+        num_favorers: 1843, listing_active_count: listings.filter(l => l.state === 'active').length, digital_listing_count: 4, transaction_sold_count: 2318,
         review_count: 212, review_average: 4.83, is_vacation: false,
       });
     }

@@ -128,8 +128,10 @@ export function drawLineChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, to
  * Draw a vertical bar chart. A null value keeps its slot, drawn as a faint
  * baseline stub, so periods with nothing to show aren't skipped.
  * tooltipHtml(d) overrides the default tooltip; it must escape any API text itself.
+ * values: print each bar's value above it (true: with fmtFn, or a shorter formatter),
+ * where the bar is wide enough for the text.
  */
-export function drawBarChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, tooltipHtml = null) {
+export function drawBarChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, tooltipHtml = null, { values = false } = {}) {
   const W = svgEl.clientWidth || 400;
   const H = 140;
   const PAD = { top:12, right:8, bottom:28, left:8 };
@@ -158,9 +160,13 @@ export function drawBarChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, too
     const lbl = (i % labelStep === 0 || i === n-1)
       ? `<text x="${(x + barW/2).toFixed(1)}" y="${H-4}" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">${escHtml(d.label)}</text>`
       : '';
+    const valText = values && !none ? String((typeof values === 'function' ? values : fmtFn)(v)) : '';
+    const val = valText && valText.length * 5 <= barW + gap
+      ? `<text x="${(x + barW/2).toFixed(1)}" y="${(y - 4).toFixed(1)}" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted)" pointer-events="none" class="chart-val">${escHtml(valText)}</text>`
+      : '';
     return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"
         rx="${none ? 1 : 3}" fill="${none ? 'var(--border2)' : color}" opacity="0.85" class="chart-bar" data-i="${i}" style="cursor:pointer;transition:opacity 0.15s"/>
-      ${lbl}`;
+      ${val}${lbl}`;
   }).join('');
 
   svgEl.querySelectorAll('.chart-bar').forEach(bar => {
@@ -263,7 +269,7 @@ export function renderRevChart() {
   const isRev  = state.revChartMode === 'revenue';
   const total  = orders.reduce((s, o) => s + (isRev ? orderSales(o) : 1), 0);
   subEl.textContent = isRev
-    ? `${fmtMoney(total)} in sales excl. tax · by ${bucket}`
+    ? `${fmtMoney(total)} in sales before refunds, excl. tax · by ${bucket}`
     : `${total} orders · by ${bucket}`;
 
   const color = isRev ? '#d4622a' : '#3a7d4c';

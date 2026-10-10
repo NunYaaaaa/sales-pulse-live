@@ -48,6 +48,20 @@ export function statusClass(s) {
   if (sl === 'open' || sl === 'payment processing') return 's-open';
   return 's-other';
 }
+// Etsy's receipt payment_method codes
+const PAYMENT_METHODS = {
+  cc: 'Card', paypal: 'PayPal', check: 'Check', mo: 'Money order', bt: 'Bank transfer', other: 'Other',
+  ideal: 'iDEAL', sofort: 'Sofort', apple_pay: 'Apple Pay',
+  google: 'Google Pay', google_pay: 'Google Pay', android_pay: 'Google Pay',
+  klarna: 'Klarna', k_pay_in_4: 'Klarna Pay in 4', k_pay_in_3: 'Klarna Pay in 3', k_financing: 'Klarna financing',
+};
+/** How a payment method reads to the seller; an unknown code is shown as words. */
+export function paymentMethodLabel(code) {
+  if (!code) return '—';
+  if (PAYMENT_METHODS[code]) return PAYMENT_METHODS[code];
+  const words = String(code).replace(/_/g, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
 
 // ─── DATES ─────────────────────────────────────────────────────────────────
 // Everything is in the viewer's local timezone: presets, filter bounds,

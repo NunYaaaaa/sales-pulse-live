@@ -2,7 +2,7 @@
 import { bucketOrders, feeTally, groupFees } from '../js/charts.js';
 import { csvCell } from '../js/export.js';
 import { categoriseEntry, computeLedgerTotals } from '../js/finance.js';
-import { dateStrToTs, escHtml, localDateKey, orderSales, weekdayCounts } from '../js/util.js';
+import { dateStrToTs, escHtml, localDateKey, orderSales, paymentMethodLabel, weekdayCounts } from '../js/util.js';
 
 function eq(actual, expected, msg = '') {
   const a = JSON.stringify(actual), e = JSON.stringify(expected);
@@ -174,6 +174,11 @@ export const tests = [
     eq(escHtml(`"><img src=x onerror='a'>&`), '&quot;&gt;&lt;img src=x onerror=&#39;a&#39;&gt;&amp;');
     eq(escHtml(null), '');
     eq(escHtml(0), '0');
+  }],
+  ['paymentMethodLabel names the Etsy payment codes', () => {
+    eq(['cc', 'paypal', 'apple_pay', 'ideal', 'k_pay_in_4'].map(paymentMethodLabel), ['Card', 'PayPal', 'Apple Pay', 'iDEAL', 'Klarna Pay in 4']);
+    eq(paymentMethodLabel('new_wallet'), 'New wallet', 'unknown codes read as words');
+    eq([paymentMethodLabel(null), paymentMethodLabel('')], ['—', '—']);
   }],
   ['csvCell neutralises formulas but keeps negative numbers', () => {
     eq(csvCell('=HYPERLINK("x")'), `"'=HYPERLINK(""x"")"`);

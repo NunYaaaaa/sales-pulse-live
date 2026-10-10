@@ -4,7 +4,7 @@ import { fetchPayment, fetchTransactions } from './api.js';
 import { renderFeeChart } from './charts.js';
 import { categoriseEntry, computeLedgerTotals, ledgerType } from './finance.js';
 import { lineItems, state } from './state.js';
-import { escHtml, fmtMoney, getStatus, money, orderSales, statusClass } from './util.js';
+import { escHtml, fmtMoney, getStatus, money, orderSales, paymentMethodLabel, statusClass } from './util.js';
 
 const $ = id => document.getElementById(id);
 
@@ -257,7 +257,7 @@ function renderDetailPanel(td, o, detail) {
   const refunded = refundedAmount(o, pay);
 
   const addr      = [o.city, o.state, o.country_iso].filter(Boolean).join(', ') || '—';
-  const payMethod = o.payment_method ? escHtml(o.payment_method.replace(/_/g, ' ')) : '—';
+  const payMethod = escHtml(paymentMethodLabel(o.payment_method));
   const payStatus = escHtml(pay?.status || '—');
 
   const stats = [
@@ -287,7 +287,7 @@ function renderDetailPanel(td, o, detail) {
   const infoHTML = `
     <div class="detail-col-info">
       <div class="detail-section-title">Order info</div>
-      <div class="detail-kv"><span class="detail-kv-label">Payment</span><span class="detail-kv-val" style="text-transform:capitalize">${payMethod}</span></div>
+      <div class="detail-kv"><span class="detail-kv-label">Payment</span><span class="detail-kv-val">${payMethod}</span></div>
       ${pay ? `<div class="detail-kv"><span class="detail-kv-label">Pay status</span><span class="detail-kv-val" style="text-transform:capitalize">${payStatus}</span></div>` : ''}
       ${refunded ? `<div class="detail-kv"><span class="detail-kv-label">Refunded</span><span class="detail-kv-val red">Yes</span></div>` : ''}
       <div class="detail-kv"><span class="detail-kv-label">Ship to</span><span class="detail-kv-val muted" title="${escHtml(addr)}">${escHtml(addr)}</span></div>

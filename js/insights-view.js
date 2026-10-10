@@ -341,7 +341,7 @@ function renderVariations(orders) {
         <span class="top-prod-sub">${plural(p.units, 'unit')}${p.dims ? ` · ${escHtml(p.dims)}` : ''}${p.otherNames.length ? ` · <span title="${hover}">renamed</span>` : ''}</span>
       </div>
       <div class="ins-seg">${segs.map(c => `<span style="width:${c.pct.toFixed(2)}%;background:${c.color}" title="${escHtml(c.label)}: ${c.units}"></span>`).join('')}</div>
-      <div class="ins-legend">${segs.map(c => `<span><i style="background:${c.color}"></i>${escHtml(c.label)}<b>${c.units}</b></span>`).join('')}</div>
+      <div class="ins-legend">${segs.map(c => `<span><i style="background:${c.color}"></i>${escHtml(c.label)}<b>×${c.units}</b></span>`).join('')}</div>
     </div>`;
   }).join('') + caveat('Units by variation combination. Personalization text is left out.');
 }
@@ -562,11 +562,12 @@ function renderReviews(orders) {
     sub: s => pct(s.count / r.count, 0),
   })}</div>` + caveat("Buyers review days or weeks after delivery, so recent periods show fewer reviews."));
 
-  $('ins-rating-sub').textContent = `${r.monthly.length} month${r.monthly.length === 1 ? '' : 's'} · hover a bar for its review count`;
+  $('ins-rating-sub').textContent = `${r.monthly.length} month${r.monthly.length === 1 ? '' : 's'} · hover or tap a bar for its review count`;
   drawBarChart($('ins-rating-svg'), $('ins-rating-tooltip'), r.monthly, 'avg', v => `${v.toFixed(2)} ★`, '#b8860b',
     d => d.avg === null
       ? `<strong>${escHtml(d.label)}</strong><br>No reviews`
-      : `<strong>${escHtml(d.label)}</strong><br>${d.avg.toFixed(2)} ★ average<br>${plural(d.count, 'review')}`);
+      : `<strong>${escHtml(d.label)}</strong><br>${d.avg.toFixed(2)} ★ average<br>${plural(d.count, 'review')}`,
+    { values: v => v.toFixed(1) });
 
   const top = r.byListing.slice(0, 8);
   setHtml($('ins-review-listings'), top.length
