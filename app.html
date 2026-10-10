@@ -81,12 +81,12 @@
         <div class="date-filter-bar" id="date-filter-bar">
           <span class="date-filter-label">Period</span>
           <div class="preset-chips">
-            <button class="preset-chip" data-action="preset" data-preset="7d">7 days</button>
-            <button class="preset-chip active" data-action="preset" data-preset="30d">30 days</button>
-            <button class="preset-chip" data-action="preset" data-preset="90d">90 days</button>
-            <button class="preset-chip" data-action="preset" data-preset="ytd">Year to date</button>
-            <button class="preset-chip" data-action="preset" data-preset="1y">12 months</button>
-            <button class="preset-chip" data-action="preset" data-preset="all">All time</button>
+            <button class="preset-chip" aria-pressed="false" data-action="preset" data-preset="7d">7 days</button>
+            <button class="preset-chip active" aria-pressed="true" data-action="preset" data-preset="30d">30 days</button>
+            <button class="preset-chip" aria-pressed="false" data-action="preset" data-preset="90d">90 days</button>
+            <button class="preset-chip" aria-pressed="false" data-action="preset" data-preset="ytd">Year to date</button>
+            <button class="preset-chip" aria-pressed="false" data-action="preset" data-preset="1y">12 months</button>
+            <button class="preset-chip" aria-pressed="false" data-action="preset" data-preset="all">All time</button>
           </div>
           <details class="custom-range">
             <summary>Custom range</summary>
@@ -199,14 +199,14 @@
             </div>
             <div class="ochart-controls">
               <div class="ochart-toggle">
-                <button class="ochart-toggle-btn active" data-action="chart-mode" data-chart="rev" data-mode="revenue">Revenue</button>
-                <button class="ochart-toggle-btn" data-action="chart-mode" data-chart="rev" data-mode="orders">Orders</button>
+                <button class="ochart-toggle-btn active" aria-pressed="true" data-action="chart-mode" data-chart="rev" data-mode="revenue">Revenue</button>
+                <button class="ochart-toggle-btn" aria-pressed="false" data-action="chart-mode" data-chart="rev" data-mode="orders">Orders</button>
               </div>
               <div class="ochart-toggle" id="rev-bucket" role="group" aria-label="Group by">
-                <button class="ochart-toggle-btn" data-action="chart-mode" data-chart="revBucket" data-mode="day">Day</button>
-                <button class="ochart-toggle-btn" data-action="chart-mode" data-chart="revBucket" data-mode="week">Week</button>
-                <button class="ochart-toggle-btn" data-action="chart-mode" data-chart="revBucket" data-mode="month">Month</button>
-                <button class="ochart-toggle-btn" data-action="chart-mode" data-chart="revBucket" data-mode="year">Year</button>
+                <button class="ochart-toggle-btn" aria-pressed="false" data-action="chart-mode" data-chart="revBucket" data-mode="day">Day</button>
+                <button class="ochart-toggle-btn" aria-pressed="false" data-action="chart-mode" data-chart="revBucket" data-mode="week">Week</button>
+                <button class="ochart-toggle-btn" aria-pressed="false" data-action="chart-mode" data-chart="revBucket" data-mode="month">Month</button>
+                <button class="ochart-toggle-btn" aria-pressed="false" data-action="chart-mode" data-chart="revBucket" data-mode="year">Year</button>
               </div>
             </div>
           </div>
@@ -223,8 +223,8 @@
               <div class="ochart-subtitle" id="top-prods-sub">—</div>
             </div>
             <div class="ochart-toggle">
-              <button class="ochart-toggle-btn active" data-action="chart-mode" data-chart="top" data-mode="revenue">Revenue</button>
-              <button class="ochart-toggle-btn" data-action="chart-mode" data-chart="top" data-mode="orders">Orders</button>
+              <button class="ochart-toggle-btn active" aria-pressed="true" data-action="chart-mode" data-chart="top" data-mode="revenue">Revenue</button>
+              <button class="ochart-toggle-btn" aria-pressed="false" data-action="chart-mode" data-chart="top" data-mode="orders">Orders</button>
             </div>
           </div>
           <div class="top-prod-rows" id="top-prod-rows">
@@ -291,8 +291,8 @@
                 <div class="ochart-subtitle" id="dow-chart-sub">avg. per day</div>
               </div>
               <div class="ochart-toggle">
-                <button class="ochart-toggle-btn active" data-action="chart-mode" data-chart="dow" data-mode="revenue">Revenue</button>
-                <button class="ochart-toggle-btn" data-action="chart-mode" data-chart="dow" data-mode="orders">Orders</button>
+                <button class="ochart-toggle-btn active" aria-pressed="true" data-action="chart-mode" data-chart="dow" data-mode="revenue">Revenue</button>
+                <button class="ochart-toggle-btn" aria-pressed="false" data-action="chart-mode" data-chart="dow" data-mode="orders">Orders</button>
               </div>
             </div>
             <div class="ochart-canvas" id="dow-chart-canvas">
@@ -403,8 +403,8 @@
             <div class="ochart-header">
               <div><div class="ochart-title">Where Orders Ship</div><div class="ochart-subtitle" id="ins-geo-sub">—</div></div>
               <div class="ochart-toggle">
-                <button class="ochart-toggle-btn active" data-action="insight-mode" data-key="insGeoMode" data-mode="country">Countries</button>
-                <button class="ochart-toggle-btn" data-action="insight-mode" data-key="insGeoMode" data-mode="us-state">US states</button>
+                <button class="ochart-toggle-btn active" aria-pressed="true" data-action="insight-mode" data-key="insGeoMode" data-mode="country">Countries</button>
+                <button class="ochart-toggle-btn" aria-pressed="false" data-action="insight-mode" data-key="insGeoMode" data-mode="us-state">US states</button>
               </div>
             </div>
             <div class="top-prod-rows" id="ins-geo"></div>
@@ -505,14 +505,14 @@
             </div>
             <div class="ochart-controls">
               <div class="ochart-toggle">
-                <button class="ochart-toggle-btn active" data-action="insight-mode" data-key="insFeeMode" data-mode="all">All fees</button>
-                <button class="ochart-toggle-btn" data-action="insight-mode" data-key="insFeeMode" data-mode="excl-postage">Excl. postage</button>
+                <button class="ochart-toggle-btn active" aria-pressed="true" data-action="insight-mode" data-key="insFeeMode" data-mode="all">All fees</button>
+                <button class="ochart-toggle-btn" aria-pressed="false" data-action="insight-mode" data-key="insFeeMode" data-mode="excl-postage">Excl. postage</button>
               </div>
               <div class="ochart-toggle" id="fee-bucket" role="group" aria-label="Group by">
-                <button class="ochart-toggle-btn" data-action="insight-mode" data-key="feeBucket" data-mode="day">Day</button>
-                <button class="ochart-toggle-btn" data-action="insight-mode" data-key="feeBucket" data-mode="week">Week</button>
-                <button class="ochart-toggle-btn" data-action="insight-mode" data-key="feeBucket" data-mode="month">Month</button>
-                <button class="ochart-toggle-btn" data-action="insight-mode" data-key="feeBucket" data-mode="year">Year</button>
+                <button class="ochart-toggle-btn" aria-pressed="false" data-action="insight-mode" data-key="feeBucket" data-mode="day">Day</button>
+                <button class="ochart-toggle-btn" aria-pressed="false" data-action="insight-mode" data-key="feeBucket" data-mode="week">Week</button>
+                <button class="ochart-toggle-btn" aria-pressed="false" data-action="insight-mode" data-key="feeBucket" data-mode="month">Month</button>
+                <button class="ochart-toggle-btn" aria-pressed="false" data-action="insight-mode" data-key="feeBucket" data-mode="year">Year</button>
               </div>
             </div>
           </div>

@@ -22,6 +22,7 @@ function disconnect() {
   // Reset filter bar UI back to 30d default
   document.querySelectorAll('.preset-chip').forEach(c => {
     c.classList.toggle('active', c.dataset.preset === '30d');
+    c.setAttribute('aria-pressed', String(c.dataset.preset === '30d'));
   });
   $('filter-from').value = '';
   $('filter-to').value   = '';

@@ -301,14 +301,17 @@ export function syncBucketToggle(el, options, current) {
   for (const btn of el.querySelectorAll('.ochart-toggle-btn')) {
     const o = options.find(x => x.size === btn.dataset.mode);
     btn.classList.toggle('active', btn.dataset.mode === current);
+    btn.setAttribute('aria-pressed', String(btn.dataset.mode === current));
     btn.disabled = !o?.ok;
     btn.title = !o || o.ok ? '' : o.count < 2 ? `The period is within one ${o.size}` : `Too many ${o.size}s to show; pick a shorter period`;
   }
 }
 
+/** Mark btn as the selected one in its toggle group, for sight and for screen readers. */
 export function setToggleActive(btn) {
   btn.closest('.ochart-toggle').querySelectorAll('.ochart-toggle-btn').forEach(b => {
     b.classList.toggle('active', b === btn);
+    b.setAttribute('aria-pressed', String(b === btn));
   });
 }
 

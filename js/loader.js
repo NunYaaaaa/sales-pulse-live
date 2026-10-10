@@ -352,8 +352,7 @@ const PRESETS = {
 };
 
 export function applyPreset(preset, el) {
-  document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
+  document.querySelectorAll('.preset-chip').forEach(c => { c.classList.toggle('active', c === el); c.setAttribute('aria-pressed', String(c === el)); });
 
   const [from, to] = PRESETS[preset]();
   $('filter-from').value = from || '';
@@ -379,7 +378,7 @@ export function applyCustomRange() {
     showError('Date range error: "From" must be before "To".'); return;
   }
 
-  document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.preset-chip').forEach(c => { c.classList.remove('active'); c.setAttribute('aria-pressed', 'false'); });
   setPeriodLabel(from || to ? `${from ? shortDate(from) : 'Start'} – ${to ? shortDate(to) : 'now'}` : 'All time');
   setDateFilter(from || null, to || null);
 }
