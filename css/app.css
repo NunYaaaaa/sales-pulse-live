@@ -752,3 +752,10 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
 #dash-error { align-items:flex-start; justify-content:space-between; gap:1rem; margin:0 0 1rem; }
 .error-dismiss { background:none; border:none; color:var(--orange); cursor:pointer; font-size:0.8rem; line-height:1; padding:0.1rem 0.2rem; flex-shrink:0; }
 .error-dismiss:hover { opacity:0.7; }
+
+/* Reduced motion: no decorative motion (blinking dot, shimmer, bars and details easing in). At the
+   end so it outranks the rules above. Spinners and the progress bar keep moving: they show work in progress. */
+@media (prefers-reduced-motion: reduce) {
+  .live-dot, .skeleton, .detail-inner { animation: none; }
+  .fee-bar-fill, .top-prod-bar-fill { transition: none; }
+}
