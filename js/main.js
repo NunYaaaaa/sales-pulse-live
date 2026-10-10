@@ -38,7 +38,8 @@ function disconnect() {
 // Click handlers keyed by data-action. `el` is the element carrying the attribute.
 const ACTIONS = {
   'connect':         () => startOAuth(),
-  'disconnect':      () => disconnect(),
+  // Disconnecting clears the keys from this tab, so a mis-tap would mean entering them again
+  'disconnect':      () => { if (confirm("Disconnect from Etsy? Your keys are cleared from this tab, so you'll need to enter them again to reconnect.")) disconnect(); },
   'load-details':    () => loadAllDetails(),
   'export-csv':      el => exportCSV(el),
   'export-json':     el => exportJSON(el),
