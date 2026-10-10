@@ -52,6 +52,12 @@ nav { position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-i
 
 /* DASHBOARD */
 #dashboard { display:none; padding:calc(var(--nav-h) + 1.75rem) var(--gutter) 4rem; max-width:1360px; margin:0 auto; }
+/* Keyboard users can jump past the rail (periods, tabs, section links) straight to the open tab */
+.skip-link { position:fixed; left:1rem; top:-4rem; z-index:200; background:var(--ink); color:var(--cream); padding:0.55rem 0.95rem; border-radius:10px; font-family:'DM Mono',monospace; font-size:0.7rem; text-decoration:none; }
+.skip-link:focus { top:calc(var(--nav-h) + 0.5rem); outline:2px solid var(--orange); outline-offset:2px; }
+.dash-main { scroll-margin-top:calc(var(--nav-h) + 1rem); }
+.dash-main:focus { outline:none; } /* focused only as the skip link's target */
+@media (max-width: 1023px) { .dash-main { scroll-margin-top:calc(var(--nav-h) + var(--strip-h) + 1rem); } }
 /* .dash-header is only used by the landing page's preview now */
 .dash-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:2rem; gap:1rem; flex-wrap:wrap; }
 .dash-shop-name { font-family:'Fraunces',serif; font-size:1.6rem; font-weight:700; letter-spacing:-0.03em; color:var(--ink); }
