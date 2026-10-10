@@ -415,7 +415,7 @@ function renderShipTime(orders) {
   }
   body.innerHTML = tiles(
     tile('Median', `${f.medianDays.toFixed(1)} days`),
-    tile('On time', pct(f.onTimeRate), f.withExpected ? "by Etsy's expected ship date" : 'no expected dates'),
+    tile('On time', pct(f.onTimeRate), f.withExpected ? "by Etsy's expected ship date" : 'no expected dates', '', f.late ? 'late' : null),
     tile('Shipped', fmtNum(f.shipped), 'physical orders'),
   ) + caveat("Until the order was marked shipped. Etsy's API has no delivery dates.");
   drawBarChart(svg, $('ins-ship-tooltip'), f.bins, 'count', v => plural(v, 'order'), '#3a7d4c',

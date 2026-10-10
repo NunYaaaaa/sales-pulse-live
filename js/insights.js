@@ -526,18 +526,9 @@ const SHIP_BINS = [[0, '0'], [1, '1'], [2, '2'], [3, '3'], [4, '4–5'], [6, '6�
  * Etsy's expected ship date (until the end of that day, local time).
  */
 export function fulfilment(orders) {
-  const days = [];
-  let onTime = 0, withExpected = 0;
-  for (const o of orders) {
-    if (isDigitalOnly(o) || NEVER_SHIPS.has(lower(o.status))) continue;
-    const { paid, shipped, expected } = shipTimes(o);
-    if (!shipped) continue;
-    days.push(Math.max(0, (shipped - paid) / 86400));
-    if (expected) {
-      withExpected++;
-      if (shipped <= endOfLocalDay(expected)) onTime++;
-    }
-  }
+  const list = shippedOrders(orders);
+  const days = list.map(s => s.days);
+  const withExpected = list.filter(s => s.expected).length, late = list.filter(s => s.late).length;
   const bins = SHIP_BINS.map(([min, label]) => ({ min, label, count: 0 }));
   for (const d of days) bins[binFor(bins, Math.floor(d))].count++;
   const sorted = [...days].sort((a, b) => a - b), mid = sorted.length >> 1;
@@ -545,9 +536,27 @@ export function fulfilment(orders) {
     shipped: days.length,
     medianDays: !sorted.length ? null : sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2,
     bins,
-    onTimeRate: withExpected ? onTime / withExpected : null,
-    withExpected,
+    onTimeRate: withExpected ? (withExpected - late) / withExpected : null,
+    withExpected, late,
   };
+}
+
+/**
+ * The physical orders fulfilment counts as shipped: paid, first marked
+ * shipped, Etsy's expected ship date, days from payment to shipping, and
+ * whether it shipped after the expected day ended (`late`, by `lateDays`
+ * whole days). Most late first, then the rest by days to ship.
+ */
+export function shippedOrders(orders) {
+  const out = [];
+  for (const o of orders) {
+    if (isDigitalOnly(o) || NEVER_SHIPS.has(lower(o.status))) continue;
+    const { paid, shipped, expected } = shipTimes(o);
+    if (!shipped) continue;
+    const over = expected ? shipped - endOfLocalDay(expected) : 0;
+    out.push({ order: o, paid, shipped, expected, days: Math.max(0, (shipped - paid) / 86400), late: over > 0, lateDays: over > 0 ? Math.ceil(over / 86400) : 0 });
+  }
+  return out.sort((a, b) => b.lateDays - a.lateDays || b.days - a.days);
 }
 
 const AGE_BINS = [[0, '0–1 days'], [2, '2–3 days'], [4, '4–7 days'], [8, '8+ days']];

@@ -3,7 +3,7 @@
 import { axisLabelShown, drawBarChart, drawHeatmap, drawLineChart, hourLabel } from '../js/charts.js';
 import {
   adSpend, aovBreakdown, backlog, basketStats, customerStats, discountedOrders, discountStats, feeBreakdown, feeRateSeries, fulfilment, geography, grossBreakdown, orderStatusCounts,
-  heatmapMatrix, labelEntries, listingStats, offsiteAdSales, payoutList, payoutStats, productKey, productNames, refundedOrders, refundStats, revenueComposition, reviewStats,
+  heatmapMatrix, labelEntries, listingStats, offsiteAdSales, payoutList, payoutStats, productKey, productNames, refundedOrders, refundStats, revenueComposition, reviewStats, shippedOrders,
   shippingPnL, topProducts, unshippedOrders, variationStats,
 } from '../js/insights.js';
 import { computeLedgerTotals } from '../js/finance.js';
@@ -385,6 +385,13 @@ export const tests = [
     eq(f.bins.map(b => b.count), [0, 1, 1, 0, 0, 1, 0, 0]);
     eq(f.onTimeRate, 2 / 3);
     eq(fulfilment([]).medianDays, null, 'empty');
+    const list = shippedOrders([
+      order({ transactions: [tx()], shipments: [{ shipment_notification_timestamp: at(2026, 3, 11, 9) }] }),
+      order({ transactions: [tx()], shipments: [{ shipment_notification_timestamp: at(2026, 3, 17, 9) }] }),
+      order({ transactions: [tx({ expected_ship_date: undefined })], shipments: [{ shipment_notification_timestamp: at(2026, 3, 20, 9) }] }),
+    ]);
+    eq(list.map(s => [s.late, s.lateDays]), [[true, 5], [false, 0], [false, 0]], 'late first; no expected date is never late');
+    eq([f.late, f.withExpected], [1, 3]);
   }],
   ['backlog: unshipped physical orders by age; overdue after the expected day ends', () => {
     const now = at(2026, 3, 20, 12);

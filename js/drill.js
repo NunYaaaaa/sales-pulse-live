@@ -4,7 +4,7 @@
 // total is the card's own figure. API text is escaped here.
 import { LEDGER_LABEL } from './config.js';
 import { computeLedgerTotals } from './finance.js';
-import { aovBreakdown, customerStats, discountedOrders, feeBreakdown, grossBreakdown, labelEntries, listingStats, offsiteAdSales, orderStatusCounts, payoutList, refundedOrders, reviewStats, unshippedOrders } from './insights.js';
+import { aovBreakdown, customerStats, discountedOrders, feeBreakdown, grossBreakdown, labelEntries, listingStats, offsiteAdSales, orderStatusCounts, payoutList, refundedOrders, reviewStats, shippedOrders, unshippedOrders } from './insights.js';
 import { listingTitles, reviewPeriod, stars } from './insights-view.js';
 import { ordersWithItems, state } from './state.js';
 import { escHtml, fmtMoney, money, orderSales } from './util.js';
@@ -108,6 +108,26 @@ const listingUrl = id => `https://www.etsy.com/listing/${encodeURIComponent(Stri
 
 const badge = (cls, text) => `<span class="ledger-type-badge ${cls}">${text}</span>`;
 const waited = days => days < 1 ? 'today' : plural(Math.floor(days), 'day');
+
+/** Shipped orders measured against Etsy's expected ship date, and the late ones, most late first (Orders tab). */
+function lateList() {
+  const list = shippedOrders(ordersWithItems()), dated = list.filter(s => s.expected), late = dated.filter(s => s.late);
+  const figure = dated.length ? `${((dated.length - late.length) / dated.length * 100).toFixed(1)}%` : '—';
+  if (!late.length) return { figure, html: empty("Every shipped order with an expected date went out by it.") };
+  const rows = late.map(s => ({
+    order: s.order,
+    sub: [`paid ${shortDate(s.paid)}`, `ship by ${shortDate(s.expected)}`].join(' · '),
+    mid: shortDate(s.shipped),
+    end: `${plural(s.lateDays, 'day')} late`,
+  }));
+  const undated = list.length - dated.length;
+  return {
+    figure,
+    html: tiles(['On time', fmtNum(dated.length - late.length)], ['Late', fmtNum(late.length)], ...(undated ? [['No expected date', fmtNum(undated)]] : [])) +
+      orderList(rows, { head: ['Order', 'Shipped', 'Late by'], totalLabel: `${fmtNum(dated.length - late.length)} of ${fmtNum(dated.length)} on time`, totalAmount: figure }) +
+      note("Physical orders from this period marked shipped after the end of Etsy's expected ship date, most late first. \"Shipped\" is when the order was first marked shipped; Etsy's API has no delivery dates."),
+  };
+}
 
 /** Physical orders not marked shipped yet (only the past-due ones when overdueOnly), oldest first. */
 function shipList(overdueOnly) {
@@ -379,6 +399,7 @@ const DRILLS = {
   'partially-refunded': { title: 'Partially Refunded Orders', build: () => refundList('partially refunded') },
   refunds:              { title: 'Refunded',                  build: () => refundList(null) },
   unshipped: { title: 'Not Shipped Yet', build: () => shipList(false) },
+  late:      { title: 'Shipped On Time', build: lateList },
   overdue:   { title: 'Past Due',        build: () => shipList(true) },
   aov: {
     title: 'Avg. Order Value',
