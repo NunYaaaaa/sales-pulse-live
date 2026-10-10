@@ -378,7 +378,7 @@ export function renderTopProducts() {
   }
 
   const maxVal = sorted[0][isRev ? 'revenue' : 'units'] || 1;
-  sub.textContent = `top ${sorted.length} of ${total} products`;
+  sub.textContent = sorted.length < total ? `top ${sorted.length} of ${total} products` : `all ${total} product${total === 1 ? '' : 's'}`;
 
   wrap.innerHTML = sorted.map((p, i) => {
     const val    = isRev ? p.revenue : p.units;
