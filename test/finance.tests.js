@@ -2,7 +2,7 @@
 import { bucketOrders, feeTally, groupFees } from '../js/charts.js';
 import { csvCell } from '../js/export.js';
 import { categoriseEntry, computeLedgerTotals, newestFirst } from '../js/finance.js';
-import { dateStrToTs, escHtml, localDateKey, orderSales, paymentMethodLabel, weekdayCounts } from '../js/util.js';
+import { dateStrToTs, escHtml, fmtMoneyWhole, localDateKey, orderSales, paymentMethodLabel, setCurrency, weekdayCounts } from '../js/util.js';
 
 function eq(actual, expected, msg = '') {
   const a = JSON.stringify(actual), e = JSON.stringify(expected);
@@ -180,6 +180,11 @@ export const tests = [
     const sorted = [e(1, 100, 10), e(2, 100, 11), e(3, 200, 12), e(4, 100, 9)].sort(newestFirst);
     eq(sorted.map(x => x.entry_id), [3, 2, 1, 4]);
     eq([{ entry_id: 5, created_timestamp: 1 }, { entry_id: 6, created_timestamp: 1 }].sort(newestFirst).map(x => x.entry_id), [6, 5], 'no sequence number: by entry ID');
+  }],
+  ['fmtMoneyWhole rounds to whole units in the shop currency', () => {
+    eq([fmtMoneyWhole(384.2), fmtMoneyWhole(1069.5), fmtMoneyWhole(0)], ['$384', '$1,070', '$0']);
+    setCurrency('EUR');
+    try { eq(fmtMoneyWhole(12.4), '€12'); } finally { setCurrency('USD'); }
   }],
   ['paymentMethodLabel names the Etsy payment codes', () => {
     eq(['cc', 'paypal', 'apple_pay', 'ideal', 'k_pay_in_4'].map(paymentMethodLabel), ['Card', 'PayPal', 'Apple Pay', 'iDEAL', 'Klarna Pay in 4']);

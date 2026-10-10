@@ -29,6 +29,11 @@ export function fmtMoney(n) {
   try { return new Intl.NumberFormat('en-US', { style:'currency', currency }).format(n); }
   catch { return `${n.toFixed(2)} ${currency}`; } // unknown currency code
 }
+/** Rounded to whole units ("$384"), for labels with little room. */
+export function fmtMoneyWhole(n) {
+  try { return new Intl.NumberFormat('en-US', { style:'currency', currency, maximumFractionDigits:0, minimumFractionDigits:0 }).format(n); }
+  catch { return `${Math.round(n)} ${currency}`; }
+}
 const HTML_ESCAPES = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
 /** Escape for both element content and quoted attribute values. */
 export function escHtml(s) {

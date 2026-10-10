@@ -3,7 +3,7 @@ import { FEE_GROUPS, FEE_OTHER_COLOR, FEE_REFUND_OF, PALETTE } from './config.js
 import { categoriseEntry, ledgerType } from './finance.js';
 import { topProducts } from './insights.js';
 import { lineItems, state } from './state.js';
-import { bucketRange, bucketStart, escHtml, fmtMoney, orderSales, pickBucket, weekdayCounts } from './util.js';
+import { bucketRange, bucketStart, escHtml, fmtMoney, fmtMoneyWhole, orderSales, pickBucket, weekdayCounts } from './util.js';
 
 const $ = id => document.getElementById(id);
 
@@ -294,7 +294,7 @@ export function renderRevChart() {
 
   // Use line for many points, bar for few
   if (data.length > 14) drawLineChart(svgEl, tipEl, data, key, fmtFn, color);
-  else                  drawBarChart(svgEl,  tipEl, data, key, fmtFn, color);
+  else                  drawBarChart(svgEl,  tipEl, data, key, fmtFn, color, null, { values: isRev ? fmtMoneyWhole : String });
 }
 
 // ── Day of week chart ────────────────────────────────────────────────────────
