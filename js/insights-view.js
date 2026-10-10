@@ -365,13 +365,13 @@ function renderBasket(orders) {
   $('ins-units-sub').textContent = b.avgUnits == null ? 'line items not loaded yet'
     : `avg. ${b.avgUnits.toFixed(2)} units · ${pct(b.multiShare)} of orders have 2+`;
   drawBarChart(uSvg, $('ins-units-tooltip'), b.unitBins, 'count', v => plural(v, 'order'), '#5a3d9e',
-    d => `<strong>${d.label} unit${d.label === '1' ? '' : 's'}</strong><br>${orderCount(d)}`);
+    d => `<strong>${d.label} unit${d.label === '1' ? '' : 's'}</strong><br>${orderCount(d)}`, { values: fmtNum });
 
   const range = d => d.max == null ? `${fmtShort(d.min)} or more` : `${fmtShort(d.min)} – ${fmtShort(d.max)}`;
   const data  = b.valueBins.map(d => ({ ...d, label: d.max == null ? `${fmtShort(d.min)}+` : fmtShort(d.min) }));
   $('ins-values-sub').textContent = `order totals incl. shipping + tax · ${fmtShort(b.step)} bands`;
   drawBarChart(vSvg, $('ins-values-tooltip'), data, 'count', v => plural(v, 'order'), '#2563eb',
-    d => `<strong>${range(d)}</strong><br>${orderCount(d)}`);
+    d => `<strong>${range(d)}</strong><br>${orderCount(d)}`, { values: fmtNum });
 }
 
 function renderDiscounts(orders) {
@@ -412,7 +412,7 @@ function renderShipTime(orders) {
     tile('Shipped', fmtNum(f.shipped), 'physical orders'),
   ) + caveat("Until the order was marked shipped. Etsy's API has no delivery dates.");
   drawBarChart(svg, $('ins-ship-tooltip'), f.bins, 'count', v => plural(v, 'order'), '#3a7d4c',
-    d => `<strong>${dayCount(d.label)}</strong><br>${plural(d.count, 'order')}`);
+    d => `<strong>${dayCount(d.label)}</strong><br>${plural(d.count, 'order')}`, { values: fmtNum });
 }
 
 function renderBacklog(orders, now) {
