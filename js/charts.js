@@ -62,7 +62,22 @@ export function axisLabelShown(i, labels, spacing) {
  * and breaks the line there.
  * tooltipHtml(d) overrides the default tooltip; it must escape any API text itself.
  */
+/**
+ * Give a chart an accessible name from its panel's title and subtitle (set
+ * before drawing), so screen readers announce "Revenue Over Time: $3,453.70 in
+ * sales … · by day" instead of skipping an unnamed graphic.
+ */
+export function labelChart(svgEl) {
+  const panel = svgEl.closest('.ochart-panel, .fee-chart-panel, .panel');
+  const title = panel?.querySelector('.ochart-title, .fee-chart-title, .panel-title')?.textContent.trim();
+  if (!title) return;
+  const sub = panel.querySelector('.ochart-subtitle')?.textContent.trim();
+  svgEl.setAttribute('role', 'img');
+  svgEl.setAttribute('aria-label', sub && sub !== '—' ? `${title}: ${sub}` : title);
+}
+
 export function drawLineChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, tooltipHtml = null) {
+  labelChart(svgEl);
   const W = svgEl.clientWidth || 400;
   const H = 140;
   const PAD = { top:12, right:12, bottom:28, left:8 };
@@ -152,6 +167,7 @@ export function drawLineChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, to
  * where the bar is wide enough for the text.
  */
 export function drawBarChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, tooltipHtml = null, { values = false } = {}) {
+  labelChart(svgEl);
   const W = svgEl.clientWidth || 400;
   const H = 140;
   const PAD = { top:12, right:8, bottom:28, left:8 };
@@ -239,6 +255,7 @@ export const hourLabel = h => `${h % 12 || 12}${h < 12 ? 'a' : 'p'}`;
  * each cell's shade; the tooltip also shows revenue[w][h] through fmtFn.
  */
 export function drawHeatmap(svgEl, tooltipEl, counts, revenue, color, fmtFn) {
+  labelChart(svgEl);
   const W = svgEl.clientWidth || 400;
   const LEFT = 30, TOP = 4, ROW = 16, GAP = 2, BOTTOM = 18;
   const H = TOP + 7 * ROW + BOTTOM;
@@ -490,6 +507,7 @@ export function renderFeeChart(entries) {
 
   // ── Draw donut ──
   const svg = $('fee-donut-svg');
+  labelChart(svg);
   const cx = 80, cy = 80, r = 62;
   const circumference = 2 * Math.PI * r;
 
