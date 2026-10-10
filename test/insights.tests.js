@@ -123,6 +123,7 @@ export const tests = [
     eq([g.paidCents, g.sales, g.taxCents, g.deliveryCents, g.refundCents, g.refunds, g.taxBackCents], [16330, 2, -1200, -30, -5400, 1, 400]);
     eq(g.grossCents, computeLedgerTotals(entries).grossCents, 'sums to Total Gross');
     eq(grossBreakdown([]).grossCents, 0);
+    eq(g.grossCents - feeBreakdown(entries).totalCents, computeLedgerTotals(entries).netCents, 'gross less the fee groups is Net Earnings');
   }],
   ['adSpend: nets ad refunds and counts Offsite Ads sales once each', () => {
     const a = adSpend([

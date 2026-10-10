@@ -2,6 +2,7 @@
 // A card with data-action="drill" data-drill="<key>" opens #drill with
 // DRILLS[key], built from state for the selected period. Each breakdown's
 // total is the card's own figure. API text is escaped here.
+import { computeLedgerTotals } from './finance.js';
 import { feeBreakdown, grossBreakdown } from './insights.js';
 import { state } from './state.js';
 import { escHtml, fmtMoney } from './util.js';
@@ -31,7 +32,8 @@ function periodText() {
 /**
  * A breakdown table: a row per part, with a bar and (unless share is false)
  * its share of the total, then the total row. Rows are { name, sub, value,
- * amount, color }: name and sub are escaped here; amount must already be safe.
+ * amount, color, share }: name and sub are escaped here; amount and a row's
+ * own share text (in place of value ÷ total) must already be safe.
  */
 function breakdown(rows, { head, total, totalLabel, totalAmount, share = true }) {
   const max = Math.max(0, ...rows.map(r => Math.abs(r.value))) || 1;
@@ -41,7 +43,7 @@ function breakdown(rows, { head, total, totalLabel, totalAmount, share = true })
         ${r.sub ? `<span class="drill-sub">${escHtml(r.sub)}</span>` : ''}
         <span class="drill-bar" aria-hidden="true"><span style="width:${(Math.abs(r.value) / max * 100).toFixed(1)}%;background:${r.color || 'var(--orange)'}"></span></span>
       </th>
-      ${share ? `<td class="drill-pct">${total > 0 ? pct(r.value / total) : ''}</td>` : ''}
+      ${share ? `<td class="drill-pct">${r.share ?? (total > 0 ? pct(r.value / total) : '')}</td>` : ''}
       <td class="drill-amt">${r.amount}</td>
     </tr>`).join('');
   return `<table class="drill-table">
@@ -75,6 +77,28 @@ const DRILLS = {
         html: breakdown(rows.map(r => ({ ...r, amount: signed(r.value) })),
           { head: ['Part', 'Amount'], share: false, totalLabel: 'Total Gross', totalAmount: figure }) +
           note('Gross is what you sold after refunds, without the sales tax Etsy collects and pays on your behalf. Fees come off it next, to give Net Earnings.'),
+      };
+    },
+  },
+  net: {
+    title: 'Net Earnings',
+    build() {
+      if (!ledgerReady()) return { wait: LEDGER_WAIT };
+      const entries = state.ledgerEntries;
+      const { netCents } = computeLedgerTotals(entries);
+      const gross = grossBreakdown(entries).grossCents;
+      const fees  = feeBreakdown(entries).rows.filter(r => r.cents);
+      const figure = fmtC(netCents);
+      if (!gross && !fees.length) return { figure, cls: 'green', html: empty('No sales or fees in the ledger for this period.') };
+      const ofGross = c => gross > 0 ? pct(c / gross) : '—';
+      const rows = [
+        { name: 'Total Gross', sub: 'sales after refunds, excl. tax', value: gross, amount: signed(gross), color: 'var(--ink2)', share: '' }, // not green: Transaction Fees are
+        ...fees.map(f => ({ name: f.label, value: -f.cents, amount: signed(-f.cents), color: f.color, share: ofGross(f.cents) })),
+      ];
+      return {
+        figure, cls: 'green',
+        html: breakdown(rows, { head: ['Part', 'Of gross', 'Amount'], totalLabel: 'Net Earnings', totalAmount: figure }) +
+          note(`${gross > 0 ? `You kept ${pct(netCents / gross)} of gross after Etsy's fees. ` : ''}Payouts to your bank aren't counted: they move money you've already earned.`),
       };
     },
   },
