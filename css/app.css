@@ -655,6 +655,13 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
 }
 .ochart-toggle-btn.active { background:var(--ink); border-color:var(--ink); color:var(--cream); }
 .ochart-toggle-btn:disabled { opacity:0.4; cursor:default; }
+/* Fingers need bigger targets than a mouse: the pills were 18px tall and 4px apart on phones */
+@media (pointer: coarse) {
+  .ochart-toggle-btn { padding:7px 12px; }
+  .ochart-toggle { gap:6px; }
+  .page-btn { min-width:36px; min-height:36px; }
+  .period-toggle { padding:0.5rem 0.9rem; }
+}
 
 /* LEDGER TYPE BADGE */
 .ledger-type-badge {
