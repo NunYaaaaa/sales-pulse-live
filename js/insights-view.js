@@ -8,7 +8,7 @@ import {
   heatmapMatrix, listingStats, payoutStats, productKey, productNames, refundStats, revenueComposition, reviewStats,
   shippingPnL, variationStats,
 } from './insights.js';
-import { lineItems, state } from './state.js';
+import { ordersWithItems, state } from './state.js';
 import { bucketOptions, chooseBucket, escHtml, fmtMoney, getCurrency, markPartialBuckets, pickBucket } from './util.js';
 
 const $ = id => document.getElementById(id);
@@ -25,11 +25,19 @@ const plural  = (n, word) => `${fmtNum(n)} ${word}${n === 1 ? '' : 's'}`;
 const feeColor = type => FEE_GROUPS.find(g => g.key === type)?.color;
 
 // Small HTML builders. Labels and subs are our own text; values must already be safe.
-const tile = (label, val, sub = '', cls = '') =>
-  `<div class="ins-tile"><div class="ins-tile-label">${label}</div><div class="ins-tile-val ${cls}">${val}</div>${sub ? `<div class="ins-tile-sub">${sub}</div>` : ''}</div>`;
+// `drill` names a breakdown in js/drill.js that the tile or card opens.
+const drillable = key => key
+  ? { cls: ' drill-card', attrs: ` role="button" tabindex="0" aria-haspopup="dialog" data-action="drill" data-drill="${key}"`, cue: '<div class="drill-cue" aria-hidden="true">Details ›</div>' }
+  : { cls: '', attrs: '', cue: '' };
+const tile = (label, val, sub = '', cls = '', drill = null) => {
+  const d = drillable(drill);
+  return `<div class="ins-tile${d.cls}"${d.attrs}><div class="ins-tile-label">${label}</div><div class="ins-tile-val ${cls}">${val}</div>${sub ? `<div class="ins-tile-sub">${sub}</div>` : ''}${d.cue}</div>`;
+};
 const tiles  = (...t) => `<div class="ins-tiles">${t.join('')}</div>`;
-const kpi    = (label, val, sub = '', cls = '') =>
-  `<div class="kpi-card"><div class="kpi-label">${label}</div><div class="kpi-val ${cls}">${val}</div>${sub ? `<div class="kpi-sub">${sub}</div>` : ''}</div>`;
+const kpi    = (label, val, sub = '', cls = '', drill = null) => {
+  const d = drillable(drill);
+  return `<div class="kpi-card${d.cls}"${d.attrs}><div class="kpi-label">${label}</div><div class="kpi-val ${cls}">${val}</div>${sub ? `<div class="kpi-sub">${sub}</div>` : ''}${d.cue}</div>`;
+};
 const empty  = msg => `<div class="ins-empty">${msg}</div>`;
 const caveat = msg => `<div class="ins-caveat">${msg}</div>`;
 
@@ -54,9 +62,6 @@ function setHtml(el, html) {
   el.innerHTML = html;
   animateBars(el, '.top-prod-bar-fill');
 }
-
-/** Orders with their line items attached, whether embedded or fetched separately. */
-const ordersWithItems = () => state.allOrders.map(o => o.transactions ? o : { ...o, transactions: lineItems(o) || [] });
 
 // ─── ENTRY POINTS ───────────────────────────────────────────────────────────
 // One per tab. js/tabs.js calls only the showing tab's (charts size from clientWidth).
@@ -423,8 +428,8 @@ function renderBacklog(orders, now) {
   if (!b.count) { el.innerHTML = empty('Every physical order in this period has been marked shipped.'); return; }
   setHtml(el,
     tiles(
-      tile('Not shipped', fmtNum(b.count)),
-      tile('Past due', fmtNum(b.overdue), "past Etsy's expected date", b.overdue ? 'red' : ''),
+      tile('Not shipped', fmtNum(b.count), '', '', 'unshipped'),
+      tile('Past due', fmtNum(b.overdue), "past Etsy's expected date", b.overdue ? 'red' : '', b.overdue ? 'overdue' : null),
       tile('Oldest', `${Math.floor(b.oldestDays)} days`),
     ) +
     `<div class="top-prod-rows">${barRows(b.bins, {

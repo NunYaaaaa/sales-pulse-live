@@ -802,6 +802,8 @@ html:has(.drill[open]) { overflow:hidden; scrollbar-gutter:stable; } /* the page
 .drill-table tfoot th { font-family:'Fraunces',serif; font-size:0.9rem; }
 .drill-table tfoot .drill-amt { font-size:0.82rem; font-weight:500; text-align:right; }
 .drill-tiles { margin:0.75rem 0 0.25rem; }
+.drill-list .drill-amt { white-space:nowrap; }
+.drill-list .drill-amt .ledger-type-badge { display:table; margin:4px 0 0 auto; }
 .drill-note { margin-top:1rem; font-family:'DM Mono',monospace; font-size:0.6rem; line-height:1.65; color:var(--muted2); }
 /* Phones: a bottom sheet, full width */
 @media (max-width: 600px) {

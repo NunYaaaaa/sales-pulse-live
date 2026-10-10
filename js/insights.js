@@ -487,23 +487,31 @@ export function fulfilment(orders) {
 const AGE_BINS = [[0, '0–1 days'], [2, '2–3 days'], [4, '4–7 days'], [8, '8+ days']];
 
 /**
- * Physical orders not yet marked shipped, by days since payment, and how many
- * are past Etsy's expected ship date. Orders whose shipped flag is unknown are skipped.
+ * Physical orders not yet marked shipped, oldest first, each with when it was
+ * paid, days since then, Etsy's expected ship date and whether that has
+ * passed (after the end of its day, local time). Orders whose shipped flag is
+ * unknown are skipped.
  */
-export function backlog(orders, now) {
-  const bins = AGE_BINS.map(([min, label]) => ({ min, label, count: 0 }));
-  let count = 0, overdue = 0, oldestDays = null;
+export function unshippedOrders(orders, now) {
+  const out = [];
   for (const o of orders) {
     if (isDigitalOnly(o) || NEVER_SHIPS.has(lower(o.status))) continue;
     if ((o.is_shipped ?? o.was_shipped) !== false || (o.shipments || []).length) continue;
     const { paid, expected } = shipTimes(o);
-    const age = Math.max(0, (now - paid) / 86400);
-    count++;
-    bins[binFor(bins, age)].count++;
-    oldestDays = Math.max(oldestDays ?? 0, age);
-    if (expected && now > endOfLocalDay(expected)) overdue++;
+    out.push({ order: o, paid, expected, ageDays: Math.max(0, (now - paid) / 86400), overdue: !!expected && now > endOfLocalDay(expected) });
   }
-  return { count, overdue, oldestDays, bins };
+  return out.sort((a, b) => b.ageDays - a.ageDays);
+}
+
+/**
+ * The unshipped orders (unshippedOrders) by days since payment, and how many
+ * are past Etsy's expected ship date.
+ */
+export function backlog(orders, now) {
+  const bins = AGE_BINS.map(([min, label]) => ({ min, label, count: 0 }));
+  const list = unshippedOrders(orders, now);
+  for (const u of list) bins[binFor(bins, u.ageDays)].count++;
+  return { count: list.length, overdue: list.filter(u => u.overdue).length, oldestDays: list.length ? list[0].ageDays : null, bins };
 }
 
 // Receipt statuses in the order a seller works through them; any other status follows as Etsy names it

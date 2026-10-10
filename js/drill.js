@@ -3,9 +3,9 @@
 // DRILLS[key], built from state for the selected period. Each breakdown's
 // total is the card's own figure. API text is escaped here.
 import { computeLedgerTotals } from './finance.js';
-import { aovBreakdown, feeBreakdown, grossBreakdown, orderStatusCounts } from './insights.js';
-import { state } from './state.js';
-import { escHtml, fmtMoney, orderSales } from './util.js';
+import { aovBreakdown, feeBreakdown, grossBreakdown, orderStatusCounts, unshippedOrders } from './insights.js';
+import { ordersWithItems, state } from './state.js';
+import { escHtml, fmtMoney, money, orderSales } from './util.js';
 
 const $ = id => document.getElementById(id);
 
@@ -69,10 +69,59 @@ const STATUS_NAMES = {
 const statusName = s => STATUS_NAMES[s] || { name: s.charAt(0).toUpperCase() + s.slice(1), color: '#6b7280' };
 
 /**
+ * A list of orders: the buyer with the receipt number and a detail line, a
+ * middle column and a right-hand value, then the total row. Rows are
+ * { order, sub, mid, end }: API text is escaped here; sub, mid and end must
+ * already be safe.
+ */
+function orderList(rows, { head, totalLabel, totalAmount }) {
+  const body = rows.map(r => `<tr>
+      <th scope="row">
+        <span class="drill-name">${escHtml(r.order.name || (r.order.buyer_user_id ? `Buyer #${r.order.buyer_user_id}` : 'Buyer'))}</span>
+        <span class="drill-sub">#${escHtml(r.order.receipt_id)}${r.sub ? ` · ${r.sub}` : ''}</span>
+      </th>
+      <td class="drill-pct">${r.mid}</td>
+      <td class="drill-amt">${r.end}</td>
+    </tr>`).join('');
+  return `<table class="drill-table drill-list">
+    <thead><tr>${head.map(h => `<th scope="col">${h}</th>`).join('')}</tr></thead>
+    <tbody>${body}</tbody>
+    <tfoot><tr><th scope="row">${totalLabel}</th><td></td><td class="drill-amt">${totalAmount}</td></tr></tfoot>
+  </table>`;
+}
+
+const badge = (cls, text) => `<span class="ledger-type-badge ${cls}">${text}</span>`;
+const waited = days => days < 1 ? 'today' : plural(Math.floor(days), 'day');
+
+/** Physical orders not marked shipped yet (only the past-due ones when overdueOnly), oldest first. */
+function shipList(overdueOnly) {
+  const list = unshippedOrders(ordersWithItems(), Math.floor(Date.now() / 1000)).filter(u => !overdueOnly || u.overdue);
+  const figure = fmtNum(list.length);
+  if (!list.length) return { figure, html: empty(overdueOnly ? "No order is past Etsy's expected ship date." : 'Every physical order in this period has been marked shipped.') };
+  const rows = list.map(u => {
+    const items = u.order.transactions.reduce((s, t) => s + (t.quantity || 1), 0);
+    return {
+      order: u.order,
+      sub: [items ? plural(items, 'item') : '', u.order.grandtotal ? fmtMoney(money(u.order.grandtotal)) : '', u.expected ? `ship by ${fmtDate(u.expected, false)}` : '']
+        .filter(Boolean).join(' · '),
+      mid: fmtDate(u.paid, false),
+      end: `${waited(u.ageDays)}${u.overdue ? badge('lt-fee', 'past due') : ''}`,
+    };
+  });
+  return {
+    figure, cls: overdueOnly ? 'red' : '',
+    html: orderList(rows, { head: ['Order', 'Paid', 'Waiting'], totalLabel: overdueOnly ? 'Past due' : 'Not shipped', totalAmount: plural(list.length, 'order') }) +
+      note("Physical orders from this period that aren't marked shipped, oldest first. \"Ship by\" is Etsy's expected ship date. Digital, canceled and fully refunded orders don't need shipping."),
+  };
+}
+
+/**
  * Each drill-down: its title, and build() returning { figure, cls, html } for
  * the current data, or { wait } while that data is still loading.
  */
 const DRILLS = {
+  unshipped: { title: 'Not Shipped Yet', build: () => shipList(false) },
+  overdue:   { title: 'Past Due',        build: () => shipList(true) },
   aov: {
     title: 'Avg. Order Value',
     build() {
@@ -202,8 +251,10 @@ function wire(dialog) {
   // so a click that lands on the dialog element itself is on the backdrop.
   dialog.addEventListener('click', ev => { if (ev.target === dialog) closeDrill(); });
   dialog.addEventListener('close', () => {
+    // Back where the viewer was; a tile redrawn while the popup was open is a new element with the same key
+    const back = opener?.isConnected ? opener : document.querySelector(`.tab-panel.active [data-drill="${openKey}"]`);
+    if (back?.offsetParent) back.focus();
     openKey = null;
-    if (opener?.isConnected && opener.offsetParent) opener.focus(); // back where the viewer was
     opener = null;
   });
 }

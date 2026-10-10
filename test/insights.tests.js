@@ -4,7 +4,7 @@ import { axisLabelShown, drawBarChart, drawHeatmap, drawLineChart, hourLabel } f
 import {
   adSpend, aovBreakdown, backlog, basketStats, customerStats, discountStats, feeBreakdown, feeRateSeries, fulfilment, geography, grossBreakdown, orderStatusCounts,
   heatmapMatrix, listingStats, payoutStats, productKey, productNames, refundStats, revenueComposition, reviewStats,
-  shippingPnL, topProducts, variationStats,
+  shippingPnL, topProducts, unshippedOrders, variationStats,
 } from '../js/insights.js';
 import { computeLedgerTotals } from '../js/finance.js';
 import { bucketOptions, bucketRange, bucketStart, chooseBucket, countBuckets, markPartialBuckets, pickBucket } from '../js/util.js';
@@ -368,6 +368,8 @@ export const tests = [
     ], now);
     eq([b.count, b.overdue, b.oldestDays], [3, 1, 10]);
     eq(b.bins.map(x => x.count), [1, 1, 0, 1]);
+    const list = unshippedOrders([o(17), o(20), o(10), o(10, { status: 'canceled' })], now);
+    eq(list.map(u => [Math.round(u.ageDays), u.overdue]), [[10, true], [3, false], [0, false]], 'the same orders, oldest first');
   }],
   ['refundStats: statuses in any case, plus refunds on other orders', () => {
     const r = refundStats([

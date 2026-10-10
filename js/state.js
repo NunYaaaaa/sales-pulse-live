@@ -46,6 +46,9 @@ export function lineItems(o) {
   return o.transactions ?? state.lineItems[o.receipt_id] ?? null;
 }
 
+/** The period's orders with their line items attached, whether embedded or fetched separately. */
+export const ordersWithItems = () => state.allOrders.map(o => o.transactions ? o : { ...o, transactions: lineItems(o) || [] });
+
 // ─── RANGE CACHE ─────────────────────────────────────────────────────────────
 // Orders + ledger per date range, so flipping back to a range is instant.
 const RANGE_TTL_MS = 5 * 60 * 1000;
