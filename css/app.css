@@ -737,6 +737,7 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
 .ins-review:first-child { border-top:none; padding-top:0; }
 .ins-review-head { display:flex; justify-content:space-between; gap:10px; font-family:'DM Mono',monospace; font-size:0.6rem; color:var(--muted2); margin-bottom:3px; }
 .ins-review-head .stars { color:var(--gold); letter-spacing:0.08em; flex-shrink:0; }
+.ins-review-head .stars-off { color:var(--border2); }
 .ins-review-head .what { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .ins-review p { font-size:0.8rem; color:var(--ink); line-height:1.55; font-weight:300; overflow-wrap:anywhere; }
 .ins-var { margin-bottom:1rem; }

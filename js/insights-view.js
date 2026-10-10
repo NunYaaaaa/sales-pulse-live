@@ -522,7 +522,8 @@ function renderListings(orders) {
 // ─── REVIEWS ────────────────────────────────────────────────────────────────
 
 const STAR_COLORS = { 5: '#3a7d4c', 4: '#65a30d', 3: '#b8860b', 2: '#d4622a', 1: '#b91c1c' };
-const starText = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+// Filled stars in gold, empty ones greyed so the count reads at a glance; named for screen readers
+const stars = n => `<span class="stars" role="img" aria-label="${n} of 5 stars">${'★'.repeat(n)}<span class="stars-off">${'☆'.repeat(5 - n)}</span></span>`;
 
 /** listing_id → its current title (or newest title it sold under), see productNames. */
 function listingTitles(orders) {
@@ -585,7 +586,7 @@ function renderReviews(orders) {
 
   $('ins-low-reviews').innerHTML = r.low.length
     ? r.low.map(v => `<div class="ins-review">
-        <div class="ins-review-head"><span class="stars">${starText(Math.round(v.rating))}</span><span class="what">${escHtml(title(v.listing_id))} · ${fmtDate(v.created_timestamp)}</span></div>
+        <div class="ins-review-head">${stars(Math.round(v.rating))}<span class="what">${escHtml(title(v.listing_id))} · ${fmtDate(v.created_timestamp)}</span></div>
         <p>${v.review ? escHtml(v.review) : '<span class="ins-empty">(no written review)</span>'}</p>
       </div>`).join('')
     : empty('No reviews of 3 stars or fewer in this period.');
