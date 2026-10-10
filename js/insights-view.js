@@ -37,13 +37,14 @@ const caveat = msg => `<div class="ins-caveat">${msg}</div>`;
  * Horizontal bar rows (top-prod-row styling). name(r) is escaped here;
  * value(r) sizes the bar; fmt(r) and sub(r) must return safe HTML.
  */
-function barRows(rows, { name, value, fmt, sub = () => '' }) {
+// One colour per ranking chart (rows that mean something, like star ratings or fee groups, bring their own)
+function barRows(rows, { name, value, fmt, sub = () => '', color = 'var(--orange)' }) {
   const max = Math.max(0, ...rows.map(r => Math.abs(value(r)))) || 1;
-  return rows.map((r, i) => {
+  return rows.map(r => {
     const n = escHtml(name(r));
     return `<div class="top-prod-row">
       <div><div class="top-prod-name" title="${n}">${n}</div><div class="top-prod-sub">${sub(r)}</div></div>
-      <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:0%;background:${r.color || PALETTE[i % PALETTE.length]}" data-target="${(Math.abs(value(r)) / max * 100).toFixed(1)}"></div></div>
+      <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:0%;background:${r.color || color}" data-target="${(Math.abs(value(r)) / max * 100).toFixed(1)}"></div></div>
       <div><div class="top-prod-val">${fmt(r)}</div></div>
     </div>`;
   }).join('');
@@ -580,7 +581,7 @@ function renderReviews(orders) {
   const top = r.byListing.slice(0, 8);
   setHtml($('ins-review-listings'), top.length
     ? `<div class="top-prod-rows">${barRows(top, {
-        name: l => title(l.id), value: l => l.avg, fmt: l => `${l.avg.toFixed(2)} ★`, sub: l => plural(l.count, 'review'),
+        name: l => title(l.id), value: l => l.avg, fmt: l => `${l.avg.toFixed(2)} ★`, sub: l => plural(l.count, 'review'), color: 'var(--gold)',
       })}</div>`
     : empty('No listing has 3 or more reviews in this period.'));
 

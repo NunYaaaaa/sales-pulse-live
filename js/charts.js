@@ -1,5 +1,5 @@
 // ─── CHARTS (pure SVG, no libraries) ───────────────────────────────────────
-import { FEE_GROUPS, FEE_OTHER_COLOR, FEE_REFUND_OF, PALETTE } from './config.js';
+import { FEE_GROUPS, FEE_OTHER_COLOR, FEE_REFUND_OF } from './config.js';
 import { categoriseEntry, ledgerType } from './finance.js';
 import { topProducts } from './insights.js';
 import { lineItems, state } from './state.js';
@@ -414,7 +414,7 @@ export function renderTopProducts() {
   const maxVal = sorted[0][isRev ? 'revenue' : 'units'] || 1;
   sub.textContent = sorted.length < total ? `top ${sorted.length} of ${total} products` : `all ${total} product${total === 1 ? '' : 's'}`;
 
-  wrap.innerHTML = sorted.map((p, i) => {
+  wrap.innerHTML = sorted.map(p => {
     const val    = isRev ? p.revenue : p.units;
     const barPct = (val / maxVal * 100).toFixed(1);
     const valStr = isRev ? fmtMoney(p.revenue) : `${p.units} sold`;
@@ -427,7 +427,7 @@ export function renderTopProducts() {
         <div class="top-prod-sub">${subStr}${p.otherNames.length ? ` · <span title="${hover}">renamed</span>` : ''}</div>
       </div>
       <div class="top-prod-bar-track">
-        <div class="top-prod-bar-fill" style="width:0%;background:${PALETTE[i % PALETTE.length]}" data-target="${barPct}"></div>
+        <div class="top-prod-bar-fill" style="width:0%;background:var(--orange)" data-target="${barPct}"></div>
       </div>
       <div>
         <div class="top-prod-val">${valStr}</div>
