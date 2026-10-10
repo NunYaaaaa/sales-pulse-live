@@ -185,7 +185,7 @@ function renderFeeChart(entries) {
       : `<strong>${escHtml(d.label)}</strong><br>No sales${d.feesCents ? `<br>Fees ${fmtC(d.feesCents)}` : ''}`;
   const fmt = v => `${v.toFixed(1)}%`;
   if (data.length > 14) drawLineChart(svg, tip, data, 'feePct', fmt, '#b91c1c', tipHtml);
-  else                  drawBarChart(svg,  tip, data, 'feePct', fmt, '#b91c1c', tipHtml);
+  else                  drawBarChart(svg,  tip, data, 'feePct', fmt, '#b91c1c', tipHtml, { values: v => `${Math.round(v)}%` });
 }
 
 function renderAds(entries) {

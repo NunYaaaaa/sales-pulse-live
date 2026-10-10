@@ -44,6 +44,19 @@ function chartSpan(orders) {
 }
 
 /**
+ * Whether point i gets an x-axis label: about five evenly spaced, plus the
+ * last. A regular label that would run into the last one (spacing = px between
+ * points; 8px monospace is about 4.8px a character) is left out.
+ */
+export function axisLabelShown(i, labels, spacing) {
+  const n = labels.length, step = Math.max(1, Math.floor(n / 5));
+  if (i === n - 1) return true;
+  if (i % step) return false;
+  const halfWidths = (String(labels[i]).length + String(labels[n - 1]).length) * 2.4;
+  return (n - 1 - i) * spacing >= halfWidths + 6;
+}
+
+/**
  * Draw a smooth line + area chart into an SVG element. A null value (e.g. a
  * rate for a period with nothing to divide by) keeps its place on the axis
  * and breaks the line there.
@@ -85,9 +98,9 @@ export function drawLineChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, to
     + ` L ${run[0][0].toFixed(1)} ${(PAD.top+iH).toFixed(1)} Z`);
 
   // X-axis labels — show ~5 evenly spaced
-  const labelStep = Math.max(1, Math.floor(data.length / 5));
+  const axis = data.map(d => d.label);
   const xLabels = data.map((d, i) => {
-    if (i % labelStep !== 0 && i !== data.length - 1) return '';
+    if (!axisLabelShown(i, axis, xStep)) return '';
     return `<text x="${xOf(i).toFixed(1)}" y="${H - 4}" text-anchor="middle"
       font-family="monospace" font-size="8" fill="var(--muted2)">${escHtml(d.label)}</text>`;
   }).join('');
@@ -150,19 +163,22 @@ export function drawBarChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, too
   const hOf = v => (v / vMax) * iH;
 
   // X labels — show ~5
-  const labelStep = Math.max(1, Math.floor(n / 5));
+  const axis = data.map(d => d.label);
+  // Value labels go on every bar or on none, so a chart never looks half-labelled
+  const valFmt = typeof values === 'function' ? values : fmtFn;
+  let valTexts = values ? data.map(d => d[valueKey] == null ? '' : String(valFmt(d[valueKey]))) : [];
+  if (valTexts.some(t => t.length * 5 > barW + gap)) valTexts = [];
 
   svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svgEl.innerHTML = data.map((d, i) => {
     const none = d[valueKey] == null;
     const v = none ? 0 : d[valueKey];
     const x = xOf(i), h = Math.max(hOf(v), none ? 2 : 1), y = PAD.top + iH - h;
-    const lbl = (i % labelStep === 0 || i === n-1)
+    const lbl = axisLabelShown(i, axis, barW + gap)
       ? `<text x="${(x + barW/2).toFixed(1)}" y="${H-4}" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">${escHtml(d.label)}</text>`
       : '';
-    const valText = values && !none ? String((typeof values === 'function' ? values : fmtFn)(v)) : '';
-    const val = valText && valText.length * 5 <= barW + gap
-      ? `<text x="${(x + barW/2).toFixed(1)}" y="${(y - 4).toFixed(1)}" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted)" pointer-events="none" class="chart-val">${escHtml(valText)}</text>`
+    const val = valTexts[i]
+      ? `<text x="${(x + barW/2).toFixed(1)}" y="${(y - 4).toFixed(1)}" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted)" pointer-events="none" class="chart-val">${escHtml(valTexts[i])}</text>`
       : '';
     return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"
         rx="${none ? 1 : 3}" fill="${none ? 'var(--border2)' : color}" opacity="0.85" class="chart-bar" data-i="${i}" style="cursor:pointer;transition:opacity 0.15s"/>

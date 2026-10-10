@@ -1,6 +1,6 @@
 // Unit tests for the Insights calculations (js/insights.js) and the chart
 // primitives' escaping — run via test/finance.test.html in a browser.
-import { drawBarChart, drawHeatmap, drawLineChart, hourLabel } from '../js/charts.js';
+import { axisLabelShown, drawBarChart, drawHeatmap, drawLineChart, hourLabel } from '../js/charts.js';
 import {
   adSpend, backlog, basketStats, customerStats, discountStats, feeRateSeries, fulfilment, geography,
   heatmapMatrix, listingStats, payoutStats, productKey, productNames, refundStats, revenueComposition, reviewStats,
@@ -169,6 +169,8 @@ export const tests = [
     eq([...bars.querySelectorAll('.chart-val')].map(t => t.textContent), ['1 ★', '2 ★', '3 ★'], 'values: a label per bar, none for the null');
     drawBarChart(bars, document.createElement('div'), data, 'v', v => `${v} ★`, '#000', null, { values: v => v.toFixed(1) });
     eq([...bars.querySelectorAll('.chart-val')].map(t => t.textContent), ['1.0', '2.0', '3.0'], 'values can take a shorter formatter');
+    drawBarChart(bars, document.createElement('div'), data, 'v', String, '#000', null, { values: v => v === 3 ? 'x'.repeat(40) : 'ok' });
+    eq(bars.querySelectorAll('.chart-val').length, 0, 'one label too wide for its bar: no labels at all');
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     drawLineChart(line, document.createElement('div'), data, 'v', String, '#000');
     const dots = [...line.querySelectorAll('.chart-dot')];
@@ -176,6 +178,14 @@ export const tests = [
     const gap = dots.find(d => d.dataset.i === '1');
     eq([gap?.getAttribute('fill'), gap?.getAttribute('cy')], ['none', '112.0'], 'the null gets a faint hover target on the baseline, so its tooltip can say why');
     eq(line.querySelectorAll('path[stroke]').length, 2, 'the line breaks at the null');
+  }],
+  ['axisLabelShown drops a label that would run into the last one', () => {
+    const weeks = Array.from({ length: 14 }, (_, i) => `Sep ${i + 10}`);
+    const shown = sp => weeks.map((l, i) => axisLabelShown(i, weeks, sp) ? i : null).filter(i => i !== null);
+    eq(shown(21), [0, 2, 4, 6, 8, 10, 13], '14 narrow bars: the label next to the last is dropped');
+    eq(shown(60), [0, 2, 4, 6, 8, 10, 12, 13], 'with room for both, both stay');
+    const days = Array.from({ length: 30 }, (_, i) => `Oct ${i + 1}`);
+    eq(axisLabelShown(24, days, 30), true, 'five steps from the end on a wide chart is plenty of room');
   }],
   ['productNames: current listing title, else the newest title it sold under', () => {
     const sale = (ts, listing_id, title) => ({ create_timestamp: ts, transactions: [{ listing_id, title }] });
