@@ -702,6 +702,7 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
 .ins-scroll thead th:first-child { left:0; z-index:2; box-shadow:inset -1px 0 var(--border); }
 .ins-num { text-align:right; font-family:'DM Mono',monospace; font-size:0.72rem; }
 .ins-title-cell { max-width:240px; overflow:hidden; text-overflow:ellipsis; }
+@container (max-width: 36rem) { .ins-title-cell { max-width:9.5rem; } }
 .ins-title-cell a { color:var(--ink); text-decoration:none; }
 .ins-title-cell a:hover { color:var(--orange); text-decoration:underline; }
 .ins-flags { display:inline-flex; gap:4px; margin-left:6px; vertical-align:middle; }

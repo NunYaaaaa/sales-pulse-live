@@ -477,8 +477,9 @@ function renderListings(orders) {
   count.textContent = plural(L.rows.length, 'listing');
 
   const right = 'style="text-align:right"';
-  const head = ['<th>Listing</th>', `<th ${right}>Price</th>`, `<th ${right}>Stock</th>`, `<th ${right}>Views</th>`,
-    `<th ${right}>Favorites</th>`, `<th ${right}>Favs / 100 views</th>`, `<th ${right}>Sold</th>`, `<th ${right}>Item revenue</th>`,
+  // Sold and revenue sit next to the name (the sort order), so a phone shows them without scrolling sideways
+  const head = ['<th>Listing</th>', `<th ${right}>Sold</th>`, `<th ${right}>Item revenue</th>`, `<th ${right}>Price</th>`,
+    `<th ${right}>Stock</th>`, `<th ${right}>Views</th>`, `<th ${right}>Favorites</th>`, `<th ${right}>Favs / 100 views</th>`,
     ...(allTime ? [`<th ${right}>Sales / 100 views</th>`] : []), '<th></th>'].join('');
   const rows = L.rows.map(r => {
     const title = escHtml(r.title);
@@ -489,13 +490,13 @@ function renderListings(orders) {
     ].join('');
     return `<tr>
       <td class="ins-title-cell"><a href="https://www.etsy.com/listing/${encodeURIComponent(String(r.id))}" target="_blank" rel="noopener" title="${title}">${title}</a></td>
+      <td class="ins-num">${fmtNum(r.units)}</td>
+      <td class="ins-num">${r.units ? fmtMoney(r.revenue) : '—'}</td>
       <td class="ins-num">${r.price == null ? '—' : fmtMoney(r.price)}</td>
       <td class="ins-num">${r.quantity == null ? '—' : fmtNum(r.quantity)}</td>
       <td class="ins-num">${r.views == null ? '—' : fmtNum(r.views)}</td>
       <td class="ins-num">${fmtNum(r.favorites)}</td>
       <td class="ins-num">${rate(r.favPer100Views, 1)}</td>
-      <td class="ins-num">${fmtNum(r.units)}</td>
-      <td class="ins-num">${r.units ? fmtMoney(r.revenue) : '—'}</td>
       ${allTime ? `<td class="ins-num">${rate(r.salesPer100Views, 2)}</td>` : ''}
       <td><span class="ins-flags">${flags}</span></td>
     </tr>`;
