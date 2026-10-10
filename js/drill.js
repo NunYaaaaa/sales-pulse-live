@@ -3,7 +3,7 @@
 // DRILLS[key], built from state for the selected period. Each breakdown's
 // total is the card's own figure. API text is escaped here.
 import { computeLedgerTotals } from './finance.js';
-import { aovBreakdown, feeBreakdown, grossBreakdown, orderStatusCounts, refundedOrders, unshippedOrders } from './insights.js';
+import { aovBreakdown, discountedOrders, feeBreakdown, grossBreakdown, orderStatusCounts, refundedOrders, unshippedOrders } from './insights.js';
 import { ordersWithItems, state } from './state.js';
 import { escHtml, fmtMoney, money, orderSales } from './util.js';
 
@@ -143,10 +143,35 @@ function refundList(kind) {
 }
 
 /**
+ * Orders with a discount, newest first, with what the items cost before it
+ * and how much it took off. byCount: the figure is the number of orders
+ * (Discounted Orders), else the discounts' total (Discounts Given).
+ */
+function discountList(byCount) {
+  const list = discountedOrders(state.allOrders);
+  const totalCents = list.reduce((s, d) => s + d.discountCents, 0);
+  const figure = byCount ? fmtNum(list.length) : fmtC(totalCents);
+  if (!list.length) return { figure, html: empty('No discounted orders in this period.') };
+  const rows = list.map(d => ({
+    order: d.order,
+    sub: [shortDate(d.order.create_timestamp), d.itemsCents ? `items ${fmtC(d.itemsCents)}` : ''].filter(Boolean).join(' · '),
+    mid: d.itemsCents ? `${Math.round(d.discountCents / d.itemsCents * 100)}% off` : '—',
+    end: `−${fmtC(d.discountCents)}`,
+  }));
+  return {
+    figure, cls: byCount ? '' : 'red',
+    html: orderList(rows, { head: ['Order', 'Off items', 'Discount'], totalLabel: plural(list.length, 'discounted order'), totalAmount: `−${fmtC(totalCents)}` }) +
+      note("Coupon discounts taken off these orders' items, newest first. Etsy's API doesn't say which coupon an order used."),
+  };
+}
+
+/**
  * Each drill-down: its title, and build() returning { figure, cls, html } for
  * the current data, or { wait } while that data is still loading.
  */
 const DRILLS = {
+  discounted: { title: 'Discounted Orders', build: () => discountList(true) },
+  discounts:  { title: 'Discounts Given',   build: () => discountList(false) },
   canceled:             { title: 'Canceled Orders',           build: () => refundList('canceled') },
   'fully-refunded':     { title: 'Fully Refunded Orders',     build: () => refundList('fully refunded') },
   'partially-refunded': { title: 'Partially Refunded Orders', build: () => refundList('partially refunded') },

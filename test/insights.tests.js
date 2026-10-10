@@ -2,7 +2,7 @@
 // primitives' escaping — run via test/finance.test.html in a browser.
 import { axisLabelShown, drawBarChart, drawHeatmap, drawLineChart, hourLabel } from '../js/charts.js';
 import {
-  adSpend, aovBreakdown, backlog, basketStats, customerStats, discountStats, feeBreakdown, feeRateSeries, fulfilment, geography, grossBreakdown, orderStatusCounts,
+  adSpend, aovBreakdown, backlog, basketStats, customerStats, discountedOrders, discountStats, feeBreakdown, feeRateSeries, fulfilment, geography, grossBreakdown, orderStatusCounts,
   heatmapMatrix, listingStats, payoutStats, productKey, productNames, refundedOrders, refundStats, revenueComposition, reviewStats,
   shippingPnL, topProducts, unshippedOrders, variationStats,
 } from '../js/insights.js';
@@ -333,6 +333,14 @@ export const tests = [
     ]);
     eq([d.discounted, d.totalDiscount, d.aovWith, d.aovWithout], [1, 5, 45, 50]);
     eq(d.share, 1 / 3);
+    const orders = [
+      order({ discount_amt: usd(2.1), total_price: usd(21), create_timestamp: at(2026, 3, 1) }),
+      order({ discount_amt: usd(0) }),
+      order({ discount_amt: usd(3.35), create_timestamp: at(2026, 3, 9) }),
+    ];
+    const list = discountedOrders(orders);
+    eq(list.map(x => [x.discountCents, x.itemsCents]), [[335, null], [210, 2100]], 'newest first');
+    eq(list.reduce((s, x) => s + x.discountCents, 0) / 100, discountStats(orders).totalDiscount, 'sums to Discounts Given');
   }],
   ['fulfilment: shipments first, transaction fallback; digital, canceled and unshipped left out', () => {
     const paid = at(2026, 3, 10, 9);

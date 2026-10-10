@@ -419,10 +419,21 @@ export function discountStats(orders) {
     orders: orders.length,
     discounted: discounted.length,
     share: orders.length ? discounted.length / orders.length : null,
-    totalDiscount: Math.round(sum(discounted, o => money(o.discount_amt)) * 100) / 100,
+    totalDiscount: sum(discounted, o => cents(o.discount_amt)) / 100,
     aovWith: aov(discounted),
     aovWithout: aov(fullPrice),
   };
+}
+
+/**
+ * The orders discountStats counts as discounted, newest first, with the
+ * discount and the items' price before it, in cents; the discounts sum to
+ * Discounts Given.
+ */
+export function discountedOrders(orders) {
+  return orders.filter(o => money(o.discount_amt) > 0)
+    .map(o => ({ order: o, discountCents: cents(o.discount_amt), itemsCents: o.total_price ? cents(o.total_price) : null }))
+    .sort((a, b) => (b.order.create_timestamp ?? 0) - (a.order.create_timestamp ?? 0));
 }
 
 // ─── OPERATIONS (receipts) ──────────────────────────────────────────────────

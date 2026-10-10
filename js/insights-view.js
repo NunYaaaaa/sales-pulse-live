@@ -386,8 +386,8 @@ function renderDiscounts(orders) {
   const d = discountStats(orders);
   const avg = v => v == null ? '—' : fmtMoney(v);
   el.innerHTML = [
-    kpi('Discounted Orders', fmtNum(d.discounted), `${pct(d.share)} of orders`),
-    kpi('Discounts Given', fmtMoney(d.totalDiscount), 'percent and fixed-amount coupons', d.totalDiscount ? 'red' : ''),
+    kpi('Discounted Orders', fmtNum(d.discounted), `${pct(d.share)} of orders`, '', d.discounted ? 'discounted' : null),
+    kpi('Discounts Given', fmtMoney(d.totalDiscount), 'percent and fixed-amount coupons', d.totalDiscount ? 'red' : '', d.discounted ? 'discounts' : null),
     kpi('Avg. Order, Discounted', avg(d.aovWith), 'orders with a discount'),
     kpi('Avg. Order, Full Price', avg(d.aovWithout), 'orders without one'),
   ].join('');
