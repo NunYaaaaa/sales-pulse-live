@@ -4,14 +4,15 @@ export const state = {
   allOrders:     [],
   ledgerEntries: null,  // array once full details are loaded
   currentPage:   1,
+  ledgerPage:    1,
   detailsLoaded: false, // ledger + every order's line items are in
   expandedRow:   null,
-  activeTab:     'orders', // 'orders' | 'finances' | 'insights'
+  activeTab:     'overview', // a key of TABS in tabs.js
   shop:          null,     // the Etsy shop object (counts, reviews, currency)
   ledgerSpan:    null,     // { from, to } the ledger covers (the period, or back to the oldest order)
 
-  // Insights-only data, fetched when that tab is opened. Listings don't depend
-  // on the date range, so they're kept across ranges for LISTINGS_TTL_MS.
+  // Fetched when the Products or Customers tab is opened. Listings don't
+  // depend on the date range, so they're kept across ranges for LISTINGS_TTL_MS.
   listings:       null,    // active + sold-out listings
   listingsAt:     0,
   listingsStatus: null,    // { loading, done, total } | { error } | null
@@ -75,6 +76,7 @@ export function clearRangeData() {
   state.ledgerSpan    = null;
   state.detailsLoaded = false;
   state.currentPage   = 1;
+  state.ledgerPage    = 1;
   state.expandedRow   = null;
 }
 

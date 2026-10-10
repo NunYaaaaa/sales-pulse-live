@@ -20,7 +20,7 @@
     Sales Pulse Live
   </a>
   <div class="nav-right">
-    <div class="nav-pill pill-live" id="live-badge" style="display:none"><div class="live-dot"></div> Connected</div>
+    <div class="nav-pill pill-live" id="live-badge" style="display:none" title="Connected to Etsy"><div class="live-dot"></div><span class="pill-text">Connected</span></div>
     <button id="disconnect-btn" style="display:none" data-action="disconnect">Disconnect</button>
   </div>
 </nav>
@@ -63,104 +63,134 @@
 
 <!-- DASHBOARD -->
 <div id="dashboard">
-  <div class="dash-header">
-    <div>
+<div class="dash-layout">
+
+  <!-- RAIL: shop, period, tab navigation. A sticky sidebar on desktop; a sticky tab strip on phones. -->
+  <aside class="rail">
+    <div class="rail-shop">
       <div class="dash-shop-name" id="shop-name">—</div>
       <div class="dash-shop-sub" id="shop-sub">Loading…</div>
     </div>
-    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-      <div class="dash-actions">
+
+    <div class="rail-sticky" id="rail-sticky">
+      <button class="period-toggle" data-action="toggle-period" aria-expanded="false" aria-controls="rail-period">
+        <span id="period-label">30 days</span><span class="period-caret" aria-hidden="true">▾</span>
+      </button>
+
+      <div class="rail-period" id="rail-period">
+        <div class="date-filter-bar" id="date-filter-bar">
+          <span class="date-filter-label">Period</span>
+          <div class="preset-chips">
+            <button class="preset-chip" data-action="preset" data-preset="7d">7 days</button>
+            <button class="preset-chip active" data-action="preset" data-preset="30d">30 days</button>
+            <button class="preset-chip" data-action="preset" data-preset="90d">90 days</button>
+            <button class="preset-chip" data-action="preset" data-preset="ytd">Year to date</button>
+            <button class="preset-chip" data-action="preset" data-preset="1y">12 months</button>
+            <button class="preset-chip" data-action="preset" data-preset="all">All time</button>
+          </div>
+          <details class="custom-range">
+            <summary>Custom range</summary>
+            <div class="date-range-inputs">
+              <input type="date" id="filter-from" title="From date" aria-label="From date"/>
+              <span class="date-range-dash">→</span>
+              <input type="date" id="filter-to"   title="To date" aria-label="To date"/>
+              <button class="apply-btn" data-action="apply-range">Apply</button>
+            </div>
+          </details>
+          <div class="filter-active-badge" id="filter-active-badge">
+            <span id="filter-active-label">Filtered</span>
+            <span class="filter-clear-x" data-action="clear-filter" title="Clear filter">✕</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-nav" role="navigation" aria-label="Dashboard">
+        <button class="tab-btn active" data-action="tab" data-tab="overview" aria-current="page">Overview</button>
+        <button class="tab-btn" data-action="tab" data-tab="orders">Orders</button>
+        <div class="rail-secs">
+          <button class="rail-sec" data-action="jump" data-target="sec-fulfilment">Fulfilment</button>
+          <button class="rail-sec" data-action="jump" data-target="sec-patterns">Order patterns</button>
+          <button class="rail-sec" data-action="jump" data-target="orders-panel">Order history</button>
+        </div>
+        <button class="tab-btn" data-action="tab" data-tab="products">Products</button>
+        <div class="rail-secs">
+          <button class="rail-sec" data-action="jump" data-target="sec-variations">Variations</button>
+          <button class="rail-sec" data-action="jump" data-target="sec-listings">Listings</button>
+        </div>
+        <button class="tab-btn" data-action="tab" data-tab="customers">Customers</button>
+        <div class="rail-secs">
+          <button class="rail-sec" data-action="jump" data-target="sec-buyers">Buyers</button>
+          <button class="rail-sec" data-action="jump" data-target="sec-reviews">Reviews</button>
+        </div>
+        <button class="tab-btn" data-action="tab" data-tab="finances">Finances</button>
+        <div class="rail-secs">
+          <button class="rail-sec" data-action="jump" data-target="sec-fees">Fees</button>
+          <button class="rail-sec" data-action="jump" data-target="sec-income">Income</button>
+          <button class="rail-sec" data-action="jump" data-target="ledger-panel">Payment ledger</button>
+        </div>
+      </div>
+
+      <div class="rail-status">
         <div class="fetch-status" id="fetch-status">
           <div class="fetch-status-dot" id="fetch-status-dot"></div>
           <span id="fetch-status-text">Loading…</span>
         </div>
         <button id="load-details-btn" data-action="load-details" style="display:none">⚡ Load full details</button>
-        <button class="export-btn export-csv"  data-action="export-csv">↓ CSV</button>
-        <button class="export-btn export-json" data-action="export-json">↓ JSON</button>
       </div>
     </div>
-  </div>
+  </aside>
 
-  <div id="dash-error" role="alert">
-    <span class="error-text"></span>
-    <button class="error-dismiss" data-action="dismiss-error" title="Dismiss">✕</button>
-  </div>
+  <main class="dash-main">
+    <div id="dash-error" role="alert">
+      <span class="error-text"></span>
+      <button class="error-dismiss" data-action="dismiss-error" title="Dismiss">✕</button>
+    </div>
 
-  <!-- DATE FILTER BAR -->
-  <div class="date-filter-bar" id="date-filter-bar" style="display:none">
-    <span class="date-filter-label">Period</span>
-    <div class="preset-chips">
-      <button class="preset-chip" data-action="preset" data-preset="7d">7 days</button>
-      <button class="preset-chip active" data-action="preset" data-preset="30d">30 days</button>
-      <button class="preset-chip" data-action="preset" data-preset="90d">90 days</button>
-      <button class="preset-chip" data-action="preset" data-preset="ytd">Year to date</button>
-      <button class="preset-chip" data-action="preset" data-preset="1y">12 months</button>
-      <button class="preset-chip" data-action="preset" data-preset="all">All time</button>
+    <!-- PROGRESS BAR -->
+    <div id="details-progress">
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill"></div></div>
+      <span class="progress-text" id="progress-text">0%</span>
     </div>
-    <div class="date-filter-sep"></div>
-    <div class="date-range-inputs">
-      <input type="date" id="filter-from" title="From date"/>
-      <span class="date-range-dash">→</span>
-      <input type="date" id="filter-to"   title="To date"/>
-      <button class="apply-btn" data-action="apply-range">Apply</button>
-    </div>
-    <div class="filter-active-badge" id="filter-active-badge">
-      <span id="filter-active-label">Filtered</span>
-      <span class="filter-clear-x" data-action="clear-filter" title="Clear filter">✕</span>
-    </div>
-  </div>
 
-  <!-- PROGRESS BAR -->
-  <div id="details-progress">
-    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill"></div></div>
-    <span class="progress-text" id="progress-text">0%</span>
-  </div>
+    <!-- OVERVIEW TAB -->
+    <section class="tab-panel active" id="tab-overview">
+      <header class="tab-head">
+        <h1 class="tab-title">Overview</h1>
+        <p class="tab-desc">Sales, fees and earnings for the selected period.</p>
+      </header>
 
-  <!-- KPIs -->
-  <div class="kpi-row">
-    <div class="kpi-card">
-      <div class="kpi-label">Total Gross</div>
-      <div class="kpi-val" id="kpi-revenue">—</div>
-      <div class="kpi-sub" id="kpi-revenue-sub">sales excl. tax</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Total Fees</div>
-      <div class="kpi-val red" id="kpi-fees">—</div>
-      <div class="kpi-sub" id="kpi-fees-sub">load full details</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Net Earnings</div>
-      <div class="kpi-val green" id="kpi-net">—</div>
-      <div class="kpi-sub" id="kpi-net-sub">load full details</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Total Orders</div>
-      <div class="kpi-val" id="kpi-orders">—</div>
-      <div class="kpi-sub">fetched from Etsy</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Avg. Order Value</div>
-      <div class="kpi-val" id="kpi-aov">—</div>
-      <div class="kpi-sub">sales per order, excl. tax</div>
-    </div>
-  </div>
+      <div class="ins-stack">
+        <div class="kpi-row">
+          <div class="kpi-card">
+            <div class="kpi-label">Total Gross</div>
+            <div class="kpi-val" id="kpi-revenue">—</div>
+            <div class="kpi-sub" id="kpi-revenue-sub">sales excl. tax</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Total Fees</div>
+            <div class="kpi-val red" id="kpi-fees">—</div>
+            <div class="kpi-sub" id="kpi-fees-sub">load full details</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Net Earnings</div>
+            <div class="kpi-val green" id="kpi-net">—</div>
+            <div class="kpi-sub" id="kpi-net-sub">load full details</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Total Orders</div>
+            <div class="kpi-val" id="kpi-orders">—</div>
+            <div class="kpi-sub">fetched from Etsy</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Avg. Order Value</div>
+            <div class="kpi-val" id="kpi-aov">—</div>
+            <div class="kpi-sub">sales per order, excl. tax</div>
+          </div>
+        </div>
+        <div class="attention" id="ov-attention" style="display:none"></div>
+      </div>
 
-  <!-- TABS -->
-  <div class="tabs">
-    <button class="tab-btn active" data-action="tab" data-tab="orders">Order History</button>
-    <button class="tab-btn" data-action="tab" data-tab="finances">Finances</button>
-    <button class="tab-btn" data-action="tab" data-tab="insights">Insights</button>
-  </div>
-
-  <!-- ORDERS TAB -->
-  <div class="tab-panel active" id="tab-orders">
-
-    <!-- ORDER ANALYTICS CHARTS -->
-    <div id="order-charts-wrap" style="display:none">
-      <!-- Row 1: Revenue line + Orders bar -->
-      <div class="order-charts-grid">
-
-        <!-- Revenue over time -->
+      <div class="ins-stack">
         <div class="ochart-panel">
           <div class="ochart-header">
             <div>
@@ -178,333 +208,375 @@
           </div>
         </div>
 
-        <!-- Day-of-week heatmap -->
+        <div class="ochart-panel" id="top-prods-panel">
+          <div class="ochart-header">
+            <div>
+              <div class="ochart-title">Top Products</div>
+              <div class="ochart-subtitle" id="top-prods-sub">—</div>
+            </div>
+            <div class="ochart-toggle">
+              <button class="ochart-toggle-btn active" data-action="chart-mode" data-chart="top" data-mode="revenue">Revenue</button>
+              <button class="ochart-toggle-btn" data-action="chart-mode" data-chart="top" data-mode="orders">Orders</button>
+            </div>
+          </div>
+          <div class="top-prod-rows" id="top-prod-rows">
+            <div class="ins-empty">Loading product breakdown…</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ins-section" id="ins-snapshot-section">
+        <div class="ins-section-head">
+          <h2 class="ins-section-title">All Time</h2>
+          <div class="ins-note" id="ins-snapshot-note">Etsy's own counts, not limited to the selected period</div>
+        </div>
+        <div class="ins-kpis" id="ins-snapshot"></div>
+      </div>
+    </section>
+
+    <!-- ORDERS TAB -->
+    <section class="tab-panel" id="tab-orders">
+      <header class="tab-head">
+        <h1 class="tab-title">Orders</h1>
+        <p class="tab-desc">What needs shipping, when orders come in, and every order in the period.</p>
+      </header>
+
+      <div class="ins-section" id="sec-fulfilment" data-section>
+        <div class="ins-section-head">
+          <h2 class="ins-section-title">Fulfilment</h2>
+          <div class="ins-note">orders in the selected period · canceled and refunded orders still count in Total Gross</div>
+        </div>
+        <div class="ins-grid">
+          <div class="ochart-panel">
+            <div class="ochart-header"><div><div class="ochart-title">Not Shipped Yet</div><div class="ochart-subtitle">physical orders by days since payment</div></div></div>
+            <div class="ins-body" id="ins-backlog"></div>
+          </div>
+          <div class="ochart-panel">
+            <div class="ochart-header"><div><div class="ochart-title">Time to Ship</div><div class="ochart-subtitle">days from payment until marked shipped</div></div></div>
+            <div class="ins-body" id="ins-ship-tiles"></div>
+            <div class="ochart-canvas">
+              <svg class="ochart-svg" id="ins-ship-svg" style="height:140px"></svg>
+              <div class="ochart-tooltip" id="ins-ship-tooltip"></div>
+            </div>
+          </div>
+        </div>
+        <div class="ins-kpis" id="ins-refunds"></div>
+      </div>
+
+      <div class="ins-section" id="sec-patterns" data-section>
+        <div class="ins-section-head">
+          <h2 class="ins-section-title">Order Patterns</h2>
+          <div class="ins-note">orders in the selected period</div>
+        </div>
+        <div class="ochart-panel">
+          <div class="ochart-header"><div><div class="ochart-title">When Orders Come In</div><div class="ochart-subtitle" id="ins-heat-sub">—</div></div></div>
+          <div class="ochart-canvas">
+            <svg class="ochart-svg" id="ins-heat-svg"></svg>
+            <div class="ochart-tooltip" id="ins-heat-tooltip"></div>
+          </div>
+        </div>
+        <div class="ins-grid-3">
+          <div class="ochart-panel">
+            <div class="ochart-header">
+              <div>
+                <div class="ochart-title">Sales by Day of Week</div>
+                <div class="ochart-subtitle" id="dow-chart-sub">avg. per day</div>
+              </div>
+              <div class="ochart-toggle">
+                <button class="ochart-toggle-btn active" data-action="chart-mode" data-chart="dow" data-mode="revenue">Revenue</button>
+                <button class="ochart-toggle-btn" data-action="chart-mode" data-chart="dow" data-mode="orders">Orders</button>
+              </div>
+            </div>
+            <div class="ochart-canvas" id="dow-chart-canvas">
+              <svg class="ochart-svg" id="dow-chart-svg" style="height:160px"></svg>
+              <div class="ochart-tooltip" id="dow-tooltip"></div>
+            </div>
+          </div>
+          <div class="ochart-panel">
+            <div class="ochart-header"><div><div class="ochart-title">Items per Order</div><div class="ochart-subtitle" id="ins-units-sub">—</div></div></div>
+            <div class="ochart-canvas">
+              <svg class="ochart-svg" id="ins-units-svg" style="height:160px"></svg>
+              <div class="ochart-tooltip" id="ins-units-tooltip"></div>
+            </div>
+          </div>
+          <div class="ochart-panel">
+            <div class="ochart-header"><div><div class="ochart-title">Order Values</div><div class="ochart-subtitle" id="ins-values-sub">—</div></div></div>
+            <div class="ochart-canvas">
+              <svg class="ochart-svg" id="ins-values-svg" style="height:160px"></svg>
+              <div class="ochart-tooltip" id="ins-values-tooltip"></div>
+            </div>
+          </div>
+        </div>
+        <div class="ins-kpis" id="ins-discounts"></div>
+      </div>
+
+      <div class="panel" id="orders-panel" data-section>
+        <div class="panel-header">
+          <div class="panel-title">Order History</div>
+          <div class="panel-actions">
+            <button class="export-btn export-csv"  data-action="export-csv">↓ CSV</button>
+            <button class="export-btn export-json" data-action="export-json">↓ JSON</button>
+            <div class="panel-count" id="order-count">0 orders</div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>Receipt ID</th>
+                <th>Date</th>
+                <th>Buyer</th>
+                <th>Items</th>
+                <th>Status</th>
+                <th>Gross</th>
+              </tr>
+            </thead>
+            <tbody id="orders-tbody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </section>
+
+    <!-- PRODUCTS TAB -->
+    <section class="tab-panel" id="tab-products">
+      <header class="tab-head">
+        <h1 class="tab-title">Products</h1>
+        <p class="tab-desc">What sells, and how your listings are doing.</p>
+      </header>
+
+      <div class="ins-section" id="sec-variations" data-section>
+        <div class="ins-section-head">
+          <h2 class="ins-section-title">Variations</h2>
+          <div class="ins-note">orders in the selected period</div>
+        </div>
+        <div class="ochart-panel">
+          <div class="ochart-header"><div><div class="ochart-title">Best-Selling Variations</div><div class="ochart-subtitle" id="ins-var-sub">—</div></div></div>
+          <div class="ins-body" id="ins-variations"></div>
+        </div>
+      </div>
+
+      <div class="ins-section" id="sec-listings" data-section>
+        <div class="ins-section-head">
+          <h2 class="ins-section-title">Listings</h2>
+          <div class="ins-note">views and favorites are Etsy's lifetime totals · sales are for the selected period</div>
+        </div>
+        <div class="ins-kpis" id="ins-listing-kpis"></div>
+        <div class="panel ins-panel">
+          <div class="panel-header">
+            <div class="panel-title">Listing Performance</div>
+            <div class="panel-count" id="ins-listing-count">—</div>
+          </div>
+          <div id="ins-listings"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CUSTOMERS TAB -->
+    <section class="tab-panel" id="tab-customers">
+      <header class="tab-head">
+        <h1 class="tab-title">Customers</h1>
+        <p class="tab-desc">Who buys, where their orders ship, and what they say in reviews.</p>
+      </header>
+
+      <div class="ins-section" id="sec-buyers" data-section>
+        <div class="ins-section-head">
+          <h2 class="ins-section-title">Buyers</h2>
+          <div class="ins-note">orders in the selected period</div>
+        </div>
+        <div class="ins-kpis" id="ins-customers"></div>
+        <div class="ins-grid">
+          <div class="ochart-panel">
+            <div class="ochart-header"><div><div class="ochart-title">Top Customers</div><div class="ochart-subtitle">by spend in this period</div></div></div>
+            <div class="top-prod-rows" id="ins-top-customers"></div>
+          </div>
+          <div class="ochart-panel">
+            <div class="ochart-header">
+              <div><div class="ochart-title">Where Orders Ship</div><div class="ochart-subtitle" id="ins-geo-sub">—</div></div>
+              <div class="ochart-toggle">
+                <button class="ochart-toggle-btn active" data-action="insight-mode" data-key="insGeoMode" data-mode="country">Countries</button>
+                <button class="ochart-toggle-btn" data-action="insight-mode" data-key="insGeoMode" data-mode="us-state">US states</button>
+              </div>
+            </div>
+            <div class="top-prod-rows" id="ins-geo"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ins-section" id="sec-reviews" data-section>
+        <div class="ins-section-head">
+          <h2 class="ins-section-title">Reviews</h2>
+          <div class="ins-note">reviews left in the selected period</div>
+        </div>
+        <div id="ins-reviews-status"></div>
+        <div class="ins-stack" id="ins-reviews-body">
+          <div class="ins-kpis" id="ins-review-kpis"></div>
+          <div class="ins-grid">
+            <div class="ochart-panel">
+              <div class="ochart-header"><div><div class="ochart-title">Star Ratings</div><div class="ochart-subtitle">reviews by stars</div></div></div>
+              <div class="ins-body" id="ins-stars"></div>
+            </div>
+            <div class="ochart-panel">
+              <div class="ochart-header"><div><div class="ochart-title">Average Rating by Month</div><div class="ochart-subtitle" id="ins-rating-sub">—</div></div></div>
+              <div class="ochart-canvas">
+                <svg class="ochart-svg" id="ins-rating-svg" style="height:160px"></svg>
+                <div class="ochart-tooltip" id="ins-rating-tooltip"></div>
+              </div>
+            </div>
+            <div class="ochart-panel">
+              <div class="ochart-header"><div><div class="ochart-title">Ratings by Listing</div><div class="ochart-subtitle">listings with 3+ reviews, most reviewed first</div></div></div>
+              <div class="ins-body" id="ins-review-listings"></div>
+            </div>
+            <div class="ochart-panel">
+              <div class="ochart-header"><div><div class="ochart-title">Recent Low Ratings</div><div class="ochart-subtitle">3 stars or fewer</div></div></div>
+              <div class="ins-body" id="ins-low-reviews"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINANCES TAB -->
+    <section class="tab-panel" id="tab-finances">
+      <header class="tab-head">
+        <h1 class="tab-title">Finances</h1>
+        <p class="tab-desc">Where the money goes: Etsy fees, ads, shipping labels and payouts.</p>
+      </header>
+
+      <div class="ledger-summary">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Gross Revenue</div>
+          <div class="kpi-val" id="fin-gross">—</div>
+          <div class="kpi-sub">sales after refunds, excl. tax</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Total Fees</div>
+          <div class="kpi-val red" id="fin-fees">—</div>
+          <div class="kpi-sub">txn + processing + ads + listing + shipping labels</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Net Earnings</div>
+          <div class="kpi-val green" id="fin-net">—</div>
+          <div class="kpi-sub">gross minus fees</div>
+        </div>
+      </div>
+
+      <div class="ins-section" id="sec-fees" data-section>
+        <div class="ins-section-head">
+          <h2 class="ins-section-title">Fees</h2>
+          <div class="ins-note" id="ins-ledger-note"></div>
+        </div>
+
+        <!-- FEE BREAKDOWN CHART -->
+        <div class="fee-chart-panel" id="fee-chart-panel" style="display:none">
+          <div class="fee-chart-header">
+            <div class="fee-chart-title">Etsy Fee Breakdown</div>
+            <div class="fee-chart-total" id="fee-chart-total">—</div>
+          </div>
+          <div class="fee-chart-body">
+            <!-- Donut -->
+            <div class="fee-donut-wrap">
+              <svg class="fee-donut-svg" viewBox="0 0 160 160" id="fee-donut-svg"></svg>
+              <div class="fee-donut-center" id="fee-donut-center">
+                <span class="fee-donut-center-val" id="fee-donut-center-val">—</span>
+                <span class="fee-donut-center-lbl" id="fee-donut-center-lbl">total fees</span>
+              </div>
+              <div class="fee-donut-tooltip" id="fee-donut-tooltip"></div>
+            </div>
+            <!-- Bar list -->
+            <div class="fee-bars-wrap" id="fee-bars-wrap"></div>
+          </div>
+        </div>
+
         <div class="ochart-panel">
           <div class="ochart-header">
             <div>
-              <div class="ochart-title">Sales by Day of Week</div>
-              <div class="ochart-subtitle" id="dow-chart-sub">avg. per day</div>
+              <div class="ochart-title">Fees &amp; Margin Over Time</div>
+              <div class="ochart-subtitle" id="ins-fee-sub">—</div>
             </div>
             <div class="ochart-toggle">
-              <button class="ochart-toggle-btn active" data-action="chart-mode" data-chart="dow" data-mode="revenue">Revenue</button>
-              <button class="ochart-toggle-btn" data-action="chart-mode" data-chart="dow" data-mode="orders">Orders</button>
+              <button class="ochart-toggle-btn active" data-action="insight-mode" data-key="insFeeMode" data-mode="all">All fees</button>
+              <button class="ochart-toggle-btn" data-action="insight-mode" data-key="insFeeMode" data-mode="excl-postage">Excl. postage</button>
             </div>
           </div>
-          <div class="ochart-canvas" id="dow-chart-canvas">
-            <svg class="ochart-svg" id="dow-chart-svg" style="height:160px"></svg>
-            <div class="ochart-tooltip" id="dow-tooltip"></div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Row 2: Top products full width -->
-      <div class="ochart-panel full" id="top-prods-panel" style="margin-bottom:14px">
-        <div class="ochart-header">
-          <div>
-            <div class="ochart-title">Top Products</div>
-            <div class="ochart-subtitle" id="top-prods-sub">—</div>
-          </div>
-          <div class="ochart-toggle">
-            <button class="ochart-toggle-btn active" data-action="chart-mode" data-chart="top" data-mode="revenue">Revenue</button>
-            <button class="ochart-toggle-btn" data-action="chart-mode" data-chart="top" data-mode="orders">Orders</button>
-          </div>
-        </div>
-        <div class="top-prod-rows" id="top-prod-rows">
-          <div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted2);padding:0.5rem 0">
-            Load full details to see product breakdown.
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">Order History</div>
-        <div class="panel-count" id="order-count">0 orders</div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th></th>
-              <th>Receipt ID</th>
-              <th>Date</th>
-              <th>Buyer</th>
-              <th>Items</th>
-              <th>Status</th>
-              <th>Gross</th>
-            </tr>
-          </thead>
-          <tbody id="orders-tbody"></tbody>
-        </table>
-      </div>
-      <div class="pagination" id="pagination"></div>
-    </div>
-  </div>
-
-  <!-- FINANCES TAB -->
-  <div class="tab-panel" id="tab-finances">
-    <div class="ledger-summary">
-      <div class="kpi-card">
-        <div class="kpi-label">Total Gross Revenue</div>
-        <div class="kpi-val" id="fin-gross">—</div>
-        <div class="kpi-sub">sales after refunds, excl. tax</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Total Fees</div>
-        <div class="kpi-val red" id="fin-fees">—</div>
-        <div class="kpi-sub">txn + processing + ads + listing + shipping labels</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Net Earnings</div>
-        <div class="kpi-val green" id="fin-net">—</div>
-        <div class="kpi-sub">gross minus fees</div>
-      </div>
-    </div>
-
-    <!-- FEE BREAKDOWN CHART -->
-    <div class="fee-chart-panel" id="fee-chart-panel" style="display:none">
-      <div class="fee-chart-header">
-        <div class="fee-chart-title">Etsy Fee Breakdown</div>
-        <div class="fee-chart-total" id="fee-chart-total">—</div>
-      </div>
-      <div class="fee-chart-body">
-        <!-- Donut -->
-        <div class="fee-donut-wrap">
-          <svg class="fee-donut-svg" viewBox="0 0 160 160" id="fee-donut-svg"></svg>
-          <div class="fee-donut-center" id="fee-donut-center">
-            <span class="fee-donut-center-val" id="fee-donut-center-val">—</span>
-            <span class="fee-donut-center-lbl" id="fee-donut-center-lbl">total fees</span>
-          </div>
-          <div class="fee-donut-tooltip" id="fee-donut-tooltip"></div>
-        </div>
-        <!-- Bar list -->
-        <div class="fee-bars-wrap" id="fee-bars-wrap"></div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">Payment Ledger</div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <button class="export-btn export-csv"  id="fin-export-csv"  data-action="export-fin-csv" disabled title="Load full details first">↓ CSV</button>
-          <button class="export-btn export-json" id="fin-export-json" data-action="export-fin-json" disabled title="Load full details first">↓ JSON</button>
-          <div class="panel-count" id="fin-count">load full details to see</div>
-        </div>
-      </div>
-      <div style="padding:1rem 1.25rem 0">
-        <div class="fee-note">
-          <span class="fee-note-icon">ℹ️</span>
-          <span>
-            <strong>How Etsy's ledger works:</strong> Gross = all positive sale entries.
-            Fees = transaction, processing, listing, offsite ads, shipping label costs — all negative entries.
-            Sales tax and payouts (DISBURSE) are pass-throughs and excluded from both totals.
-            Refunds reduce gross and partially refund fees.
-          </span>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Type</th>
-              <th>Description</th>
-              <th>Reference</th>
-              <th>Amount</th>
-              <th>Running Balance</th>
-            </tr>
-          </thead>
-          <tbody id="finances-tbody">
-            <tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">Click "⚡ Load full details" to fetch ledger data.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- INSIGHTS TAB (filled by js/insights-view.js) -->
-  <div class="tab-panel" id="tab-insights">
-
-    <div class="ins-section" id="ins-snapshot-section">
-      <div class="ins-section-head">
-        <div class="ins-section-title">Shop Snapshot</div>
-        <div class="ins-note" id="ins-snapshot-note">Etsy's own counts, not limited to the selected period</div>
-      </div>
-      <div class="ins-kpis" id="ins-snapshot"></div>
-    </div>
-
-    <div class="ins-section">
-      <div class="ins-section-head">
-        <div class="ins-section-title">Profitability</div>
-        <div class="ins-note" id="ins-ledger-note"></div>
-      </div>
-      <div class="ochart-panel ins-gap">
-        <div class="ochart-header">
-          <div>
-            <div class="ochart-title">Fees &amp; Margin Over Time</div>
-            <div class="ochart-subtitle" id="ins-fee-sub">—</div>
-          </div>
-          <div class="ochart-toggle">
-            <button class="ochart-toggle-btn active" data-action="insight-mode" data-key="insFeeMode" data-mode="all">All fees</button>
-            <button class="ochart-toggle-btn" data-action="insight-mode" data-key="insFeeMode" data-mode="excl-postage">Excl. postage</button>
-          </div>
-        </div>
-        <div class="ochart-canvas">
-          <svg class="ochart-svg" id="ins-fee-svg" style="height:160px"></svg>
-          <div class="ochart-tooltip" id="ins-fee-tooltip"></div>
-        </div>
-      </div>
-      <div class="ins-grid">
-        <div class="ochart-panel">
-          <div class="ochart-header"><div><div class="ochart-title">Advertising</div><div class="ochart-subtitle">Etsy Ads + Offsite Ads fees</div></div></div>
-          <div class="ins-body" id="ins-ads"></div>
-        </div>
-        <div class="ochart-panel">
-          <div class="ochart-header"><div><div class="ochart-title">Shipping Charged vs Labels</div><div class="ochart-subtitle">what buyers paid vs Etsy labels bought</div></div></div>
-          <div class="ins-body" id="ins-shipping"></div>
-        </div>
-        <div class="ochart-panel">
-          <div class="ochart-header"><div><div class="ochart-title">What Buyers Paid For</div><div class="ochart-subtitle">parts of Total Gross</div></div></div>
-          <div class="ins-body" id="ins-composition"></div>
-        </div>
-        <div class="ochart-panel">
-          <div class="ochart-header"><div><div class="ochart-title">Payouts</div><div class="ochart-subtitle">transfers to your bank</div></div></div>
-          <div class="ins-body" id="ins-payouts"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="ins-section">
-      <div class="ins-section-head">
-        <div class="ins-section-title">Customers</div>
-        <div class="ins-note">orders in the selected period</div>
-      </div>
-      <div class="ins-kpis ins-gap" id="ins-customers"></div>
-      <div class="ins-grid">
-        <div class="ochart-panel">
-          <div class="ochart-header"><div><div class="ochart-title">Top Customers</div><div class="ochart-subtitle">by spend in this period</div></div></div>
-          <div class="top-prod-rows" id="ins-top-customers"></div>
-        </div>
-        <div class="ochart-panel">
-          <div class="ochart-header">
-            <div><div class="ochart-title">Where Orders Ship</div><div class="ochart-subtitle" id="ins-geo-sub">—</div></div>
-            <div class="ochart-toggle">
-              <button class="ochart-toggle-btn active" data-action="insight-mode" data-key="insGeoMode" data-mode="country">Countries</button>
-              <button class="ochart-toggle-btn" data-action="insight-mode" data-key="insGeoMode" data-mode="us-state">US states</button>
-            </div>
-          </div>
-          <div class="top-prod-rows" id="ins-geo"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="ins-section">
-      <div class="ins-section-head">
-        <div class="ins-section-title">Products &amp; Orders</div>
-        <div class="ins-note">orders in the selected period</div>
-      </div>
-      <div class="ochart-panel ins-gap">
-        <div class="ochart-header"><div><div class="ochart-title">Best-Selling Variations</div><div class="ochart-subtitle" id="ins-var-sub">—</div></div></div>
-        <div class="ins-body" id="ins-variations"></div>
-      </div>
-      <div class="ins-grid ins-gap">
-        <div class="ochart-panel">
-          <div class="ochart-header"><div><div class="ochart-title">Items per Order</div><div class="ochart-subtitle" id="ins-units-sub">—</div></div></div>
           <div class="ochart-canvas">
-            <svg class="ochart-svg" id="ins-units-svg" style="height:160px"></svg>
-            <div class="ochart-tooltip" id="ins-units-tooltip"></div>
+            <svg class="ochart-svg" id="ins-fee-svg" style="height:160px"></svg>
+            <div class="ochart-tooltip" id="ins-fee-tooltip"></div>
           </div>
         </div>
-        <div class="ochart-panel">
-          <div class="ochart-header"><div><div class="ochart-title">Order Values</div><div class="ochart-subtitle" id="ins-values-sub">—</div></div></div>
-          <div class="ochart-canvas">
-            <svg class="ochart-svg" id="ins-values-svg" style="height:160px"></svg>
-            <div class="ochart-tooltip" id="ins-values-tooltip"></div>
-          </div>
-        </div>
-      </div>
-      <div class="ins-kpis" id="ins-discounts"></div>
-    </div>
-
-    <div class="ins-section">
-      <div class="ins-section-head">
-        <div class="ins-section-title">Operations</div>
-        <div class="ins-note">orders in the selected period · canceled and refunded orders still count in Total Gross</div>
-      </div>
-      <div class="ins-grid ins-gap">
-        <div class="ochart-panel">
-          <div class="ochart-header"><div><div class="ochart-title">Time to Ship</div><div class="ochart-subtitle">days from payment until marked shipped</div></div></div>
-          <div class="ins-body" id="ins-ship-tiles"></div>
-          <div class="ochart-canvas">
-            <svg class="ochart-svg" id="ins-ship-svg" style="height:140px"></svg>
-            <div class="ochart-tooltip" id="ins-ship-tooltip"></div>
-          </div>
-        </div>
-        <div class="ochart-panel">
-          <div class="ochart-header"><div><div class="ochart-title">Not Shipped Yet</div><div class="ochart-subtitle">physical orders by days since payment</div></div></div>
-          <div class="ins-body" id="ins-backlog"></div>
-        </div>
-      </div>
-      <div class="ins-kpis ins-gap" id="ins-refunds"></div>
-      <div class="ochart-panel">
-        <div class="ochart-header"><div><div class="ochart-title">When Orders Come In</div><div class="ochart-subtitle" id="ins-heat-sub">—</div></div></div>
-        <div class="ochart-canvas">
-          <svg class="ochart-svg" id="ins-heat-svg"></svg>
-          <div class="ochart-tooltip" id="ins-heat-tooltip"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="ins-section">
-      <div class="ins-section-head">
-        <div class="ins-section-title">Listings</div>
-        <div class="ins-note">views and favorites are Etsy's lifetime totals · sales are for the selected period</div>
-      </div>
-      <div class="ins-kpis ins-gap" id="ins-listing-kpis"></div>
-      <div class="panel ins-panel">
-        <div class="panel-header">
-          <div class="panel-title">Listing Performance</div>
-          <div class="panel-count" id="ins-listing-count">—</div>
-        </div>
-        <div id="ins-listings"></div>
-      </div>
-    </div>
-
-    <div class="ins-section">
-      <div class="ins-section-head">
-        <div class="ins-section-title">Reviews</div>
-        <div class="ins-note">reviews left in the selected period</div>
-      </div>
-      <div id="ins-reviews-status"></div>
-      <div id="ins-reviews-body">
-        <div class="ins-kpis ins-gap" id="ins-review-kpis"></div>
         <div class="ins-grid">
           <div class="ochart-panel">
-            <div class="ochart-header"><div><div class="ochart-title">Star Ratings</div><div class="ochart-subtitle">reviews by stars</div></div></div>
-            <div class="ins-body" id="ins-stars"></div>
+            <div class="ochart-header"><div><div class="ochart-title">Advertising</div><div class="ochart-subtitle">Etsy Ads + Offsite Ads fees</div></div></div>
+            <div class="ins-body" id="ins-ads"></div>
           </div>
           <div class="ochart-panel">
-            <div class="ochart-header"><div><div class="ochart-title">Average Rating by Month</div><div class="ochart-subtitle" id="ins-rating-sub">—</div></div></div>
-            <div class="ochart-canvas">
-              <svg class="ochart-svg" id="ins-rating-svg" style="height:160px"></svg>
-              <div class="ochart-tooltip" id="ins-rating-tooltip"></div>
-            </div>
-          </div>
-          <div class="ochart-panel">
-            <div class="ochart-header"><div><div class="ochart-title">Ratings by Listing</div><div class="ochart-subtitle">listings with 3+ reviews, most reviewed first</div></div></div>
-            <div class="ins-body" id="ins-review-listings"></div>
-          </div>
-          <div class="ochart-panel">
-            <div class="ochart-header"><div><div class="ochart-title">Recent Low Ratings</div><div class="ochart-subtitle">3 stars or fewer</div></div></div>
-            <div class="ins-body" id="ins-low-reviews"></div>
+            <div class="ochart-header"><div><div class="ochart-title">Shipping Charged vs Labels</div><div class="ochart-subtitle">what buyers paid vs Etsy labels bought</div></div></div>
+            <div class="ins-body" id="ins-shipping"></div>
           </div>
         </div>
       </div>
-    </div>
 
-  </div>
+      <div class="ins-section" id="sec-income" data-section>
+        <div class="ins-section-head">
+          <h2 class="ins-section-title">Income</h2>
+          <div class="ins-note">what buyers paid, and what reached your bank</div>
+        </div>
+        <div class="ins-grid">
+          <div class="ochart-panel">
+            <div class="ochart-header"><div><div class="ochart-title">What Buyers Paid For</div><div class="ochart-subtitle">parts of Total Gross</div></div></div>
+            <div class="ins-body" id="ins-composition"></div>
+          </div>
+          <div class="ochart-panel">
+            <div class="ochart-header"><div><div class="ochart-title">Payouts</div><div class="ochart-subtitle">transfers to your bank</div></div></div>
+            <div class="ins-body" id="ins-payouts"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="ledger-panel" data-section>
+        <div class="panel-header">
+          <div class="panel-title">Payment Ledger</div>
+          <div class="panel-actions">
+            <button class="export-btn export-csv"  id="fin-export-csv"  data-action="export-fin-csv" disabled title="Load full details first">↓ CSV</button>
+            <button class="export-btn export-json" id="fin-export-json" data-action="export-fin-json" disabled title="Load full details first">↓ JSON</button>
+            <div class="panel-count" id="fin-count">load full details to see</div>
+          </div>
+        </div>
+        <div style="padding:1rem 1.25rem 0">
+          <div class="fee-note">
+            <span class="fee-note-icon">ℹ️</span>
+            <span>
+              <strong>How Etsy's ledger works:</strong> Gross = all positive sale entries.
+              Fees = transaction, processing, listing, offsite ads, shipping label costs — all negative entries.
+              Sales tax and payouts (DISBURSE) are pass-throughs and excluded from both totals.
+              Refunds reduce gross and partially refund fees.
+            </span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Reference</th>
+                <th>Amount</th>
+                <th>Running Balance</th>
+              </tr>
+            </thead>
+            <tbody id="finances-tbody">
+              <tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">Click "⚡ Load full details" to fetch ledger data.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination" id="ledger-pagination"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
 </div>
 
 <script type="module" src="js/main.js"></script>
