@@ -207,6 +207,7 @@ export const tests = [
     const gap = dots.find(d => d.dataset.i === '1');
     eq([gap?.getAttribute('fill'), gap?.getAttribute('cy')], ['none', '112.0'], 'the null gets a faint hover target on the baseline, so its tooltip can say why');
     eq(line.querySelectorAll('path[stroke]').length, 2, 'the line breaks at the null');
+    eq([...line.querySelectorAll('.chart-hit')].map(h => h.dataset.i), ['0', '1', '2', '3'], 'every point, the null too, gets a full-height hover column');
   }],
   ['axisLabelShown drops a label that would run into the last one', () => {
     const weeks = Array.from({ length: 14 }, (_, i) => `Sep ${i + 10}`);

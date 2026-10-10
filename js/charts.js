@@ -124,16 +124,23 @@ export function drawLineChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, to
     ${points.map((p, i) => p ? '' : `<circle cx="${xOf(i).toFixed(1)}" cy="${(PAD.top + iH).toFixed(1)}" r="3"
       fill="none" stroke="${color}" stroke-opacity="0.35" stroke-width="1.5" pointer-events="all"
       class="chart-dot" data-i="${i}" style="cursor:pointer"/>`).join('')}
+    ${data.map((d, i) => `<rect x="${(xOf(i) - xStep / 2).toFixed(1)}" y="0" width="${xStep.toFixed(1)}" height="${H}"
+      fill="transparent" pointer-events="all" class="chart-hit" data-i="${i}" style="cursor:pointer"/>`).join('')}
   `;
 
-  svgEl.querySelectorAll('.chart-dot').forEach(dot => {
-    dot.addEventListener('mouseenter', () => {
-      const d = data[parseInt(dot.dataset.i)];
+  // Each point's whole column is its hover/tap target, not just its 7px dot,
+  // which was hard to hit with a finger; the point under it grows to show which.
+  const dots = Object.fromEntries([...svgEl.querySelectorAll('.chart-dot')].map(dot => [dot.dataset.i, dot]));
+  svgEl.querySelectorAll('.chart-hit').forEach(hit => {
+    const dot = dots[hit.dataset.i], r = dot.getAttribute('r');
+    hit.addEventListener('mouseenter', () => {
+      const d = data[parseInt(hit.dataset.i)];
       tooltipEl.innerHTML = tooltipHtml ? tooltipHtml(d) : `<strong>${escHtml(d.tip ?? d.label)}</strong><br>${fmtFn(d[valueKey])}`;
       tooltipEl.classList.add('visible');
+      dot.setAttribute('r', String(Number(r) + 1.5));
       positionTooltip(tooltipEl, svgEl, parseFloat(dot.getAttribute('cx')), parseFloat(dot.getAttribute('cy')));
     });
-    dot.addEventListener('mouseleave', () => tooltipEl.classList.remove('visible'));
+    hit.addEventListener('mouseleave', () => { tooltipEl.classList.remove('visible'); dot.setAttribute('r', r); });
   });
 }
 
