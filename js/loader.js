@@ -9,8 +9,8 @@ import { dateStrToTs, daysAgoStr, setCurrency, todayStr, ytdStr } from './util.j
 
 const $ = id => document.getElementById(id);
 
-const FINANCES_PLACEHOLDER =
-  `<tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">Click "⚡ Load full details" to fetch ledger data.</td></tr>`;
+const ledgerPlaceholder = text =>
+  `<tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">${text}</td></tr>`;
 
 const LISTINGS_TTL_MS = 10 * 60 * 1000;
 
@@ -121,7 +121,7 @@ async function reload() {
   btn.textContent = '⚡ Load full details';
   $('fin-export-csv').disabled  = true;
   $('fin-export-json').disabled = true;
-  $('finances-tbody').innerHTML = FINANCES_PLACEHOLDER;
+  $('finances-tbody').innerHTML = ledgerPlaceholder('Loading the ledger…');
   $('ledger-pagination').innerHTML = '';
   $('fee-chart-panel').style.display = 'none';
 
@@ -238,7 +238,12 @@ export async function loadAllDetails(background = false, signal = currentLoad?.s
     btn.style.display  = '';   // surface the manual button so user can retry
     btn.disabled = false;
     btn.textContent = '⚡ Load full details';
-    handleLoadError(err, 'Detail load');
+    if (handleLoadError(err, 'Detail load')) return;
+    // The ledger-based numbers stop loading, not keep shimmering
+    for (const id of ['kpi-fees', 'kpi-net', 'fin-gross', 'fin-fees', 'fin-net']) $(id).textContent = '—';
+    $('kpi-fees-sub').textContent = $('kpi-net-sub').textContent = "ledger didn't load";
+    $('fin-count').textContent = '—';
+    $('finances-tbody').innerHTML = ledgerPlaceholder("The ledger didn't load. Use “⚡ Load full details” to try again.");
   }
 }
 

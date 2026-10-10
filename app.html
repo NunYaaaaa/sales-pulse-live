@@ -169,12 +169,12 @@
           <div class="kpi-card">
             <div class="kpi-label">Total Fees</div>
             <div class="kpi-val red" id="kpi-fees">—</div>
-            <div class="kpi-sub" id="kpi-fees-sub">load full details</div>
+            <div class="kpi-sub" id="kpi-fees-sub">from the ledger</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-label">Net Earnings</div>
             <div class="kpi-val green" id="kpi-net">—</div>
-            <div class="kpi-sub" id="kpi-net-sub">load full details</div>
+            <div class="kpi-sub" id="kpi-net-sub">from the ledger</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-label">Total Orders</div>
@@ -320,7 +320,7 @@
           </div>
         </div>
         <div class="table-wrap">
-          <table>
+          <table class="stack-rows">
             <thead>
               <tr>
                 <th></th>
@@ -446,14 +446,14 @@
 
       <div class="ledger-summary">
         <div class="kpi-card">
-          <div class="kpi-label">Total Gross Revenue</div>
+          <div class="kpi-label">Total Gross</div>
           <div class="kpi-val" id="fin-gross">—</div>
           <div class="kpi-sub">sales after refunds, excl. tax</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Total Fees</div>
           <div class="kpi-val red" id="fin-fees">—</div>
-          <div class="kpi-sub">txn + processing + ads + listing + shipping labels</div>
+          <div class="kpi-sub">txn + processing + ads + listing + labels</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Net Earnings</div>
@@ -538,24 +538,25 @@
         <div class="panel-header">
           <div class="panel-title">Payment Ledger</div>
           <div class="panel-actions">
-            <button class="export-btn export-csv"  id="fin-export-csv"  data-action="export-fin-csv" disabled title="Load full details first">↓ CSV</button>
-            <button class="export-btn export-json" id="fin-export-json" data-action="export-fin-json" disabled title="Load full details first">↓ JSON</button>
-            <div class="panel-count" id="fin-count">load full details to see</div>
+            <button class="export-btn export-csv"  id="fin-export-csv"  data-action="export-fin-csv" disabled title="Available once the ledger loads">↓ CSV</button>
+            <button class="export-btn export-json" id="fin-export-json" data-action="export-fin-json" disabled title="Available once the ledger loads">↓ JSON</button>
+            <div class="panel-count" id="fin-count">…</div>
           </div>
         </div>
         <div style="padding:1rem 1.25rem 0">
           <div class="fee-note">
             <span class="fee-note-icon">ℹ️</span>
             <span>
-              <strong>How Etsy's ledger works:</strong> Gross = all positive sale entries.
-              Fees = transaction, processing, listing, offsite ads, shipping label costs — all negative entries.
-              Sales tax and payouts (DISBURSE) are pass-throughs and excluded from both totals.
-              Refunds reduce gross and partially refund fees.
+              <strong>How the totals work:</strong> Gross is your sales after refunds, without the sales tax and
+              retail delivery fees Etsy collects for tax authorities. Fees are everything Etsy charged (transaction,
+              processing, listing, ads, shipping labels) minus the fee credits it gave back. Payouts, bounced payouts
+              and card top-ups only move money between your bank and your Etsy balance, so they're left out of both.
+              Net = Gross − Fees: the change in your balance apart from those transfers.
             </span>
           </div>
         </div>
         <div class="table-wrap">
-          <table>
+          <table class="stack-rows">
             <thead>
               <tr>
                 <th>Date</th>
@@ -563,11 +564,11 @@
                 <th>Description</th>
                 <th>Reference</th>
                 <th>Amount</th>
-                <th>Running Balance</th>
+                <th>Balance</th>
               </tr>
             </thead>
             <tbody id="finances-tbody">
-              <tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">Click "⚡ Load full details" to fetch ledger data.</td></tr>
+              <tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">Loading the ledger…</td></tr>
             </tbody>
           </table>
         </div>

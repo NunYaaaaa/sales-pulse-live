@@ -53,11 +53,12 @@ export function setFetchStatus(msg, done = false) {
 
 /** Show skeleton placeholders so the page looks alive before data arrives */
 export function showSkeletons() {
-  ['kpi-revenue','kpi-fees','kpi-net','kpi-orders','kpi-aov'].forEach(id => {
+  ['kpi-revenue','kpi-fees','kpi-net','kpi-orders','kpi-aov','fin-gross','fin-fees','fin-net'].forEach(id => {
     $(id).innerHTML = '<span class="skeleton skeleton-kpi-val"></span>';
   });
   $('kpi-fees-sub').innerHTML = '<span class="skeleton skeleton-kpi-sub"></span>';
   $('kpi-net-sub').innerHTML  = '<span class="skeleton skeleton-kpi-sub"></span>';
+  $('fin-count').textContent  = '…';
 
   $('orders-tbody').innerHTML = Array(8).fill(0).map(() => `
     <tr style="border-bottom:1px solid var(--border)">

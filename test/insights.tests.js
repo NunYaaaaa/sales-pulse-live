@@ -166,8 +166,10 @@ export const tests = [
     eq(bars.querySelectorAll('.chart-bar')[1].getAttribute('fill'), 'var(--border2)', 'null drawn as a faint stub');
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     drawLineChart(line, document.createElement('div'), data, 'v', String, '#000');
-    eq(line.querySelectorAll('.chart-dot').length, 3, 'no dot for the null point');
-    eq([...line.querySelectorAll('.chart-dot')].map(d => d.dataset.i), ['0', '2', '3'], 'points keep their positions');
+    const dots = [...line.querySelectorAll('.chart-dot')];
+    eq(dots.filter(d => d.getAttribute('fill') === '#000').map(d => d.dataset.i), ['0', '2', '3'], 'points keep their positions');
+    const gap = dots.find(d => d.dataset.i === '1');
+    eq([gap?.getAttribute('fill'), gap?.getAttribute('cy')], ['none', '112.0'], 'the null gets a faint hover target on the baseline, so its tooltip can say why');
     eq(line.querySelectorAll('path[stroke]').length, 2, 'the line breaks at the null');
   }],
   ['productNames: current listing title, else the newest title it sold under', () => {

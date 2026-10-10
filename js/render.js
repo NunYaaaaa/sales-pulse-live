@@ -100,12 +100,12 @@ function renderLedgerTable() {
     const amtHtml = `<span style="${amtStyle}">${isPos ? '+' : ''}${fmtMoney(amt)}</span>`;
 
     return `<tr>
-      <td class="td-mono td-muted">${date}</td>
-      <td>${typeBadge}</td>
-      <td>${label}</td>
-      <td>${refHtml}</td>
-      <td>${amtHtml}</td>
-      <td class="td-mono td-muted">${fmtMoney(bal)}</td>
+      <td class="td-mono td-muted sr-sub">${date}</td>
+      <td class="sr-sub">${typeBadge}</td>
+      <td class="sr-main" title="${label}">${label}</td>
+      <td class="sr-sub">${refHtml}</td>
+      <td class="sr-end">${amtHtml}</td>
+      <td class="td-mono td-muted sr-off">${fmtMoney(bal)}</td>
     </tr>`;
   });
 
@@ -145,13 +145,13 @@ export function renderTable() {
     tr.className = 'order-row';
     tr.dataset.rid = rid;
     tr.innerHTML = `
-      <td class="td-mono td-muted" style="width:24px"><span class="expand-icon">▶</span></td>
-      <td class="td-mono td-muted">#${escHtml(rid || '—')}</td>
-      <td class="td-mono td-muted">${date}</td>
-      <td>${buyer}</td>
-      <td class="td-mono" style="color:var(--muted)">${escHtml(items)}</td>
-      <td><span class="status-badge ${statusClass(status)}">${escHtml(status)}</span></td>
-      <td><span class="amount-pos">${gross}</span></td>
+      <td class="td-mono td-muted sr-lead" style="width:24px"><span class="expand-icon">▶</span></td>
+      <td class="td-mono td-muted sr-sub">#${escHtml(rid || '—')}</td>
+      <td class="td-mono td-muted sr-sub">${date}</td>
+      <td class="sr-main" title="${buyer}">${buyer}</td>
+      <td class="td-mono sr-off" style="color:var(--muted)">${escHtml(items)}</td>
+      <td class="sr-side"><span class="status-badge ${statusClass(status)}">${escHtml(status)}</span></td>
+      <td class="sr-end"><span class="amount-pos">${gross}</span></td>
     `;
     tr.addEventListener('click', () => toggleDetail(tr, o));
     tbody.appendChild(tr);

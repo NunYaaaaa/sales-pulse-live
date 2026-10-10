@@ -112,7 +112,7 @@ function ordersJSON() {
 
 function sortedLedger() {
   const entries = state.ledgerEntries || [];
-  if (!entries.length) { alert('No ledger data to export. Load full details first.'); return null; }
+  if (!entries.length) { alert('No ledger entries to export for this period.'); return null; }
   return [...entries].sort((a, b) => b.created_timestamp - a.created_timestamp);
 }
 

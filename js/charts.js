@@ -108,6 +108,9 @@ export function drawLineChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, to
     ${points.filter(Boolean).map(([x, y, i]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5"
       fill="${color}" stroke="var(--offwhite)" stroke-width="1.5"
       class="chart-dot" data-i="${i}" style="cursor:pointer"/>`).join('')}
+    ${points.map((p, i) => p ? '' : `<circle cx="${xOf(i).toFixed(1)}" cy="${(PAD.top + iH).toFixed(1)}" r="3"
+      fill="none" stroke="${color}" stroke-opacity="0.35" stroke-width="1.5" pointer-events="all"
+      class="chart-dot" data-i="${i}" style="cursor:pointer"/>`).join('')}
   `;
 
   svgEl.querySelectorAll('.chart-dot').forEach(dot => {

@@ -127,9 +127,11 @@ nav { position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-i
 
 .tab-nav { display:flex; flex-direction:column; gap:2px; }
 .rail-secs { display:none; flex-direction:column; gap:1px; margin:2px 0 8px 0.85rem; padding-left:0.6rem; border-left:1px solid var(--border); }
-.rail-sec { text-align:left; font-family:'DM Sans',sans-serif; font-size:0.78rem; color:var(--muted); background:none; border:none; padding:0.3rem 0.5rem; border-radius:6px; cursor:pointer; transition:color 0.15s; }
+.rail-sec { position:relative; text-align:left; font-family:'DM Sans',sans-serif; font-size:0.78rem; color:var(--muted); background:none; border:none; padding:0.3rem 0.5rem; border-radius:6px; cursor:pointer; transition:color 0.15s; }
 .rail-sec:hover { color:var(--ink); }
 .rail-sec.active { color:var(--ink); font-weight:500; }
+/* The section in view also gets a mark on the rail's line, so it doesn't read as a hover */
+.rail-sec.active::before { content:''; position:absolute; left:calc(-0.6rem - 1.5px); top:0.3rem; bottom:0.3rem; width:2px; border-radius:2px; background:var(--orange); }
 
 @media (min-width: 1024px) {
   .tab-nav .tab-btn { width:100%; text-align:left; font-size:0.7rem; padding:0.55rem 0.75rem; border-bottom:none; margin:0; border-radius:10px; }
@@ -227,6 +229,38 @@ tbody td { padding:0.75rem 1.25rem; color:var(--ink); vertical-align:middle; whi
 .expand-icon { font-size:0.7rem; color:var(--muted2); transition:transform 0.2s; display:inline-block; }
 .expanded .expand-icon { transform:rotate(90deg); }
 
+/* Order history and ledger (.stack-rows) in narrow columns: tighter cells, then
+   two lines per row, so the amount never scrolls out of view. Each cell's class
+   says where it goes when stacked: .sr-main and .sr-end on the first line,
+   .sr-sub and .sr-side on the second, .sr-lead in the left margin, and .sr-off
+   is dropped. */
+.stack-rows .sr-main { max-width:16rem; overflow:hidden; text-overflow:ellipsis; }
+@container (max-width: 48rem) {
+  .stack-rows > thead > tr > th, .stack-rows > tbody > tr > td { padding-left:0.7rem; padding-right:0.7rem; }
+  .stack-rows > thead > tr > th:first-child, .stack-rows > tbody > tr > td:first-child { padding-left:1.25rem; }
+  .stack-rows > thead > tr > th:last-child,  .stack-rows > tbody > tr > td:last-child  { padding-right:1.25rem; }
+}
+@container (max-width: 36rem) {
+  .stack-rows, .stack-rows > tbody { display:block; }
+  .stack-rows > thead { display:none; }
+  .stack-rows > tbody > tr:not(.detail-row) {
+    position:relative; display:flex; flex-wrap:wrap; align-items:baseline; gap:3px 0.6rem;
+    padding:0.7rem 1.25rem; border-bottom:1px solid var(--border);
+  }
+  .stack-rows > tbody > tr:not(.detail-row)::after { content:''; order:3; flex-basis:100%; } /* line break */
+  .stack-rows > tbody > tr > td:nth-child(n) { padding:0; }
+  .stack-rows > tbody > tr > td[colspan] { flex:1 1 100%; }
+  .stack-rows > tbody > tr:has(> td[colspan]) { padding:0; } /* placeholders bring their own */
+  .stack-rows > tbody > tr.detail-row, .stack-rows > tbody > tr.detail-row > td { display:block; }
+  .stack-rows > tbody > tr.order-row { padding-left:2.5rem; }
+  .stack-rows .sr-lead { position:absolute; left:1.25rem; top:0.8rem; }
+  .stack-rows .sr-main { order:1; flex:1 1 0; max-width:none; min-width:0; }
+  .stack-rows .sr-end  { order:2; }
+  .stack-rows .sr-sub  { order:4; }
+  .stack-rows .sr-side { order:5; margin-left:auto; }
+  .stack-rows .sr-off  { display:none; }
+}
+
 /* STATUS BADGES */
 .status-badge { font-family:'DM Mono',monospace; font-size:0.58rem; letter-spacing:0.06em; padding:3px 8px; border-radius:999px; border:1px solid; text-transform:capitalize; }
 .s-paid      { background:var(--green-bg);  border-color:var(--green-bd);  color:var(--green); }
@@ -276,12 +310,27 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
 
 .detail-body { display:flex; align-items:flex-start; }
 .detail-col-info {
-  flex:0 0 240px;
+  flex:0 0 240px; min-width:0; /* long values truncate instead of widening the column */
   padding:1rem 1.25rem;
   border-right:1px solid var(--border);
   display:flex; flex-direction:column; gap:3px;
 }
 .detail-col-items { flex:1 1 0; min-width:0; overflow:hidden; }
+@container (max-width: 36rem) {
+  /* Order totals wrap into two columns: phones hide scrollbars, so tiles past the edge went unseen */
+  .detail-summary { display:grid; grid-template-columns:1fr 1fr; overflow:visible; }
+  .detail-stat { min-width:0; border-right:none; border-top:1px solid var(--border); }
+  .detail-stat:nth-child(-n+2 of .detail-stat) { border-top:none; }
+  .detail-stat:nth-child(odd of .detail-stat) { border-right:1px solid var(--border); }
+  .detail-stat:last-child:nth-child(odd of .detail-stat) { grid-column:1 / -1; border-right:none; }
+  .detail-stat-sep { display:none; }
+  .detail-body { flex-direction:column; align-items:stretch; }
+  .detail-col-info { flex:none; border-right:none; border-bottom:1px solid var(--border); }
+  .detail-col-items { flex:none; overflow-x:auto; }
+  .line-items :is(th, td) { padding-left:0.6rem; padding-right:0.6rem; }
+  .line-items :is(th, td):first-child { padding-left:1.25rem; }
+  .line-items :is(th, td):last-child  { padding-right:1.25rem; }
+}
 
 .detail-section-title {
   font-family:'DM Mono',monospace; font-size:0.55rem;
@@ -318,7 +367,8 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
   padding:6px 1rem; text-align:left;
   border-bottom:1px solid var(--border); background:var(--paper);
 }
-.line-items td { padding:8px 1rem; color:var(--ink); border-bottom:1px solid var(--border); vertical-align:middle; }
+.line-items td { padding:8px 1rem; color:var(--ink); border-bottom:1px solid var(--border); vertical-align:middle; white-space:normal; } /* long Etsy titles wrap, so Each and Total stay in view */
+.line-items .li-title { overflow-wrap:anywhere; }
 .line-items tr:last-child td { border-bottom:none; }
 .line-items .li-title { font-size:0.82rem; }
 .line-items .li-sku { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted2); }
@@ -646,6 +696,9 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
 .ins-scroll thead th { position:sticky; top:0; z-index:1; }
 .ins-scroll th, .ins-scroll td { padding-left:0.7rem; padding-right:0.7rem; }
 .ins-scroll th:first-child, .ins-scroll td:first-child { padding-left:1.25rem; }
+/* The name column stays put while a wide table scrolls sideways */
+.ins-scroll td:first-child { position:sticky; left:0; background:var(--offwhite); box-shadow:inset -1px 0 var(--border); }
+.ins-scroll thead th:first-child { left:0; z-index:2; box-shadow:inset -1px 0 var(--border); }
 .ins-num { text-align:right; font-family:'DM Mono',monospace; font-size:0.72rem; }
 .ins-title-cell { max-width:240px; overflow:hidden; text-overflow:ellipsis; }
 .ins-title-cell a { color:var(--ink); text-decoration:none; }

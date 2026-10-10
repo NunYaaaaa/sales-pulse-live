@@ -177,9 +177,12 @@ function renderFeeChart(entries) {
   if (!data.some(r => r.feePct !== null)) { svg.innerHTML = ''; sub.textContent = 'No sales in the ledger for this period'; return; }
   sub.textContent = `${pct(gross > 0 ? fees / gross : null)} of sales (excl. tax) went to fees · by ${bucket}`;
 
-  const tipHtml = d => d.feeRate === null
-    ? `<strong>${escHtml(d.label)}</strong><br>No sales${d.feesCents ? `<br>Fees ${fmtC(d.feesCents)}` : ''}`
-    : `<strong>${escHtml(d.label)}</strong><br>Fees ${pct(d.feeRate)} · Margin ${pct(d.margin)}<br>Gross ${fmtC(d.grossCents)} · Fees ${fmtC(d.feesCents)}<br>Net ${fmtC(d.netCents)}`;
+  // No rate when gross isn't positive: either nothing sold, or refunds outweighed the week's sales
+  const tipHtml = d => d.feeRate !== null
+    ? `<strong>${escHtml(d.label)}</strong><br>Fees ${pct(d.feeRate)} · Margin ${pct(d.margin)}<br>Gross ${fmtC(d.grossCents)} · Fees ${fmtC(d.feesCents)}<br>Net ${fmtC(d.netCents)}`
+    : d.grossCents < 0
+      ? `<strong>${escHtml(d.label)}</strong><br>Refunds exceeded sales<br>Gross ${fmtC(d.grossCents)} · Fees ${fmtC(d.feesCents)}<br>Net ${fmtC(d.netCents)}`
+      : `<strong>${escHtml(d.label)}</strong><br>No sales${d.feesCents ? `<br>Fees ${fmtC(d.feesCents)}` : ''}`;
   const fmt = v => `${v.toFixed(1)}%`;
   if (data.length > 14) drawLineChart(svg, tip, data, 'feePct', fmt, '#b91c1c', tipHtml);
   else                  drawBarChart(svg,  tip, data, 'feePct', fmt, '#b91c1c', tipHtml);
@@ -535,7 +538,8 @@ function renderReviews(orders) {
   status.innerHTML = '';
   body.style.display = '';
 
-  const r = reviewStats(state.reviews, orders, { from: state.filterFrom, to: state.filterTo });
+  // Months run to the period end or today, whichever is earlier, like the other time charts
+  const r = reviewStats(state.reviews, orders, { from: state.filterFrom, to: Math.min(state.filterTo ?? nowTs(), nowTs()) });
   const fiveStar = r.count ? r.stars[0].count / r.count : null;
   const lowCount = r.stars.slice(2).reduce((s, x) => s + x.count, 0);
   $('ins-review-kpis').innerHTML = [
