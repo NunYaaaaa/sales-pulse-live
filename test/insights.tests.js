@@ -5,7 +5,7 @@ import {
   adSpend, backlog, basketStats, customerStats, discountStats, feeRateSeries, fulfilment, geography,
   heatmapMatrix, listingStats, payoutStats, refundStats, revenueComposition, reviewStats, shippingPnL, variationStats,
 } from '../js/insights.js';
-import { bucketStart, pickBucket } from '../js/util.js';
+import { bucketRange, bucketStart, pickBucket } from '../js/util.js';
 
 function eq(actual, expected, msg = '') {
   const a = JSON.stringify(actual), e = JSON.stringify(expected);
@@ -23,6 +23,16 @@ export const tests = [
     eq(bucketStart(at(2026, 3, 15), 'week').key, '2026-03-09', 'Sunday belongs to the week starting Monday 9th');
     eq(bucketStart(at(2026, 3, 16), 'week').key, '2026-03-16', 'Monday starts a new week');
     eq(bucketStart(at(2026, 3, 31), 'month').key, '2026-03-01', 'month');
+  }],
+  ['bucketRange: every day / week / month between two times, inclusive', () => {
+    eq(bucketRange(at(2026, 3, 9, 23), at(2026, 3, 12, 1), 'day').map(b => b.key), ['2026-03-09', '2026-03-10', '2026-03-11', '2026-03-12']);
+    eq(bucketRange(at(2026, 3, 11), at(2026, 3, 30), 'week').map(b => b.key), ['2026-03-09', '2026-03-16', '2026-03-23', '2026-03-30']);
+    eq(bucketRange(at(2026, 1, 31), at(2026, 4, 1), 'month').map(b => b.key), ['2026-01-01', '2026-02-01', '2026-03-01', '2026-04-01']);
+    // Across the spring DST change (US: Mar 8 2026), local days stay one per date
+    eq(bucketRange(at(2026, 3, 7), at(2026, 3, 9), 'day').map(b => b.key), ['2026-03-07', '2026-03-08', '2026-03-09']);
+    eq(bucketRange(at(2026, 3, 9), at(2026, 3, 9), 'day').length, 1, 'same day');
+    eq(bucketRange(null, at(2026, 3, 9), 'day'), [], 'missing end');
+    eq(bucketRange(at(2026, 3, 9), at(2026, 3, 1), 'day'), [], 'reversed');
   }],
   ['pickBucket: day up to 35 days, week up to 180, then month', () => {
     eq(pickBucket(0, 35 * 86400), 'day');
@@ -51,6 +61,14 @@ export const tests = [
     const excl = feeRateSeries(entries, { bucket: 'month', exclude: new Set(['shipping_labels']) })[0];
     eq([excl.grossCents, excl.feesCents], [8000, 520], 'excluding postage');
     eq(feeRateSeries([], { bucket: 'week' }), [], 'empty');
+  }],
+  ['feeRateSeries: weeks without entries are kept, across the whole span', () => {
+    const s = feeRateSeries([le('PAYMENT_GROSS', 10000, at(2026, 3, 10)), le('transaction', -650, at(2026, 3, 24))],
+      { bucket: 'week', from: at(2026, 3, 2), to: at(2026, 4, 1) });
+    eq(s.map(r => r.label), ['Mar 2', 'Mar 9', 'Mar 16', 'Mar 23', 'Mar 30'], 'every week of the span');
+    eq(s.map(r => r.grossCents), [0, 10000, 0, 0, 0]);
+    eq(s.map(r => r.feeRate), [null, 0, null, null, null], 'no sales → no rate (a gap, not 0%)');
+    eq(s[3].feesCents, 650, 'fees in a week without sales still count');
   }],
   ['adSpend: nets ad refunds and counts Offsite Ads sales once each', () => {
     const a = adSpend([
@@ -138,6 +156,18 @@ export const tests = [
       eq(svg.querySelector('img'), null, draw.name);
       eq(svg.textContent.includes(payload), true, `${draw.name} shows the text`);
     }
+  }],
+  ['chart primitives keep a slot for null values instead of skipping them', () => {
+    const data = [{ label: 'a', v: 1 }, { label: 'b', v: null }, { label: 'c', v: 2 }, { label: 'd', v: 3 }];
+    const bars = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    drawBarChart(bars, document.createElement('div'), data, 'v', String, '#000');
+    eq(bars.querySelectorAll('.chart-bar').length, 4, 'one bar slot per point');
+    eq(bars.querySelectorAll('.chart-bar')[1].getAttribute('fill'), 'var(--border2)', 'null drawn as a faint stub');
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    drawLineChart(line, document.createElement('div'), data, 'v', String, '#000');
+    eq(line.querySelectorAll('.chart-dot').length, 3, 'no dot for the null point');
+    eq([...line.querySelectorAll('.chart-dot')].map(d => d.dataset.i), ['0', '2', '3'], 'points keep their positions');
+    eq(line.querySelectorAll('path[stroke]').length, 2, 'the line breaks at the null');
   }],
   ['variationStats: groups by listing, drops personalization, folds extra combos into Other', () => {
     const tx = (listing_id, title, quantity, ...values) => ({ listing_id, title, quantity, variations: [
@@ -271,6 +301,8 @@ export const tests = [
     eq([r.count, r.avg], [4, 4]);
     eq(r.stars.map(s => s.count), [2, 1, 0, 1, 0], '5★ to 1★');
     eq(r.monthly.map(m => [m.label, m.count, m.avg]), [['Mar 2026', 4, 4]]);
+    const gap = reviewStats([rev(5, 5), { rating: 3, created_timestamp: at(2026, 5, 2) }], [], { from: at(2026, 3, 1, 0), to: at(2026, 5, 31, 23) });
+    eq(gap.monthly.map(m => [m.label, m.count, m.avg]), [['Mar 2026', 1, 5], ['Apr 2026', 0, null], ['May 2026', 1, 3]], 'months without reviews are kept, with no average');
     eq(r.byListing, [{ id: 1, count: 3, avg: 11 / 3 }], 'listings with 3+ reviews only');
     eq(r.low.map(x => x.review), ['Late']);
     eq([r.items, r.itemsReviewed, r.coverage], [7, 5, 5 / 7]);

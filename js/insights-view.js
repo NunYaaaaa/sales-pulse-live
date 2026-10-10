@@ -167,15 +167,18 @@ function renderFeeChart(entries) {
   if (bucket === 'day') bucket = 'week'; // daily fee rates are too noisy (ads and renewals post daily)
 
   const exclude = state.insFeeMode === 'excl-postage' ? POSTAGE : null;
-  const all     = feeRateSeries(entries, { bucket, exclude });
+  // Every bucket of the ledger span; one without sales has no rate and shows as a gap
+  const all     = feeRateSeries(entries, { bucket, exclude, from: span?.from, to: span?.to });
   const gross   = all.reduce((s, r) => s + r.grossCents, 0);
   const fees    = all.reduce((s, r) => s + r.feesCents, 0);
-  const data    = all.filter(r => r.feeRate !== null).map(r => ({ ...r, feePct: r.feeRate * 100 }));
+  const data    = all.map(r => ({ ...r, feePct: r.feeRate === null ? null : r.feeRate * 100 }));
 
-  if (!data.length) { svg.innerHTML = ''; sub.textContent = 'No sales in the ledger for this period'; return; }
+  if (!data.some(r => r.feePct !== null)) { svg.innerHTML = ''; sub.textContent = 'No sales in the ledger for this period'; return; }
   sub.textContent = `${pct(gross > 0 ? fees / gross : null)} of sales (excl. tax) went to fees · by ${bucket}`;
 
-  const tipHtml = d => `<strong>${escHtml(d.label)}</strong><br>Fees ${pct(d.feeRate)} · Margin ${pct(d.margin)}<br>Gross ${fmtC(d.grossCents)} · Fees ${fmtC(d.feesCents)}<br>Net ${fmtC(d.netCents)}`;
+  const tipHtml = d => d.feeRate === null
+    ? `<strong>${escHtml(d.label)}</strong><br>No sales${d.feesCents ? `<br>Fees ${fmtC(d.feesCents)}` : ''}`
+    : `<strong>${escHtml(d.label)}</strong><br>Fees ${pct(d.feeRate)} · Margin ${pct(d.margin)}<br>Gross ${fmtC(d.grossCents)} · Fees ${fmtC(d.feesCents)}<br>Net ${fmtC(d.netCents)}`;
   const fmt = v => `${v.toFixed(1)}%`;
   if (data.length > 14) drawLineChart(svg, tip, data, 'feePct', fmt, '#b91c1c', tipHtml);
   else                  drawBarChart(svg,  tip, data, 'feePct', fmt, '#b91c1c', tipHtml);
@@ -557,7 +560,9 @@ function renderReviews(orders) {
 
   $('ins-rating-sub').textContent = `${r.monthly.length} month${r.monthly.length === 1 ? '' : 's'} · hover a bar for its review count`;
   drawBarChart($('ins-rating-svg'), $('ins-rating-tooltip'), r.monthly, 'avg', v => `${v.toFixed(2)} ★`, '#b8860b',
-    d => `<strong>${escHtml(d.label)}</strong><br>${d.avg.toFixed(2)} ★ average<br>${plural(d.count, 'review')}`);
+    d => d.avg === null
+      ? `<strong>${escHtml(d.label)}</strong><br>No reviews`
+      : `<strong>${escHtml(d.label)}</strong><br>${d.avg.toFixed(2)} ★ average<br>${plural(d.count, 'review')}`);
 
   const top = r.byListing.slice(0, 8);
   setHtml($('ins-review-listings'), top.length

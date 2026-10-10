@@ -91,6 +91,27 @@ export function bucketStart(ts, size) {
 }
 
 /**
+ * Every local calendar bucket from the one holding fromTs to the one holding
+ * toTs, inclusive, so time charts show empty days, weeks and months instead
+ * of skipping them. Empty when either end is missing or the span is reversed.
+ */
+export function bucketRange(fromTs, toTs, size) {
+  const out = [];
+  if (fromTs == null || toTs == null || toTs < fromTs) return out;
+  const last = bucketStart(toTs, size).key;
+  const d = new Date(bucketStart(fromTs, size).ts * 1000);
+  for (let guard = 0; guard < 10000; guard++) {
+    const b = bucketStart(d.getTime() / 1000, size);
+    out.push(b);
+    if (b.key >= last) break;
+    if (size === 'day')       d.setDate(d.getDate() + 1);
+    else if (size === 'week') d.setDate(d.getDate() + 7);
+    else                      d.setMonth(d.getMonth() + 1);
+  }
+  return out;
+}
+
+/**
  * How many times each weekday (0 = Sunday) occurs among the local calendar
  * days from the day of fromTs to the day of toTs, inclusive.
  */

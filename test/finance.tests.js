@@ -158,9 +158,17 @@ export const tests = [
     const at = (y, m, d, h) => ({ create_timestamp: new Date(y, m - 1, d, h).getTime() / 1000, grandtotal: { amount: 1000, divisor: 100 } });
     // 23:00 and 00:00 local are different days, whatever the UTC date
     const orders = [at(2026, 3, 9, 23), at(2026, 3, 10, 0), at(2026, 3, 10, 12), at(2026, 3, 16, 9)];
-    eq(bucketOrders(orders, 'day').map(b => b.count), [1, 2, 1], 'day');
+    eq(bucketOrders(orders, 'day').map(b => b.count), [1, 2, 0, 0, 0, 0, 0, 1], 'day (9th to 16th, quiet days kept)');
     eq(bucketOrders(orders, 'week').map(b => b.count), [3, 1], 'week (Mon 9th, Mon 16th)');
     eq(bucketOrders(orders, 'month').map(b => [b.count, b.revenue]), [[4, 40]], 'month');
+  }],
+  ['bucketOrders fills the whole span with zero days', () => {
+    const at = (y, m, d, h = 12) => new Date(y, m - 1, d, h).getTime() / 1000;
+    const orders = [{ create_timestamp: at(2026, 3, 10), grandtotal: { amount: 1000, divisor: 100 } }];
+    const days = bucketOrders(orders, 'day', { from: at(2026, 3, 8, 0), to: at(2026, 3, 12, 23) });
+    eq(days.map(b => b.label), ['Mar 8', 'Mar 9', 'Mar 10', 'Mar 11', 'Mar 12']);
+    eq(days.map(b => [b.count, b.revenue]), [[0, 0], [0, 0], [1, 10], [0, 0], [0, 0]]);
+    eq(bucketOrders([], 'day'), [], 'no orders, no span');
   }],
   ['escHtml escapes attribute-breaking quotes', () => {
     eq(escHtml(`"><img src=x onerror='a'>&`), '&quot;&gt;&lt;img src=x onerror=&#39;a&#39;&gt;&amp;');

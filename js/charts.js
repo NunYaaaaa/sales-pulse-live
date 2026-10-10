@@ -2,7 +2,7 @@
 import { FEE_GROUPS, FEE_OTHER_COLOR, FEE_REFUND_OF, PALETTE } from './config.js';
 import { categoriseEntry, ledgerType } from './finance.js';
 import { lineItems, state } from './state.js';
-import { bucketStart, escHtml, fmtMoney, money, orderSales, pickBucket, weekdayCounts } from './util.js';
+import { bucketRange, bucketStart, escHtml, fmtMoney, money, orderSales, pickBucket, weekdayCounts } from './util.js';
 
 const $ = id => document.getElementById(id);
 
@@ -10,11 +10,17 @@ const $ = id => document.getElementById(id);
 
 /**
  * Group orders by local calendar period.
- * Returns array of { label, ts (unix), revenue, count } sorted by ts.
+ * Returns array of { label, ts (unix), revenue, count } sorted by ts, with a
+ * zero bucket for every period without orders between span.from and span.to
+ * (default: the first and last order).
  * bucketSize: 'day' | 'week' | 'month'
  */
-export function bucketOrders(orders, bucketSize) {
-  const map = {};
+export function bucketOrders(orders, bucketSize, span = {}) {
+  const ts   = orders.map(o => o.create_timestamp);
+  const from = span.from ?? (ts.length ? Math.min(...ts) : null);
+  const to   = span.to   ?? (ts.length ? Math.max(...ts) : null);
+  const map  = {};
+  for (const b of bucketRange(from, to, bucketSize)) map[b.key] = { label: b.label, ts: b.ts, revenue:0, count:0 };
   for (const o of orders) {
     const b = bucketStart(o.create_timestamp, bucketSize);
     map[b.key] ??= { label: b.label, ts: b.ts, revenue:0, count:0 };
@@ -24,15 +30,22 @@ export function bucketOrders(orders, bucketSize) {
   return Object.values(map).sort((a, b) => a.ts - b.ts);
 }
 
-/** Pick a bucket size that gives 8–40 data points */
-function autoBucket(orders) {
-  if (!orders.length) return 'day';
-  const ts = orders.map(o => o.create_timestamp);
-  return pickBucket(Math.min(...ts), Math.max(...ts));
+/**
+ * The period the order charts cover: the filter's start (or the oldest order)
+ * up to the filter's end or now, whichever is earlier.
+ */
+function chartSpan(orders) {
+  const now = Math.floor(Date.now() / 1000);
+  return {
+    from: state.filterFrom ?? Math.min(...orders.map(o => o.create_timestamp)),
+    to:   Math.min(state.filterTo ?? now, now),
+  };
 }
 
 /**
- * Draw a smooth line + area chart into an SVG element.
+ * Draw a smooth line + area chart into an SVG element. A null value (e.g. a
+ * rate for a period with nothing to divide by) keeps its place on the axis
+ * and breaks the line there.
  * tooltipHtml(d) overrides the default tooltip; it must escape any API text itself.
  */
 export function drawLineChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, tooltipHtml = null) {
@@ -44,25 +57,31 @@ export function drawLineChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, to
 
   if (!data.length) { svgEl.innerHTML = ''; return; }
 
-  const vals = data.map(d => d[valueKey]);
+  const vals = data.map(d => d[valueKey]).filter(v => v != null);
   const vMin = 0;
-  const vMax = Math.max(...vals) * 1.12 || 1;
+  const vMax = Math.max(0, ...vals) * 1.12 || 1;
   const xStep = data.length > 1 ? iW / (data.length - 1) : iW;
 
   const xOf = i  => PAD.left + i * xStep;
   const yOf = v  => PAD.top + iH - ((v - vMin) / (vMax - vMin)) * iH;
 
-  // Smooth path via cubic bezier
-  const points = data.map((d, i) => [xOf(i), yOf(d[valueKey])]);
-  let linePath = `M ${points[0][0].toFixed(1)} ${points[0][1].toFixed(1)}`;
-  for (let i = 1; i < points.length; i++) {
-    const [x0,y0] = points[i-1], [x1,y1] = points[i];
-    const cpX = (x0 + x1) / 2;
-    linePath += ` C ${cpX.toFixed(1)} ${y0.toFixed(1)}, ${cpX.toFixed(1)} ${y1.toFixed(1)}, ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+  // Runs of consecutive points with a value; each gets its own line and area
+  const points = data.map((d, i) => d[valueKey] == null ? null : [xOf(i), yOf(d[valueKey]), i]);
+  const runs = [];
+  for (const p of points) {
+    if (!p) { if (runs.at(-1)?.length) runs.push([]); continue; }
+    if (!runs.length) runs.push([]);
+    runs.at(-1).push(p);
   }
-  const areaPath = linePath
-    + ` L ${points[points.length-1][0].toFixed(1)} ${(PAD.top+iH).toFixed(1)}`
-    + ` L ${points[0][0].toFixed(1)} ${(PAD.top+iH).toFixed(1)} Z`;
+  // Smooth path via cubic bezier
+  const smooth = run => run.slice(1).reduce((path, [x1, y1], k) => {
+    const [x0, y0] = run[k], cpX = (x0 + x1) / 2;
+    return path + ` C ${cpX.toFixed(1)} ${y0.toFixed(1)}, ${cpX.toFixed(1)} ${y1.toFixed(1)}, ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+  }, `M ${run[0][0].toFixed(1)} ${run[0][1].toFixed(1)}`);
+  const lines = runs.filter(r => r.length).map(smooth);
+  const areas = runs.filter(r => r.length > 1).map(run => smooth(run)
+    + ` L ${run.at(-1)[0].toFixed(1)} ${(PAD.top+iH).toFixed(1)}`
+    + ` L ${run[0][0].toFixed(1)} ${(PAD.top+iH).toFixed(1)} Z`);
 
   // X-axis labels — show ~5 evenly spaced
   const labelStep = Math.max(1, Math.floor(data.length / 5));
@@ -82,10 +101,10 @@ export function drawLineChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, to
         <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
       </linearGradient>
     </defs>
-    <path d="${areaPath}" fill="url(#${uid})"/>
-    <path d="${linePath}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    ${areas.map(a => `<path d="${a}" fill="url(#${uid})"/>`).join('')}
+    ${lines.map(l => `<path d="${l}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`).join('')}
     ${xLabels}
-    ${points.map((p, i) => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.5"
+    ${points.filter(Boolean).map(([x, y, i]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5"
       fill="${color}" stroke="var(--offwhite)" stroke-width="1.5"
       class="chart-dot" data-i="${i}" style="cursor:pointer"/>`).join('')}
   `;
@@ -101,7 +120,11 @@ export function drawLineChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, to
   });
 }
 
-/** Draw a vertical bar chart. tooltipHtml(d) overrides the default tooltip; it must escape any API text itself. */
+/**
+ * Draw a vertical bar chart. A null value keeps its slot, drawn as a faint
+ * baseline stub, so periods with nothing to show aren't skipped.
+ * tooltipHtml(d) overrides the default tooltip; it must escape any API text itself.
+ */
 export function drawBarChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, tooltipHtml = null) {
   const W = svgEl.clientWidth || 400;
   const H = 140;
@@ -111,14 +134,13 @@ export function drawBarChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, too
 
   if (!data.length) { svgEl.innerHTML = ''; return; }
 
-  const vals = data.map(d => d[valueKey]);
-  const vMax = Math.max(...vals) * 1.12 || 1;
+  const vals = data.map(d => d[valueKey]).filter(v => v != null);
+  const vMax = Math.max(0, ...vals) * 1.12 || 1;
   const n    = data.length;
   const gap  = Math.max(2, iW / n * 0.15);
   const barW = (iW - gap * (n - 1)) / n;
 
   const xOf = i => PAD.left + i * (barW + gap);
-  const yOf = v => PAD.top + iH - (v / vMax) * iH;
   const hOf = v => (v / vMax) * iH;
 
   // X labels — show ~5
@@ -126,12 +148,14 @@ export function drawBarChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, too
 
   svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svgEl.innerHTML = data.map((d, i) => {
-    const x = xOf(i), y = yOf(d[valueKey]), h = hOf(d[valueKey]);
+    const none = d[valueKey] == null;
+    const v = none ? 0 : d[valueKey];
+    const x = xOf(i), h = Math.max(hOf(v), none ? 2 : 1), y = PAD.top + iH - h;
     const lbl = (i % labelStep === 0 || i === n-1)
       ? `<text x="${(x + barW/2).toFixed(1)}" y="${H-4}" text-anchor="middle" font-family="monospace" font-size="8" fill="var(--muted2)">${escHtml(d.label)}</text>`
       : '';
-    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(h,1).toFixed(1)}"
-        rx="3" fill="${color}" opacity="0.85" class="chart-bar" data-i="${i}" style="cursor:pointer;transition:opacity 0.15s"/>
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"
+        rx="${none ? 1 : 3}" fill="${none ? 'var(--border2)' : color}" opacity="0.85" class="chart-bar" data-i="${i}" style="cursor:pointer;transition:opacity 0.15s"/>
       ${lbl}`;
   }).join('');
 
@@ -228,8 +252,10 @@ export function renderRevChart() {
   const orders = state.allOrders;
   if (!orders.length) { svgEl.innerHTML = ''; subEl.textContent = NO_ORDERS; return; }
 
-  const bucket = autoBucket(orders);
-  const data   = bucketOrders(orders, bucket);
+  // Every day/week/month of the period, so quiet ones show as zero instead of being skipped
+  const span   = chartSpan(orders);
+  const bucket = pickBucket(span.from, span.to);
+  const data   = bucketOrders(orders, bucket, span);
   const isRev  = state.revChartMode === 'revenue';
   const total  = orders.reduce((s, o) => s + (isRev ? orderSales(o) : 1), 0);
   subEl.textContent = isRev
@@ -260,12 +286,8 @@ export function renderDowChart() {
     tally[dow].count++;
   }
 
-  // Average over every occurrence of that weekday in the period, including
-  // days without sales (the period runs from the filter start, or the oldest
-  // order, up to the filter end or now, whichever is earlier)
-  const now  = Math.floor(Date.now() / 1000);
-  const from = state.filterFrom ?? Math.min(...state.allOrders.map(o => o.create_timestamp));
-  const to   = Math.min(state.filterTo ?? now, now);
+  // Average over every occurrence of that weekday in the period, including days without sales
+  const { from, to } = chartSpan(state.allOrders);
   const days = weekdayCounts(from, to);
 
   const isRev = state.dowChartMode === 'revenue';

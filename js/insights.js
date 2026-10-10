@@ -5,7 +5,7 @@
 // objects go through money(). Anything time-dependent takes `now` as an argument.
 import { AD_FEES, AD_REFUNDS, LABEL_FEES, LABEL_REFUNDS, PAYOUT_REVERSALS, PAYOUT_TYPES } from './config.js';
 import { computeLedgerTotals, ledgerType } from './finance.js';
-import { bucketStart, money } from './util.js';
+import { bucketRange, bucketStart, money } from './util.js';
 
 const cents = m => Math.round(money(m) * 100);
 const sum   = (arr, fn) => arr.reduce((s, x) => s + fn(x), 0);
@@ -14,11 +14,16 @@ const sum   = (arr, fn) => arr.reduce((s, x) => s + fn(x), 0);
 
 /**
  * Gross, fees and net per calendar bucket, with fee rate and margin as
- * fractions of gross (null when a bucket has no gross).
+ * fractions of gross (null when a bucket has no gross). Every bucket from
+ * `from` to `to` (default: the first and last entry) is included, empty or not.
  * `exclude` is a Set of ledger types to leave out entirely (e.g. postage).
  */
-export function feeRateSeries(entries, { bucket = 'week', exclude = null } = {}) {
+export function feeRateSeries(entries, { bucket = 'week', exclude = null, from = null, to = null } = {}) {
   const groups = new Map();
+  const ts = entries.map(e => e.created_timestamp);
+  for (const b of bucketRange(from ?? (ts.length ? Math.min(...ts) : null), to ?? (ts.length ? Math.max(...ts) : null), bucket)) {
+    groups.set(b.key, { label: b.label, ts: b.ts, entries: [] });
+  }
   for (const e of entries) {
     if (exclude?.has(ledgerType(e))) continue;
     const b = bucketStart(e.created_timestamp, bucket);
@@ -436,6 +441,8 @@ export function listingStats(listings, orders, { lowStock = 2 } = {}) {
  * per-listing average for listings with minReviews+, recent ratings of 3 or
  * less), and coverage: the share of these orders' line items that have a
  * review so far, joined on transaction_id (`reviews` may run past `to`).
+ * `monthly` has every month of the period (or between the first and last
+ * review); a month without reviews has count 0 and avg null.
  */
 export function reviewStats(reviews, orders, { from = null, to = null, minReviews = 3, recentLow = 5 } = {}) {
   const period = reviews.filter(r =>
@@ -446,6 +453,12 @@ export function reviewStats(reviews, orders, { from = null, to = null, minReview
   for (const r of period) stars[5 - Math.round(r.rating)].count++;
 
   const months = new Map(), listings = new Map();
+  if (period.length) {
+    const ts = period.map(r => r.created_timestamp);
+    for (const b of bucketRange(from ?? Math.min(...ts), to ?? Math.max(...ts), 'month')) {
+      months.set(b.key, { label: b.label, ts: b.ts, total: 0, count: 0 });
+    }
+  }
   for (const r of period) {
     const b = bucketStart(r.created_timestamp, 'month');
     const m = months.get(b.key) ?? { label: b.label, ts: b.ts, total: 0, count: 0 };
@@ -473,7 +486,7 @@ export function reviewStats(reviews, orders, { from = null, to = null, minReview
     avg: period.length ? sum(period, r => r.rating) / period.length : null,
     stars,
     monthly: [...months.values()].sort((a, b) => a.ts - b.ts)
-      .map(m => ({ label: m.label, ts: m.ts, count: m.count, avg: m.total / m.count })),
+      .map(m => ({ label: m.label, ts: m.ts, count: m.count, avg: m.count ? m.total / m.count : null })),
     byListing: [...listings.values()].filter(l => l.count >= minReviews)
       .map(l => ({ id: l.id, count: l.count, avg: l.total / l.count }))
       .sort((a, b) => b.count - a.count || a.avg - b.avg),
