@@ -257,7 +257,7 @@ tbody td { padding:0.75rem 1.25rem; color:var(--ink); vertical-align:middle; whi
 }
 @container (max-width: 36rem) {
   .stack-rows, .stack-rows > tbody { display:block; }
-  .stack-rows > thead { display:none; }
+  .stack-rows > thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; } /* hidden from view, not from screen readers: cells keep their column names */
   .stack-rows > tbody > tr:not(.detail-row) {
     position:relative; display:flex; flex-wrap:wrap; align-items:baseline; gap:3px 0.6rem;
     padding:0.7rem 1.25rem; border-bottom:1px solid var(--border);
