@@ -489,10 +489,10 @@ function renderListings(orders) {
     ...(allTime ? [`<th ${right}>Sales / 100 views</th>`] : []), '<th></th>'].join('');
   const rows = L.rows.map(r => {
     const title = escHtml(r.title);
+    // No "no sales" flag: the Sold column beside the name already shows 0, and the pill on most rows drowned out these
     const flags = [
       r.soldOut  ? flag('lt-fee', 'sold out') : '',
       r.lowStock ? flag('lt-refund', 'low stock') : '',
-      r.noSales  ? flag('lt-tax', 'no sales') : '',
     ].join('');
     return `<tr>
       <td class="ins-title-cell"><a href="https://www.etsy.com/listing/${encodeURIComponent(String(r.id))}" target="_blank" rel="noopener" title="${title}">${title}</a></td>
