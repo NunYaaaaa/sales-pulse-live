@@ -174,6 +174,42 @@ export function revenueComposition(orders) {
   return { items: r2(items), discounts: r2(discounts), shipping: r2(shipping), tax: r2(tax), giftWrap: r2(giftWrap), other, grand: r2(grand) };
 }
 
+/**
+ * What an average order was made of, in cents, for Avg. Order Value
+ * (orderSales: before refunds, excl. tax): items after discounts, shipping,
+ * gift wrap, and `other` for orders without a subtotal. The parts are
+ * rounded to sum to the rounded average (the largest takes the difference).
+ * Also the average discount and the median, smallest and largest order.
+ * null without orders.
+ */
+export function aovBreakdown(orders) {
+  const n = orders.length;
+  if (!n) return null;
+  const totals = { items: 0, shipping: 0, giftWrap: 0, other: 0 };
+  const values = orders.map(o => {
+    const s = orderSales(o);
+    if (o.subtotal) {
+      totals.items    += money(o.subtotal);
+      totals.shipping += money(o.total_shipping_cost);
+      totals.giftWrap += money(o.gift_wrap_price);
+    } else totals.other += s;
+    return s;
+  }).sort((a, b) => a - b);
+  const toCents = x => Math.round(x * 100);
+  const avgCents = toCents(sum(values, v => v) / n);
+  const parts = Object.fromEntries(Object.entries(totals).map(([k, v]) => [k, toCents(v / n)]));
+  const largest = Object.keys(parts).reduce((a, b) => parts[b] > parts[a] ? b : a);
+  parts[largest] += avgCents - sum(Object.values(parts), c => c);
+  const mid = n >> 1;
+  return {
+    orders: n, avgCents, parts,
+    discountCents: toCents(sum(orders, o => money(o.discount_amt)) / n),
+    medianCents: toCents(n % 2 ? values[mid] : (values[mid - 1] + values[mid]) / 2),
+    minCents: toCents(values[0]),
+    maxCents: toCents(values[n - 1]),
+  };
+}
+
 // ─── CUSTOMERS (receipts) ───────────────────────────────────────────────────
 
 /**

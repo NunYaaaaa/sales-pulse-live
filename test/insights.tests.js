@@ -2,7 +2,7 @@
 // primitives' escaping — run via test/finance.test.html in a browser.
 import { axisLabelShown, drawBarChart, drawHeatmap, drawLineChart, hourLabel } from '../js/charts.js';
 import {
-  adSpend, backlog, basketStats, customerStats, discountStats, feeBreakdown, feeRateSeries, fulfilment, geography, grossBreakdown, orderStatusCounts,
+  adSpend, aovBreakdown, backlog, basketStats, customerStats, discountStats, feeBreakdown, feeRateSeries, fulfilment, geography, grossBreakdown, orderStatusCounts,
   heatmapMatrix, listingStats, payoutStats, productKey, productNames, refundStats, revenueComposition, reviewStats,
   shippingPnL, topProducts, variationStats,
 } from '../js/insights.js';
@@ -135,6 +135,23 @@ export const tests = [
     eq(rows.reduce((s, r) => s + r.count, 0), orders.length, 'counts sum to the orders');
     eq(rows[0].sales, 10, 'sales per status (grand total less tax)');
     eq(orderStatusCounts([]), []);
+  }],
+  ['aovBreakdown: parts of the average order sum to Avg. Order Value', () => {
+    const a = aovBreakdown([
+      order({ subtotal: usd(20), total_shipping_cost: usd(5), discount_amt: usd(2) }),
+      order({ subtotal: usd(10), total_shipping_cost: usd(5), gift_wrap_price: usd(3) }),
+      order({ subtotal: usd(40), total_shipping_cost: usd(0) }),
+      order({ grandtotal: usd(10.80), total_tax_cost: usd(0.80) }), // no subtotal
+    ]);
+    eq(a.avgCents, 2325, '(25 + 18 + 40 + 10) / 4');
+    eq(a.parts, { items: 1750, shipping: 250, giftWrap: 75, other: 250 });
+    eq(Object.values(a.parts).reduce((s, c) => s + c, 0), a.avgCents, 'parts sum to the average');
+    eq([a.discountCents, a.medianCents, a.minCents, a.maxCents], [50, 2150, 1000, 4000]);
+    eq(aovBreakdown([order({ subtotal: usd(9) })]).medianCents, 900, 'one order');
+    // 10.0033 + 1.0033 round to 10.00 + 1.00, but the average 11.0067 rounds to 11.01: the largest part takes the cent
+    const r = aovBreakdown([[10, 1], [10, 1], [10.01, 1.01]].map(([i, sh]) => order({ subtotal: usd(i), total_shipping_cost: usd(sh) })));
+    eq([r.avgCents, r.parts.items, r.parts.shipping], [1101, 1001, 100]);
+    eq(aovBreakdown([]), null);
   }],
   ['adSpend: nets ad refunds and counts Offsite Ads sales once each', () => {
     const a = adSpend([

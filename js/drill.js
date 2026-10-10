@@ -3,9 +3,9 @@
 // DRILLS[key], built from state for the selected period. Each breakdown's
 // total is the card's own figure. API text is escaped here.
 import { computeLedgerTotals } from './finance.js';
-import { feeBreakdown, grossBreakdown, orderStatusCounts } from './insights.js';
+import { aovBreakdown, feeBreakdown, grossBreakdown, orderStatusCounts } from './insights.js';
 import { state } from './state.js';
-import { escHtml, fmtMoney } from './util.js';
+import { escHtml, fmtMoney, orderSales } from './util.js';
 
 const $ = id => document.getElementById(id);
 
@@ -19,6 +19,7 @@ const pct  = x => x == null || !isFinite(x) ? '—' : `${(x * 100).toFixed(1)}%`
 const fmtDate = (ts, year = true) => new Date(ts * 1000).toLocaleDateString('en-US', { month:'short', day:'numeric', ...(year && { year:'numeric' }) });
 const empty = msg => `<div class="ins-empty">${msg}</div>`;
 const note  = msg => `<p class="drill-note">${msg}</p>`;
+const tiles = (...t) => `<div class="ins-tiles drill-tiles">${t.map(([label, val]) => `<div class="ins-tile"><div class="ins-tile-label">${label}</div><div class="ins-tile-val">${val}</div></div>`).join('')}</div>`;
 const ledgerReady = () => state.detailsLoaded && !!state.ledgerEntries;
 
 /** The selected period, as dates ("Sep 10 – Oct 9, 2026"). */
@@ -72,6 +73,30 @@ const statusName = s => STATUS_NAMES[s] || { name: s.charAt(0).toUpperCase() + s
  * the current data, or { wait } while that data is still loading.
  */
 const DRILLS = {
+  aov: {
+    title: 'Avg. Order Value',
+    build() {
+      const orders = state.allOrders;
+      // The card's own sum, so the figure matches it to the cent
+      const figure = fmtMoney(orders.length ? orders.reduce((s, o) => s + orderSales(o), 0) / orders.length : 0);
+      const a = aovBreakdown(orders);
+      if (!a) return { figure, html: empty('No orders in this period.') };
+      const rows = [
+        { name: 'Items', value: a.parts.items, color: 'var(--orange)',
+          sub: a.discountCents ? `after ${fmtC(a.discountCents)} of discounts per order` : 'what the items sold for' },
+        { name: 'Shipping', value: a.parts.shipping, color: '#2563eb', sub: 'charged to buyers' },
+        { name: 'Gift wrap', value: a.parts.giftWrap, color: '#db2777' },
+        { name: 'Other', value: a.parts.other, color: '#6b7280', sub: "orders whose price isn't broken down" },
+      ].filter((r, i) => i < 2 || r.value);
+      return {
+        figure,
+        html: tiles(['Median order', fmtC(a.medianCents)], ['Smallest', fmtC(a.minCents)], ['Largest', fmtC(a.maxCents)]) +
+          breakdown(rows.map(r => ({ ...r, amount: fmtC(r.value) })),
+            { head: ['Per order', 'Share', 'Amount'], total: a.avgCents, totalLabel: 'Avg. Order Value', totalAmount: figure }) +
+          note(`Averaged over ${plural(a.orders, 'order')}, canceled and refunded ones included, before refunds and without sales tax. The Orders tab's Order Values chart shows how they spread.`),
+      };
+    },
+  },
   orders: {
     title: 'Total Orders',
     build() {
