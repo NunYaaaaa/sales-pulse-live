@@ -181,8 +181,8 @@ nav { position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-i
 }
 @media (max-width: 500px) {
   :root { --gutter:1rem; }
-  .pill-live { padding:0.45rem; }
-  .pill-live .pill-text { display:none; }
+  /* No room for "Connected", and a bare pulsing dot reads like a notification; Disconnect and the status line already say it */
+  #live-badge.pill-live { display:none !important; }
 }
 
 .dash-main { min-width:0; container-type:inline-size; }
