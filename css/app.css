@@ -685,8 +685,9 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
 @container (max-width: 40rem) { .ins-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 .ins-kpis:empty { display:none; }
 .ins-body { padding:0.25rem 1.25rem 1.1rem; }
-.ins-tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(110px, 1fr)); gap:8px; margin-bottom:0.75rem; }
-.ins-tile { background:var(--cream); border:1px solid var(--border); border-radius:10px; padding:0.6rem 0.75rem; }
+/* Wrapping flex rather than an auto-fit grid: a tile that wraps onto a row by itself widens to fill it instead of leaving a gap */
+.ins-tiles { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:0.75rem; }
+.ins-tile { flex:1 1 110px; min-width:0; background:var(--cream); border:1px solid var(--border); border-radius:10px; padding:0.6rem 0.75rem; }
 .ins-tile-label { font-family:'DM Mono',monospace; font-size:0.54rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted2); margin-bottom:0.3rem; }
 .ins-tile-val { font-family:'Fraunces',serif; font-size:1.1rem; font-weight:700; letter-spacing:-0.02em; color:var(--ink); line-height:1.1; }
 .ins-tile-val.green { color:var(--green); }
