@@ -45,6 +45,27 @@ export function feeRateSeries(entries, { bucket = 'week', exclude = null, from =
 }
 
 /**
+ * How Total Gross comes out of the ledger, in cents: payments for sales
+ * (which include the buyer's sales tax), less the sales tax and retail
+ * delivery fees passed on to tax authorities, less refunds to buyers, plus
+ * tax returned on those refunds. The parts sum to grossCents.
+ */
+export function grossBreakdown(entries) {
+  const g = { paidCents: 0, sales: 0, taxCents: 0, deliveryCents: 0, refundCents: 0, refunds: 0, taxBackCents: 0 };
+  for (const e of entries) {
+    const cat = categoriseEntry(e), t = ledgerType(e);
+    if (cat === 'revenue') { g.paidCents += e.amount; g.sales++; }
+    else if (cat === 'refund' && e.amount < 0) { g.refundCents += e.amount; g.refunds++; }
+    else if (cat === 'collected') {
+      if (t === 'sales_tax')      g.taxCents += e.amount;
+      else if (t === 'buyer_fee') g.deliveryCents += e.amount;
+      else                        g.taxBackCents += e.amount; // sales_tax_refund
+    }
+  }
+  return { ...g, grossCents: g.paidCents + g.taxCents + g.deliveryCents + g.refundCents + g.taxBackCents };
+}
+
+/**
  * Total Fees by fee group (FEE_GROUPS labels; unknown types are "Other"),
  * in positive cents: what Etsy charged, what it credited back (each credit
  * goes to the fee it reverses, per FEE_REFUND_OF), and the difference. The

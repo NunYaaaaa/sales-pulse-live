@@ -2,7 +2,7 @@
 // A card with data-action="drill" data-drill="<key>" opens #drill with
 // DRILLS[key], built from state for the selected period. Each breakdown's
 // total is the card's own figure. API text is escaped here.
-import { feeBreakdown } from './insights.js';
+import { feeBreakdown, grossBreakdown } from './insights.js';
 import { state } from './state.js';
 import { escHtml, fmtMoney } from './util.js';
 
@@ -11,6 +11,8 @@ const $ = id => document.getElementById(id);
 const LEDGER_WAIT = 'Financial details are still loading.';
 
 const fmtC = c => fmtMoney(c / 100);
+const signed = c => `${c < 0 ? '−' : '+'}${fmtC(Math.abs(c))}`;
+const plural = (n, word) => `${n.toLocaleString('en-US')} ${word}${n === 1 ? '' : 's'}`;
 const pct  = x => x == null || !isFinite(x) ? '—' : `${(x * 100).toFixed(1)}%`;
 const fmtDate = (ts, year = true) => new Date(ts * 1000).toLocaleDateString('en-US', { month:'short', day:'numeric', ...(year && { year:'numeric' }) });
 const empty = msg => `<div class="ins-empty">${msg}</div>`;
@@ -27,11 +29,11 @@ function periodText() {
 }
 
 /**
- * A breakdown table: a row per part, with its share of the total and a bar,
- * then the total row. Rows are { name, sub, value, amount, color }: name and
- * sub are escaped here; amount must already be safe.
+ * A breakdown table: a row per part, with a bar and (unless share is false)
+ * its share of the total, then the total row. Rows are { name, sub, value,
+ * amount, color }: name and sub are escaped here; amount must already be safe.
  */
-function breakdown(rows, { head, total, totalLabel, totalAmount }) {
+function breakdown(rows, { head, total, totalLabel, totalAmount, share = true }) {
   const max = Math.max(0, ...rows.map(r => Math.abs(r.value))) || 1;
   const body = rows.map(r => `<tr>
       <th scope="row">
@@ -39,13 +41,13 @@ function breakdown(rows, { head, total, totalLabel, totalAmount }) {
         ${r.sub ? `<span class="drill-sub">${escHtml(r.sub)}</span>` : ''}
         <span class="drill-bar" aria-hidden="true"><span style="width:${(Math.abs(r.value) / max * 100).toFixed(1)}%;background:${r.color || 'var(--orange)'}"></span></span>
       </th>
-      <td class="drill-pct">${total > 0 ? pct(r.value / total) : ''}</td>
+      ${share ? `<td class="drill-pct">${total > 0 ? pct(r.value / total) : ''}</td>` : ''}
       <td class="drill-amt">${r.amount}</td>
     </tr>`).join('');
   return `<table class="drill-table">
     <thead><tr>${head.map(h => `<th scope="col">${h}</th>`).join('')}</tr></thead>
     <tbody>${body}</tbody>
-    <tfoot><tr><th scope="row">${totalLabel}</th><td></td><td class="drill-amt">${totalAmount}</td></tr></tfoot>
+    <tfoot><tr><th scope="row">${totalLabel}</th>${share ? '<td></td>' : ''}<td class="drill-amt">${totalAmount}</td></tr></tfoot>
   </table>`;
 }
 
@@ -54,6 +56,28 @@ function breakdown(rows, { head, total, totalLabel, totalAmount }) {
  * the current data, or { wait } while that data is still loading.
  */
 const DRILLS = {
+  gross: {
+    title: 'Total Gross',
+    build() {
+      if (!ledgerReady()) return { wait: LEDGER_WAIT };
+      const g = grossBreakdown(state.ledgerEntries);
+      const figure = fmtC(g.grossCents);
+      if (!g.sales && !g.refunds) return { figure, html: empty('No sales or refunds in the ledger for this period.') };
+      const rows = [
+        { name: 'Payments for sales', sub: `${plural(g.sales, 'sale')}, including the sales tax buyers paid`, value: g.paidCents, color: 'var(--green)' },
+        { name: 'Sales tax passed on', sub: 'Etsy pays it to the tax authorities', value: g.taxCents, color: '#a89e90' },
+        { name: 'Retail delivery fees passed on', sub: "state fees the buyer paid, such as Colorado's", value: g.deliveryCents, color: '#6b7280' },
+        { name: 'Refunds to buyers', sub: plural(g.refunds, 'refund'), value: g.refundCents, color: 'var(--gold)' },
+        { name: 'Sales tax returned on refunds', sub: 'the refunds included tax Etsy had already passed on', value: g.taxBackCents, color: '#a89e90' },
+      ].filter((r, i) => i === 0 || r.value);
+      return {
+        figure,
+        html: breakdown(rows.map(r => ({ ...r, amount: signed(r.value) })),
+          { head: ['Part', 'Amount'], share: false, totalLabel: 'Total Gross', totalAmount: figure }) +
+          note('Gross is what you sold after refunds, without the sales tax Etsy collects and pays on your behalf. Fees come off it next, to give Net Earnings.'),
+      };
+    },
+  },
   fees: {
     title: 'Total Fees',
     build() {

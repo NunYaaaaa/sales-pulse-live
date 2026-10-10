@@ -162,10 +162,11 @@
 
       <div class="ins-stack">
         <div class="kpi-row">
-          <div class="kpi-card">
+          <div class="kpi-card drill-card" role="button" tabindex="0" aria-haspopup="dialog" data-action="drill" data-drill="gross">
             <div class="kpi-label">Total Gross</div>
             <div class="kpi-val" id="kpi-revenue">—</div>
             <div class="kpi-sub" id="kpi-revenue-sub">sales excl. tax</div>
+            <div class="drill-cue" aria-hidden="true">Details ›</div>
           </div>
           <div class="kpi-card drill-card" role="button" tabindex="0" aria-haspopup="dialog" data-action="drill" data-drill="fees">
             <div class="kpi-label">Total Fees</div>
@@ -455,10 +456,11 @@
       </header>
 
       <div class="ledger-summary">
-        <div class="kpi-card">
+        <div class="kpi-card drill-card" role="button" tabindex="0" aria-haspopup="dialog" data-action="drill" data-drill="gross">
           <div class="kpi-label">Total Gross</div>
           <div class="kpi-val" id="fin-gross">—</div>
           <div class="kpi-sub">sales after refunds, excl. tax</div>
+          <div class="drill-cue" aria-hidden="true">Details ›</div>
         </div>
         <div class="kpi-card drill-card" role="button" tabindex="0" aria-haspopup="dialog" data-action="drill" data-drill="fees">
           <div class="kpi-label">Total Fees</div>

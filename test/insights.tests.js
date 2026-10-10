@@ -2,7 +2,7 @@
 // primitives' escaping — run via test/finance.test.html in a browser.
 import { axisLabelShown, drawBarChart, drawHeatmap, drawLineChart, hourLabel } from '../js/charts.js';
 import {
-  adSpend, backlog, basketStats, customerStats, discountStats, feeBreakdown, feeRateSeries, fulfilment, geography,
+  adSpend, backlog, basketStats, customerStats, discountStats, feeBreakdown, feeRateSeries, fulfilment, geography, grossBreakdown,
   heatmapMatrix, listingStats, payoutStats, productKey, productNames, refundStats, revenueComposition, reviewStats,
   shippingPnL, topProducts, variationStats,
 } from '../js/insights.js';
@@ -113,6 +113,16 @@ export const tests = [
     eq([f.chargedCents, f.creditedCents, f.totalCents], [1635, 200, 1435]);
     eq(f.totalCents, -computeLedgerTotals(entries).feesCents, 'sums to Total Fees');
     eq(feeBreakdown([]), { rows: [], totalCents: 0, chargedCents: 0, creditedCents: 0 });
+  }],
+  ['grossBreakdown: payments less tax passed on and refunds, summing to Total Gross', () => {
+    const entries = [
+      le('PAYMENT_GROSS', 10800), le('sales_tax', -800), le('PAYMENT_GROSS', 5530), le('sales_tax', -400), le('buyer_fee', -30),
+      le('REFUND_GROSS', -5400), le('sales_tax_refund', 400), le('transaction', -650), le('transaction_refund', 200), le('DISBURSE2', -9000),
+    ];
+    const g = grossBreakdown(entries);
+    eq([g.paidCents, g.sales, g.taxCents, g.deliveryCents, g.refundCents, g.refunds, g.taxBackCents], [16330, 2, -1200, -30, -5400, 1, 400]);
+    eq(g.grossCents, computeLedgerTotals(entries).grossCents, 'sums to Total Gross');
+    eq(grossBreakdown([]).grossCents, 0);
   }],
   ['adSpend: nets ad refunds and counts Offsite Ads sales once each', () => {
     const a = adSpend([
