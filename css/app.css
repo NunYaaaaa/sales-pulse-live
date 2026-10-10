@@ -161,6 +161,8 @@ nav { position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-i
     background:var(--cream); border-bottom:1px solid var(--border);
   }
   .tab-nav { grid-column:1; grid-row:1; flex-direction:row; overflow-x:auto; scrollbar-width:none; }
+  /* Soft ends hint that the strip scrolls; at either end they only cover the end tab's padding */
+  .tab-nav { -webkit-mask-image:linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent); mask-image:linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent); }
   .tab-nav::-webkit-scrollbar { display:none; }
   .tab-nav .tab-btn { padding:0 0.8rem; height:var(--strip-h); }
   .period-toggle {
