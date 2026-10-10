@@ -3,7 +3,8 @@
 import { drawBarChart, drawHeatmap, drawLineChart, hourLabel } from '../js/charts.js';
 import {
   adSpend, backlog, basketStats, customerStats, discountStats, feeRateSeries, fulfilment, geography,
-  heatmapMatrix, listingStats, payoutStats, refundStats, revenueComposition, reviewStats, shippingPnL, variationStats,
+  heatmapMatrix, listingStats, payoutStats, productKey, productNames, refundStats, revenueComposition, reviewStats,
+  shippingPnL, topProducts, variationStats,
 } from '../js/insights.js';
 import { bucketRange, bucketStart, pickBucket } from '../js/util.js';
 
@@ -169,6 +170,29 @@ export const tests = [
     eq([...line.querySelectorAll('.chart-dot')].map(d => d.dataset.i), ['0', '2', '3'], 'points keep their positions');
     eq(line.querySelectorAll('path[stroke]').length, 2, 'the line breaks at the null');
   }],
+  ['productNames: current listing title, else the newest title it sold under', () => {
+    const sale = (ts, listing_id, title) => ({ create_timestamp: ts, transactions: [{ listing_id, title }] });
+    const orders = [sale(at(2026, 3, 20), 1, 'Ring'), sale(at(2026, 3, 1), 1, 'Name Ring'), sale(at(2026, 3, 5), 2, 'Print')];
+    const sold = productNames(orders);
+    eq(sold('1'), { name: 'Ring', otherNames: ['Name Ring'] }, 'newest sale wins, whatever the order of the list');
+    eq(productNames([...orders].reverse())('1').name, 'Ring', 'list order does not matter');
+    eq(productNames(orders, [{ listing_id: 1, title: 'Ring — Sterling' }])('1'), { name: 'Ring — Sterling', otherNames: ['Ring', 'Name Ring'] }, 'current listing title');
+    eq(sold('99'), { name: null, otherNames: [] }, 'unknown listing');
+    eq(productKey({ listing_id: 7 }), productKey({ listing_id: '7' }), 'numeric and string ids match');
+  }],
+  ['topProducts: a renamed listing is one product; same title on two listings stays two', () => {
+    const tx = (listing_id, title, dollars, quantity = 1) => ({ listing_id, title, price: usd(dollars), quantity });
+    const orders = [
+      { create_timestamp: at(2026, 3, 1),  transactions: [tx(1, 'Name Ring', 100), tx(2, 'Print', 20, 3)] },
+      { create_timestamp: at(2026, 3, 20), transactions: [tx(1, 'Ring', 100, 2), tx(3, 'Print', 30)] },
+      { create_timestamp: at(2026, 3, 21), transactions: [{ title: 'No id', price: usd(5) }] },
+    ];
+    const t = topProducts(orders);
+    eq(t.rows.map(p => [p.key, p.name, p.units, p.revenue]), [['1', 'Ring', 3, 300], ['2', 'Print', 3, 60], ['3', 'Print', 1, 30], ['title:No id', 'No id', 1, 5]]);
+    eq(t.rows[0].otherNames, ['Name Ring']);
+    eq(t.total, 4);
+    eq(topProducts(orders, { by: 'units', limit: 2 }).rows.map(p => p.key), ['1', '2'], 'by units, limited');
+  }],
   ['variationStats: groups by listing, drops personalization, folds extra combos into Other', () => {
     const tx = (listing_id, title, quantity, ...values) => ({ listing_id, title, quantity, variations: [
       ...values.map((v, i) => ({ formatted_name: i ? 'Metal' : 'Size', formatted_value: v })),
@@ -178,7 +202,8 @@ export const tests = [
       { transactions: [tx(1, 'Ring', 2, '7', 'Gold'), tx(1, 'Ring (renamed)', 1, '7', 'Gold'), tx(1, 'Ring', 1, '8', 'Silver')] },
       { transactions: [tx(2, 'Print', 1, 'A4'), { listing_id: 3, title: 'Plain', quantity: 5, variations: [] }] },
     ]);
-    eq(v.map(p => [p.key, p.units]), [[1, 4], [2, 1]], 'by units; listings without variations skipped');
+    eq(v.map(p => [p.key, p.units]), [['1', 4], ['2', 1]], 'by units; listings without variations skipped');
+    eq(v[0].otherNames.length, 1, 'the renamed listing is still one product');
     eq(v[0].combos, [{ label: '7 · Gold', units: 3 }, { label: '8 · Silver', units: 1 }]);
     eq(v[0].dims, 'Size · Metal');
     const many = variationStats([{ transactions: ['a', 'b', 'c'].map(x => tx(9, 'T', 1, x)) }], { maxCombos: 2 });

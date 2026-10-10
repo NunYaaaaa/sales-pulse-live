@@ -95,7 +95,11 @@ function ordersJSON() {
       net_after_proc_fee: pay ? bestPaymentAmount(pay, 'net') : null,
       refunded:           refundedAmount(o, pay),
       pay_status:         pay?.status || null,
+      // listing_id identifies the product even after a rename; title is the name it sold under
       line_items: (lineItems(o) || []).map(t => ({
+        listing_id:     t.listing_id ?? null,
+        product_id:     t.product_id ?? null,
+        transaction_id: t.transaction_id ?? null,
         title:    t.title || null,
         sku:      t.sku || null,
         quantity: t.quantity || 1,

@@ -93,6 +93,9 @@ function buildData() {
         variations: variationsFor(t.title),
       });
       if (i === 3 && k === 0) t.variations.push({ formatted_name: 'Note', formatted_value: XSS });
+      // The seller renamed this listing 20 days ago: older sales keep the old
+      // title, same listing_id (charts must still count it as one product)
+      if (t.title === 'Custom Ring' && now - ts > 20 * DAY) t.title = 'Custom Name Ring — Sterling';
     });
 
     receipts.push({

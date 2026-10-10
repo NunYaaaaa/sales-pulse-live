@@ -5,7 +5,8 @@ import { FEE_GROUPS, FEE_OTHER_COLOR, LABEL_FEES, LABEL_REFUNDS, PALETTE } from 
 import { animateBars, DAY_NAMES, drawBarChart, drawHeatmap, drawLineChart, hourLabel, setToggleActive } from './charts.js';
 import {
   adSpend, backlog, basketStats, customerStats, discountStats, feeRateSeries, fulfilment, geography,
-  heatmapMatrix, listingStats, payoutStats, refundStats, revenueComposition, reviewStats, shippingPnL, variationStats,
+  heatmapMatrix, listingStats, payoutStats, productKey, productNames, refundStats, revenueComposition, reviewStats,
+  shippingPnL, variationStats,
 } from './insights.js';
 import { lineItems, state } from './state.js';
 import { escHtml, fmtMoney, getCurrency, pickBucket } from './util.js';
@@ -320,7 +321,7 @@ function fmtShort(n) {
 
 function renderVariations(orders) {
   const el = $('ins-variations'), sub = $('ins-var-sub');
-  const products = variationStats(orders);
+  const products = variationStats(orders, { listings: state.listings });
   if (!products.length) {
     sub.textContent = '—';
     el.innerHTML = empty(orders.length ? 'None of these orders has variations such as size or color.' : NO_ORDERS);
@@ -330,10 +331,11 @@ function renderVariations(orders) {
   el.innerHTML = products.map(p => {
     const segs = p.combos.map((c, i) => ({ ...c, color: c.other ? FEE_OTHER_COLOR : PALETTE[i % PALETTE.length], pct: c.units / p.units * 100 }));
     const title = escHtml(p.title);
+    const hover = escHtml(p.otherNames.length ? `${p.title}\nAlso sold as: ${p.otherNames.join('; ')}` : p.title);
     return `<div class="ins-var">
       <div class="ins-var-head">
-        <span class="top-prod-name" title="${title}">${title}</span>
-        <span class="top-prod-sub">${plural(p.units, 'unit')}${p.dims ? ` · ${escHtml(p.dims)}` : ''}</span>
+        <span class="top-prod-name" title="${hover}">${title}</span>
+        <span class="top-prod-sub">${plural(p.units, 'unit')}${p.dims ? ` · ${escHtml(p.dims)}` : ''}${p.otherNames.length ? ` · <span title="${hover}">renamed</span>` : ''}</span>
       </div>
       <div class="ins-seg">${segs.map(c => `<span style="width:${c.pct.toFixed(2)}%;background:${c.color}" title="${escHtml(c.label)}: ${c.units}"></span>`).join('')}</div>
       <div class="ins-legend">${segs.map(c => `<span><i style="background:${c.color}"></i>${escHtml(c.label)}<b>${c.units}</b></span>`).join('')}</div>
@@ -512,12 +514,10 @@ function renderListings(orders) {
 const STAR_COLORS = { 5: '#3a7d4c', 4: '#65a30d', 3: '#b8860b', 2: '#d4622a', 1: '#b91c1c' };
 const starText = n => '★'.repeat(n) + '☆'.repeat(5 - n);
 
-/** listing_id → title, from loaded listings or else from the orders' line items. */
+/** listing_id → its current title (or newest title it sold under), see productNames. */
 function listingTitles(orders) {
-  const titles = new Map();
-  for (const o of orders) for (const t of o.transactions || []) if (t.listing_id != null && t.title) titles.set(String(t.listing_id), t.title);
-  for (const l of state.listings || []) if (l.title) titles.set(String(l.listing_id), l.title);
-  return id => titles.get(String(id)) || `Listing #${id}`;
+  const names = productNames(orders, state.listings);
+  return id => names(productKey({ listing_id: id })).name || `Listing #${id}`;
 }
 
 function renderReviews(orders) {

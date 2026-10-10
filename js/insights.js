@@ -188,24 +188,84 @@ export function geography(orders, level = 'country') {
   return { rows, known, unknown };
 }
 
+// ─── PRODUCT IDENTITY ───────────────────────────────────────────────────────
+// A product is its Etsy listing. listing_id stays the same when the seller
+// renames a listing, while each line item keeps the title it sold under, so
+// products are grouped by listing_id and never by title (the title is only a
+// fallback for a line item without a listing_id).
+
+/** The key that identifies a line item's (or review's) product. */
+export const productKey = t => t.listing_id != null ? String(t.listing_id) : `title:${t.title || ''}`;
+
+/**
+ * Names for product keys: the listing's current title when `listings` has it,
+ * otherwise the title of its most recent sale in `orders`. `otherNames` lists
+ * the other titles it sold under (it was renamed). name is null if unknown.
+ */
+export function productNames(orders, listings = null) {
+  const sold = new Map(); // key → { title, ts, titles }
+  for (const o of orders) {
+    const ts = o.create_timestamp ?? 0;
+    for (const t of o.transactions || []) {
+      if (!t.title) continue;
+      const key = productKey(t);
+      const s = sold.get(key) ?? { title: t.title, ts, titles: new Set() };
+      s.titles.add(t.title);
+      if (ts > s.ts) { s.title = t.title; s.ts = ts; }
+      sold.set(key, s);
+    }
+  }
+  const current = new Map((listings || []).filter(l => l.title).map(l => [productKey(l), l.title]));
+  return key => {
+    const s = sold.get(key);
+    const name = current.get(key) ?? s?.title ?? null;
+    return { name, otherNames: [...(s?.titles || [])].filter(t => t !== name) };
+  };
+}
+
+/**
+ * Products ranked by item revenue (price × quantity) or units sold in
+ * `orders`, grouped by listing. Returns { rows: [{ key, name, otherNames,
+ * revenue, units }], total } where total counts every product sold.
+ */
+export function topProducts(orders, { by = 'revenue', limit = 8, listings = null } = {}) {
+  const map = new Map();
+  for (const o of orders) {
+    for (const t of o.transactions || []) {
+      const key = productKey(t);
+      const p   = map.get(key) ?? { key, revenue: 0, units: 0 };
+      const qty = t.quantity || 1;
+      p.revenue += (t.price ? money(t.price) : 0) * qty;
+      p.units   += qty;
+      map.set(key, p);
+    }
+  }
+  const names = productNames(orders, listings);
+  const rows = [...map.values()]
+    .sort((a, b) => by === 'revenue' ? b.revenue - a.revenue : b.units - a.units)
+    .slice(0, limit)
+    .map(p => { const n = names(p.key); return { ...p, name: n.name ?? '(Unknown)', otherNames: n.otherNames }; });
+  return { rows, total: map.size };
+}
+
 // ─── PRODUCTS & ORDERS (receipts) ───────────────────────────────────────────
 
 const isPersonalization = v => v.question_id != null || /personali[sz]ation/i.test(v.formatted_name || '');
 
 /**
  * Best-selling variation combinations (e.g. "7 · Gold") for the top products
- * by units. Products are grouped by listing_id, falling back to the title.
+ * by units, grouped by listing (see productKey) and named by productNames.
  * Personalization text is left out; combinations past maxCombos become "Other".
  */
-export function variationStats(orders, { topN = 5, maxCombos = 5 } = {}) {
+export function variationStats(orders, { topN = 5, maxCombos = 5, listings = null } = {}) {
   const products = new Map();
   for (const o of orders) {
     for (const t of o.transactions || []) {
       const vars = (t.variations || []).filter(v => !isPersonalization(v));
       if (!vars.length) continue;
-      const key = t.listing_id ?? t.title ?? '';
+      const key = productKey(t);
       const p = products.get(key) ?? {
-        key, title: t.title || '(Unknown)', units: 0, combos: new Map(),
+        key, units: 0, combos: new Map(),
         dims: vars.map(v => v.formatted_name).filter(Boolean).join(' · '),
       };
       const qty   = t.quantity || 1;
@@ -215,6 +275,7 @@ export function variationStats(orders, { topN = 5, maxCombos = 5 } = {}) {
       products.set(key, p);
     }
   }
+  const names = productNames(orders, listings);
   return [...products.values()]
     .sort((a, b) => b.units - a.units)
     .slice(0, topN)
@@ -223,7 +284,8 @@ export function variationStats(orders, { topN = 5, maxCombos = 5 } = {}) {
       const top  = all.slice(0, maxCombos);
       const rest = sum(all.slice(maxCombos), c => c.units);
       if (rest) top.push({ label: 'Other', units: rest, other: true });
-      return { key: p.key, title: p.title, dims: p.dims, units: p.units, combos: top, comboCount: all.length };
+      const n = names(p.key);
+      return { key: p.key, title: n.name ?? '(Unknown)', otherNames: n.otherNames, dims: p.dims, units: p.units, combos: top, comboCount: all.length };
     });
 }
 
@@ -393,15 +455,16 @@ export function listingStats(listings, orders, { lowStock = 2 } = {}) {
   for (const o of orders) {
     for (const t of o.transactions || []) {
       if (t.listing_id == null) continue;
-      const s = sales.get(t.listing_id) ?? { units: 0, revenue: 0 };
+      const key = productKey(t);
+      const s = sales.get(key) ?? { units: 0, revenue: 0 };
       s.units   += t.quantity || 1;
       s.revenue += money(t.price) * (t.quantity || 1);
-      sales.set(t.listing_id, s);
+      sales.set(key, s);
     }
   }
   const r2 = n => Math.round(n * 100) / 100;
   const rows = listings.map(l => {
-    const s     = sales.get(l.listing_id) ?? { units: 0, revenue: 0 };
+    const s     = sales.get(productKey(l)) ?? { units: 0, revenue: 0 };
     const views = l.views || 0;
     const state = lower(l.state) || 'active';
     const qty   = l.quantity ?? null;
@@ -418,7 +481,7 @@ export function listingStats(listings, orders, { lowStock = 2 } = {}) {
     };
   }).sort((a, b) => b.revenue - a.revenue || (b.views || 0) - (a.views || 0));
 
-  const listed = new Set(listings.map(l => l.listing_id));
+  const listed = new Set(listings.map(productKey));
   const gone   = [...sales].filter(([id]) => !listed.has(id)).map(([, s]) => s);
   const active = rows.filter(r => r.state === 'active');
   const views  = sum(rows, r => r.views || 0);

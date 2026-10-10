@@ -1,8 +1,9 @@
 // ─── CHARTS (pure SVG, no libraries) ───────────────────────────────────────
 import { FEE_GROUPS, FEE_OTHER_COLOR, FEE_REFUND_OF, PALETTE } from './config.js';
 import { categoriseEntry, ledgerType } from './finance.js';
+import { topProducts } from './insights.js';
 import { lineItems, state } from './state.js';
-import { bucketRange, bucketStart, escHtml, fmtMoney, money, orderSales, pickBucket, weekdayCounts } from './util.js';
+import { bucketRange, bucketStart, escHtml, fmtMoney, orderSales, pickBucket, weekdayCounts } from './util.js';
 
 const $ = id => document.getElementById(id);
 
@@ -325,43 +326,30 @@ export function renderTopProducts() {
     return;
   }
 
-  // Aggregate by title from transaction line items
-  const prodMap = {};
-  for (const o of state.allOrders) {
-    const txs = lineItems(o);
-    for (const t of txs) {
-      const title = t.title || '(Unknown)';
-      if (!prodMap[title]) prodMap[title] = { revenue:0, count:0 };
-      const price = t.price ? money(t.price) : 0;
-      const qty   = t.quantity || 1;
-      prodMap[title].revenue += price * qty;
-      prodMap[title].count   += qty;
-    }
-  }
-
+  // Grouped by listing, so a renamed listing stays one product
   const isRev  = state.topProdMode === 'revenue';
-  const sorted = Object.entries(prodMap)
-    .map(([title, v]) => ({ title, ...v }))
-    .sort((a, b) => isRev ? b.revenue - a.revenue : b.count - a.count)
-    .slice(0, 8);
+  const orders = state.allOrders.map(o => o.transactions ? o : { ...o, transactions: lineItems(o) });
+  const { rows: sorted, total } = topProducts(orders, { by: isRev ? 'revenue' : 'units', listings: state.listings });
 
   if (!sorted.length) {
     wrap.innerHTML = `<div class="ins-empty">No product data found.</div>`;
     return;
   }
 
-  const maxVal = sorted[0][isRev ? 'revenue' : 'count'] || 1;
-  sub.textContent = `top ${sorted.length} of ${Object.keys(prodMap).length} products`;
+  const maxVal = sorted[0][isRev ? 'revenue' : 'units'] || 1;
+  sub.textContent = `top ${sorted.length} of ${total} products`;
 
   wrap.innerHTML = sorted.map((p, i) => {
-    const val    = isRev ? p.revenue : p.count;
+    const val    = isRev ? p.revenue : p.units;
     const barPct = (val / maxVal * 100).toFixed(1);
-    const valStr = isRev ? fmtMoney(p.revenue) : `${p.count} sold`;
-    const subStr = isRev ? `${p.count} units` : fmtMoney(p.revenue);
+    const valStr = isRev ? fmtMoney(p.revenue) : `${p.units} sold`;
+    const subStr = isRev ? `${p.units} units` : fmtMoney(p.revenue);
+    const name   = escHtml(p.name);
+    const hover  = escHtml(p.otherNames.length ? `${p.name}\nAlso sold as: ${p.otherNames.join('; ')}` : p.name);
     return `<div class="top-prod-row">
       <div>
-        <div class="top-prod-name" title="${escHtml(p.title)}">${escHtml(p.title)}</div>
-        <div class="top-prod-sub">${subStr}</div>
+        <div class="top-prod-name" title="${hover}">${name}</div>
+        <div class="top-prod-sub">${subStr}${p.otherNames.length ? ` · <span title="${hover}">renamed</span>` : ''}</div>
       </div>
       <div class="top-prod-bar-track">
         <div class="top-prod-bar-fill" style="width:0%;background:${PALETTE[i % PALETTE.length]}" data-target="${barPct}"></div>
