@@ -1,0 +1,126 @@
+// ─── DRILL-DOWNS: the breakdown popup behind a summary card ────────────────
+// A card with data-action="drill" data-drill="<key>" opens #drill with
+// DRILLS[key], built from state for the selected period. Each breakdown's
+// total is the card's own figure. API text is escaped here.
+import { feeBreakdown } from './insights.js';
+import { state } from './state.js';
+import { escHtml, fmtMoney } from './util.js';
+
+const $ = id => document.getElementById(id);
+
+const LEDGER_WAIT = 'Financial details are still loading.';
+
+const fmtC = c => fmtMoney(c / 100);
+const pct  = x => x == null || !isFinite(x) ? '—' : `${(x * 100).toFixed(1)}%`;
+const fmtDate = (ts, year = true) => new Date(ts * 1000).toLocaleDateString('en-US', { month:'short', day:'numeric', ...(year && { year:'numeric' }) });
+const empty = msg => `<div class="ins-empty">${msg}</div>`;
+const note  = msg => `<p class="drill-note">${msg}</p>`;
+const ledgerReady = () => state.detailsLoaded && !!state.ledgerEntries;
+
+/** The selected period, as dates ("Sep 10 – Oct 9, 2026"). */
+function periodText() {
+  const now = Math.floor(Date.now() / 1000);
+  const from = state.filterFrom, to = Math.min(state.filterTo ?? now, now);
+  if (from == null) return `All time, to ${fmtDate(to)}`;
+  const sameYear = new Date(from * 1000).getFullYear() === new Date(to * 1000).getFullYear();
+  return `${fmtDate(from, !sameYear)} – ${fmtDate(to)}`;
+}
+
+/**
+ * A breakdown table: a row per part, with its share of the total and a bar,
+ * then the total row. Rows are { name, sub, value, amount, color }: name and
+ * sub are escaped here; amount must already be safe.
+ */
+function breakdown(rows, { head, total, totalLabel, totalAmount }) {
+  const max = Math.max(0, ...rows.map(r => Math.abs(r.value))) || 1;
+  const body = rows.map(r => `<tr>
+      <th scope="row">
+        <span class="drill-name">${r.color ? `<i style="background:${r.color}"></i>` : ''}${escHtml(r.name)}</span>
+        ${r.sub ? `<span class="drill-sub">${escHtml(r.sub)}</span>` : ''}
+        <span class="drill-bar" aria-hidden="true"><span style="width:${(Math.abs(r.value) / max * 100).toFixed(1)}%;background:${r.color || 'var(--orange)'}"></span></span>
+      </th>
+      <td class="drill-pct">${total > 0 ? pct(r.value / total) : ''}</td>
+      <td class="drill-amt">${r.amount}</td>
+    </tr>`).join('');
+  return `<table class="drill-table">
+    <thead><tr>${head.map(h => `<th scope="col">${h}</th>`).join('')}</tr></thead>
+    <tbody>${body}</tbody>
+    <tfoot><tr><th scope="row">${totalLabel}</th><td></td><td class="drill-amt">${totalAmount}</td></tr></tfoot>
+  </table>`;
+}
+
+/**
+ * Each drill-down: its title, and build() returning { figure, cls, html } for
+ * the current data, or { wait } while that data is still loading.
+ */
+const DRILLS = {
+  fees: {
+    title: 'Total Fees',
+    build() {
+      if (!ledgerReady()) return { wait: LEDGER_WAIT };
+      const f = feeBreakdown(state.ledgerEntries);
+      const rows = f.rows.filter(r => r.chargedCents || r.creditedCents);
+      const figure = fmtC(f.totalCents);
+      if (!rows.length) return { figure, cls: 'red', html: empty('No fees in this period.') };
+      return {
+        figure, cls: 'red',
+        html: breakdown(rows.map(r => ({
+          name: r.label, color: r.color, value: r.cents,
+          amount: (r.cents < 0 ? '−' : '') + fmtC(Math.abs(r.cents)),
+          sub: r.creditedCents ? `${fmtC(r.chargedCents)} charged · ${fmtC(r.creditedCents)} credited back` : '',
+        })), { head: ['Fee', 'Share', 'Amount'], total: f.totalCents, totalLabel: 'Total Fees', totalAmount: figure }) +
+          note(f.creditedCents
+            ? `Etsy charged ${fmtC(f.chargedCents)} and gave ${fmtC(f.creditedCents)} back, mostly fees on refunded orders and adjusted labels. Each credit comes off the fee it reverses.`
+            : 'Every fee Etsy charged in the ledger for this period.'),
+      };
+    },
+  },
+};
+
+let openKey = null, opener = null;
+
+function fill() {
+  const d = DRILLS[openKey], r = d.build();
+  $('drill-title').textContent = d.title;
+  $('drill-period').textContent = periodText();
+  const fig = $('drill-figure');
+  fig.textContent = r.wait ? '—' : r.figure;
+  fig.className = `drill-figure ${r.wait ? '' : r.cls || ''}`;
+  $('drill-body').innerHTML = r.wait ? empty(r.wait) : r.html;
+}
+
+let wired = false;
+/** Listen for closing, once. Not at import: pages without the popup (the tests) import this module too. */
+function wire(dialog) {
+  if (wired) return;
+  wired = true;
+  // Esc closes a modal dialog by itself. The content (.drill-box) fills the dialog,
+  // so a click that lands on the dialog element itself is on the backdrop.
+  dialog.addEventListener('click', ev => { if (ev.target === dialog) closeDrill(); });
+  dialog.addEventListener('close', () => {
+    openKey = null;
+    if (opener?.isConnected && opener.offsetParent) opener.focus(); // back where the viewer was
+    opener = null;
+  });
+}
+
+/** Open the breakdown behind a card (data-drill names it). */
+export function openDrill(card) {
+  const dialog = $('drill');
+  if (!DRILLS[card.dataset.drill]) return;
+  wire(dialog);
+  openKey = card.dataset.drill;
+  opener = card;
+  fill();
+  if (!dialog.open) dialog.showModal();
+  dialog.querySelector('.drill-box').scrollTop = 0;
+}
+
+export function closeDrill() {
+  if ($('drill')?.open) $('drill').close();
+}
+
+/** Redraw the open breakdown after new data arrives (the loader's redraws call this). */
+export function refreshDrill() {
+  if ($('drill')?.open && openKey) fill();
+}

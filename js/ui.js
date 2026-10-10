@@ -1,4 +1,5 @@
 // ─── SCREEN / STATUS HELPERS ───────────────────────────────────────────────
+import { closeDrill } from './drill.js';
 import { todayStr } from './util.js';
 
 const $ = id => document.getElementById(id);
@@ -56,6 +57,7 @@ export function syncTitle() {
 }
 
 export function showConnect() {
+  closeDrill(); // a breakdown would stay on top of the connect screen
   $('dash-error').style.display      = 'none';
   $('connect-screen').style.display  = 'flex';
   $('loading-screen').style.display  = 'none';

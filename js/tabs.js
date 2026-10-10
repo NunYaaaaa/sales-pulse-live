@@ -1,5 +1,6 @@
 // ─── TABS: what each tab draws, switching, and section navigation ──────────
 import { renderDowChart, renderRevChart, renderTopProducts } from './charts.js';
+import { refreshDrill } from './drill.js';
 import { renderCustomersPanels, renderFinancesPanels, renderOrdersPanels, renderOverviewPanels, renderProductsPanels } from './insights-view.js';
 import { renderFinances } from './render.js';
 import { state } from './state.js';
@@ -33,6 +34,7 @@ export function renderActiveTab() {
     frameQueued = false;
     TABS[state.activeTab].render();
     fitFigures(); // tiles that were hidden or resized
+    refreshDrill(); // an open breakdown shows the data that just arrived
   });
 }
 

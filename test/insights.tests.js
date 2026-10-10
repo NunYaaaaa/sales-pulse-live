@@ -2,10 +2,11 @@
 // primitives' escaping — run via test/finance.test.html in a browser.
 import { axisLabelShown, drawBarChart, drawHeatmap, drawLineChart, hourLabel } from '../js/charts.js';
 import {
-  adSpend, backlog, basketStats, customerStats, discountStats, feeRateSeries, fulfilment, geography,
+  adSpend, backlog, basketStats, customerStats, discountStats, feeBreakdown, feeRateSeries, fulfilment, geography,
   heatmapMatrix, listingStats, payoutStats, productKey, productNames, refundStats, revenueComposition, reviewStats,
   shippingPnL, topProducts, variationStats,
 } from '../js/insights.js';
+import { computeLedgerTotals } from '../js/finance.js';
 import { bucketOptions, bucketRange, bucketStart, chooseBucket, countBuckets, markPartialBuckets, pickBucket } from '../js/util.js';
 
 function eq(actual, expected, msg = '') {
@@ -99,6 +100,19 @@ export const tests = [
     eq(s.map(r => r.grossCents), [0, 10000, 0, 0, 0]);
     eq(s.map(r => r.feeRate), [null, 0, null, null, null], 'no sales → no rate (a gap, not 0%)');
     eq(s[3].feesCents, 650, 'fees in a week without sales still count');
+  }],
+  ['feeBreakdown: fee groups with charges and credits, summing to Total Fees', () => {
+    const entries = [
+      le('PAYMENT_GROSS', 10000), le('transaction', -650), le('transaction', -100), le('transaction_refund', 200),
+      le('listing', -20), le('LISTING_FEE', -20), le('shipping_labels', -840), le('mystery_fee', -5),
+      le('REFUND_GROSS', -3000), le('sales_tax', -800), le('DISBURSE2', -5000),
+    ];
+    const f = feeBreakdown(entries);
+    eq(f.rows.map(r => [r.label, r.chargedCents, r.creditedCents, r.cents]),
+      [['Shipping Labels', 840, 0, 840], ['Transaction Fees', 750, 200, 550], ['Listing Fees', 40, 0, 40], ['Other', 5, 0, 5]]);
+    eq([f.chargedCents, f.creditedCents, f.totalCents], [1635, 200, 1435]);
+    eq(f.totalCents, -computeLedgerTotals(entries).feesCents, 'sums to Total Fees');
+    eq(feeBreakdown([]), { rows: [], totalCents: 0, chargedCents: 0, creditedCents: 0 });
   }],
   ['adSpend: nets ad refunds and counts Offsite Ads sales once each', () => {
     const a = adSpend([

@@ -1,6 +1,7 @@
 // ─── ENTRY POINT: event wiring + boot ──────────────────────────────────────
 import { handleCallback, startOAuth } from './auth.js';
 import { highlightFee, setChartMode } from './charts.js';
+import { closeDrill, openDrill } from './drill.js';
 import { exportCSV, exportFinancesCSV, exportFinancesJSON, exportJSON } from './export.js';
 import { setInsightMode } from './insights-view.js';
 import { applyCustomRange, applyPreset, cancelLoad, ensureTabData, loadAllDetails, loadDashboard } from './loader.js';
@@ -57,6 +58,8 @@ const ACTIONS = {
   'page':            el => goPage(parseInt(el.dataset.page, 10)),
   'ledger-page':     el => goLedgerPage(parseInt(el.dataset.page, 10)),
   'dismiss-error':   () => clearError(),
+  'drill':           el => openDrill(el),
+  'drill-close':     () => closeDrill(),
 };
 
 document.addEventListener('click', ev => {
@@ -65,7 +68,16 @@ document.addEventListener('click', ev => {
   ACTIONS[el.dataset.action]?.(el);
 });
 
-document.addEventListener('keydown', ev => { if (ev.key === 'Escape') togglePeriod(false); });
+// Cards that open a breakdown are role="button" and act like one: Enter on
+// press, Space on release (so the release can't land on the popup's ✕)
+const isCardButton = el => el.matches?.('[role="button"][data-action]');
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape') togglePeriod(false);
+  if (!isCardButton(ev.target)) return;
+  if (ev.key === 'Enter') { ev.preventDefault(); ev.target.click(); }
+  if (ev.key === ' ') ev.preventDefault(); // don't scroll the page
+});
+document.addEventListener('keyup', ev => { if (ev.key === ' ' && isCardButton(ev.target)) ev.target.click(); });
 
 // Fee chart cross-highlighting (donut segments + bar rows share data-idx)
 for (const id of ['fee-donut-svg', 'fee-bars-wrap']) {

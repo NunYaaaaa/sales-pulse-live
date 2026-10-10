@@ -167,10 +167,11 @@
             <div class="kpi-val" id="kpi-revenue">—</div>
             <div class="kpi-sub" id="kpi-revenue-sub">sales excl. tax</div>
           </div>
-          <div class="kpi-card">
+          <div class="kpi-card drill-card" role="button" tabindex="0" aria-haspopup="dialog" data-action="drill" data-drill="fees">
             <div class="kpi-label">Total Fees</div>
             <div class="kpi-val red" id="kpi-fees">—</div>
             <div class="kpi-sub" id="kpi-fees-sub">from the ledger</div>
+            <div class="drill-cue" aria-hidden="true">Details ›</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-label">Net Earnings</div>
@@ -459,10 +460,11 @@
           <div class="kpi-val" id="fin-gross">—</div>
           <div class="kpi-sub">sales after refunds, excl. tax</div>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card drill-card" role="button" tabindex="0" aria-haspopup="dialog" data-action="drill" data-drill="fees">
           <div class="kpi-label">Total Fees</div>
           <div class="kpi-val red" id="fin-fees">—</div>
           <div class="kpi-sub">txn + processing + ads + listing + labels</div>
+          <div class="drill-cue" aria-hidden="true">Details ›</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Net Earnings</div>
@@ -595,6 +597,21 @@
 
   </main>
 </div>
+
+<!-- DRILL-DOWN POPUP: a summary card's breakdown (js/drill.js) -->
+<dialog class="drill" id="drill" aria-labelledby="drill-title" aria-describedby="drill-figure drill-period">
+  <div class="drill-box">
+    <header class="drill-head">
+      <div>
+        <h2 class="drill-title" id="drill-title"></h2>
+        <div class="drill-figure" id="drill-figure"></div>
+        <div class="drill-period" id="drill-period"></div>
+      </div>
+      <button class="drill-close" data-action="drill-close" aria-label="Close">✕</button>
+    </header>
+    <div class="drill-body" id="drill-body"></div>
+  </div>
+</dialog>
 </div>
 
 <script type="module" src="js/main.js"></script>

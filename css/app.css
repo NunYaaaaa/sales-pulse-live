@@ -669,6 +669,7 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
   .ochart-toggle { gap:6px; }
   .page-btn { min-width:36px; min-height:36px; }
   .period-toggle { padding:0.5rem 0.9rem; }
+  .drill-close { width:2.6rem; height:2.6rem; }
 }
 
 /* LEDGER TYPE BADGE */
@@ -760,9 +761,60 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
 .error-dismiss { background:none; border:none; color:var(--orange-ink); cursor:pointer; font-size:0.8rem; line-height:1; padding:0.1rem 0.2rem; flex-shrink:0; }
 .error-dismiss:hover { opacity:0.7; }
 
+/* DRILL-DOWNS: a summary card that opens its breakdown in a popup (js/drill.js) */
+.drill-card { display:flex; flex-direction:column; cursor:pointer; transition:border-color 0.15s, box-shadow 0.15s; }
+.drill-card:hover { border-color:var(--orange-bd); box-shadow:0 6px 18px rgba(26,17,8,0.07); }
+.drill-card:focus-visible { outline:2px solid var(--orange); outline-offset:2px; }
+.drill-cue { margin-top:auto; padding-top:0.65rem; font-family:'DM Mono',monospace; font-size:0.58rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--orange-ink); }
+.drill-card:hover .drill-cue { text-decoration:underline; text-underline-offset:3px; }
+.drill { --drill-h:min(85vh, 46rem); width:min(34rem, calc(100vw - 2rem)); max-width:none; max-height:var(--drill-h); margin:auto; padding:0; border:1px solid var(--border); border-radius:18px; background:var(--offwhite); color:var(--ink); box-shadow:0 24px 64px rgba(26,17,8,0.28); overflow:hidden; }
+.drill::backdrop { background:rgba(26,17,8,0.42); }
+.drill[open] { animation:drillIn 0.2s ease-out; }
+.drill[open]::backdrop { animation:drillFade 0.2s ease-out; }
+@keyframes drillIn { from { opacity:0; transform:translateY(10px) scale(0.98); } }
+@keyframes drillFade { from { opacity:0; } }
+html:has(.drill[open]) { overflow:hidden; scrollbar-gutter:stable; } /* the page behind stays put */
+/* The box scrolls (not the dialog), so a click on its scrollbar isn't taken for a backdrop click */
+.drill-box { max-height:var(--drill-h); overflow:auto; overscroll-behavior:contain; }
+.drill-head { position:sticky; top:0; z-index:1; display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; padding:1.15rem 1.25rem 0.9rem; background:var(--offwhite); border-bottom:1px solid var(--border); }
+.drill-title { font-family:'DM Mono',monospace; font-size:0.62rem; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted2); }
+.drill-figure { font-family:'Fraunces',serif; font-size:1.9rem; font-weight:700; letter-spacing:-0.03em; line-height:1.1; margin-top:0.3rem; color:var(--ink); overflow-wrap:anywhere; }
+.drill-figure.red   { color:var(--red); }
+.drill-figure.green { color:var(--green); }
+.drill-period { font-size:0.72rem; color:var(--muted2); margin-top:0.3rem; font-weight:300; }
+.drill-close { flex-shrink:0; width:2.1rem; height:2.1rem; display:grid; place-items:center; border-radius:50%; border:1px solid var(--border); background:var(--cream); color:var(--ink2); font-size:0.85rem; line-height:1; cursor:pointer; }
+.drill-close:hover { border-color:var(--orange-bd); color:var(--orange-ink); }
+.drill-close:focus-visible { outline:2px solid var(--orange); outline-offset:2px; }
+.drill-body { padding:0.5rem 1.25rem 1.25rem; }
+.drill-table { font-size:0.8rem; }
+.drill-table thead th { background:none; padding:0.6rem 0 0.45rem; }
+.drill-table :is(thead, tbody, tfoot) :is(th, td):not(:first-child) { text-align:right; padding-left:0.9rem; white-space:nowrap; }
+.drill-table tbody :is(th, td) { padding:0.65rem 0; border-bottom:1px solid var(--border); vertical-align:top; text-align:left; font-weight:400; white-space:normal; }
+.drill-table tbody th { width:100%; }
+.drill-name { display:flex; align-items:center; gap:7px; color:var(--ink); font-weight:500; overflow-wrap:anywhere; }
+.drill-name i { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.drill-sub { display:block; margin-top:2px; font-size:0.68rem; color:var(--muted2); font-weight:300; }
+.drill-bar { display:block; height:5px; margin-top:6px; border-radius:999px; background:var(--border); overflow:hidden; }
+.drill-bar span { display:block; height:100%; border-radius:999px; }
+.drill-pct { font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--muted2); }
+.drill-amt { font-family:'DM Mono',monospace; font-size:0.76rem; color:var(--ink); }
+.drill-table tfoot :is(th, td) { padding:0.75rem 0 0; font-weight:600; text-align:left; }
+.drill-table tfoot th { font-family:'Fraunces',serif; font-size:0.9rem; }
+.drill-table tfoot .drill-amt { font-size:0.82rem; font-weight:500; text-align:right; }
+.drill-note { margin-top:1rem; font-family:'DM Mono',monospace; font-size:0.6rem; line-height:1.65; color:var(--muted2); }
+/* Phones: a bottom sheet, full width */
+@media (max-width: 600px) {
+  .drill { --drill-h:88vh; width:100%; margin:auto 0 0; border-radius:18px 18px 0 0; border-bottom:none; }
+  .drill[open] { animation-name:drillUp; }
+  .drill-body { padding-bottom:calc(1.25rem + env(safe-area-inset-bottom)); }
+  .drill-figure { font-size:1.6rem; }
+}
+@keyframes drillUp { from { transform:translateY(40px); opacity:0.4; } }
+
 /* Reduced motion: no decorative motion (blinking dot, shimmer, bars and details easing in). At the
    end so it outranks the rules above. Spinners and the progress bar keep moving: they show work in progress. */
 @media (prefers-reduced-motion: reduce) {
   .live-dot, .skeleton, .detail-inner { animation: none; }
   .fee-bar-fill, .top-prod-bar-fill { transition: none; }
+  .drill[open], .drill[open]::backdrop { animation: none; }
 }

@@ -3,8 +3,8 @@
 // Covered by test/insights.tests.js. Orders are Etsy receipts with their line
 // items in `transactions`; ledger amounts are integer cents; receipt money
 // objects go through money(). Anything time-dependent takes `now` as an argument.
-import { AD_FEES, AD_REFUNDS, LABEL_FEES, LABEL_REFUNDS, PAYOUT_REVERSALS, PAYOUT_TYPES } from './config.js';
-import { computeLedgerTotals, ledgerType, newestFirst } from './finance.js';
+import { AD_FEES, AD_REFUNDS, FEE_GROUPS, FEE_OTHER_COLOR, FEE_REFUND_OF, LABEL_FEES, LABEL_REFUNDS, PAYOUT_REVERSALS, PAYOUT_TYPES } from './config.js';
+import { categoriseEntry, computeLedgerTotals, ledgerType, newestFirst } from './finance.js';
 import { bucketRange, bucketStart, money } from './util.js';
 
 const cents = m => Math.round(money(m) * 100);
@@ -42,6 +42,34 @@ export function feeRateSeries(entries, { bucket = 'week', exclude = null, from =
         margin:  t.grossCents > 0 ? t.netCents / t.grossCents : null,
       };
     });
+}
+
+/**
+ * Total Fees by fee group (FEE_GROUPS labels; unknown types are "Other"),
+ * in positive cents: what Etsy charged, what it credited back (each credit
+ * goes to the fee it reverses, per FEE_REFUND_OF), and the difference. The
+ * groups' `cents` sum to Total Fees. Largest first.
+ */
+export function feeBreakdown(entries) {
+  const byLabel = new Map();
+  const add = (type, field, c) => {
+    const g = FEE_GROUPS.find(g => g.key === type) || { label: 'Other', color: FEE_OTHER_COLOR };
+    const row = byLabel.get(g.label) || { label: g.label, color: g.color, chargedCents: 0, creditedCents: 0 };
+    row[field] += c;
+    byLabel.set(g.label, row);
+  };
+  for (const e of entries) {
+    const cat = categoriseEntry(e);
+    if (cat === 'fee') add(ledgerType(e) || 'other', 'chargedCents', -e.amount); // fees are negative
+    else if (cat === 'refund' && e.amount > 0) add(FEE_REFUND_OF[ledgerType(e)] || 'other', 'creditedCents', e.amount);
+  }
+  const rows = [...byLabel.values()].map(r => ({ ...r, cents: r.chargedCents - r.creditedCents })).sort((a, b) => b.cents - a.cents);
+  return {
+    rows,
+    totalCents:    sum(rows, r => r.cents),
+    chargedCents:  sum(rows, r => r.chargedCents),
+    creditedCents: sum(rows, r => r.creditedCents),
+  };
 }
 
 /**
