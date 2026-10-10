@@ -31,7 +31,7 @@
     <div class="connect-icon">🔐</div>
     <h2>Connect your Etsy shop</h2>
     <p>Enter the keystring and shared secret from <a href="https://www.etsy.com/developers/your-apps" target="_blank" rel="noopener">your Etsy app</a> and its redirect URI, then sign in on Etsy to grant read-only access. Your keys and access token are kept in this browser tab's session storage only, and are cleared when you disconnect or close the tab.</p>
-    <div id="error-banner"><span class="error-text"></span></div>
+    <div id="error-banner" role="alert"><span class="error-text"></span></div>
     <div class="config-row">
       <label for="api-key-input">Etsy API Keystring</label>
       <input type="text" id="api-key-input" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"/>
@@ -58,7 +58,7 @@
 <!-- LOADING -->
 <div id="loading-screen">
   <div class="spinner"></div>
-  <div class="loading-text" id="loading-text">Fetching your shop data…</div>
+  <div class="loading-text" id="loading-text" role="status">Fetching your shop data…</div>
 </div>
 
 <!-- DASHBOARD -->
@@ -132,7 +132,7 @@
       </div>
 
       <div class="rail-status">
-        <div class="fetch-status" id="fetch-status">
+        <div class="fetch-status" id="fetch-status" role="status">
           <div class="fetch-status-dot" id="fetch-status-dot"></div>
           <span id="fetch-status-text">Loading…</span>
         </div>
