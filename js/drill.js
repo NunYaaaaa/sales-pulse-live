@@ -3,7 +3,7 @@
 // DRILLS[key], built from state for the selected period. Each breakdown's
 // total is the card's own figure. API text is escaped here.
 import { computeLedgerTotals } from './finance.js';
-import { aovBreakdown, customerStats, discountedOrders, feeBreakdown, grossBreakdown, listingStats, orderStatusCounts, refundedOrders, reviewStats, unshippedOrders } from './insights.js';
+import { aovBreakdown, customerStats, discountedOrders, feeBreakdown, grossBreakdown, listingStats, orderStatusCounts, payoutList, refundedOrders, reviewStats, unshippedOrders } from './insights.js';
 import { listingTitles, reviewPeriod, stars } from './insights-view.js';
 import { ordersWithItems, state } from './state.js';
 import { escHtml, fmtMoney, money, orderSales } from './util.js';
@@ -255,6 +255,26 @@ function lowReviewList() {
   };
 }
 
+/** Each payout to the bank in the ledger's period, newest first; they add up to Paid out (Finances tab). */
+function payoutsList() {
+  if (!ledgerReady()) return { wait: LEDGER_WAIT };
+  const list = payoutList(state.ledgerEntries);
+  const totalCents = list.reduce((s, p) => s + p.cents, 0);
+  const figure = fmtC(totalCents);
+  if (!list.length) return { figure, html: empty('No payouts in this period.') };
+  const sent = list.filter(p => !p.returned).length, back = list.length - sent;
+  return {
+    figure,
+    html: itemList(list.map(p => ({
+      name: shortDate(p.ts),
+      sub: p.returned ? 'the bank sent it back; Etsy usually pays it out again' : '',
+      mid: p.returned ? 'Returned' : 'To bank',
+      end: p.returned ? `−${fmtC(-p.cents)}` : fmtC(p.cents),
+    })), { head: ['Date', 'Payout', 'Amount'], totalLabel: plural(sent - back, 'payout'), totalAmount: figure }) +
+      note("Money moved from your Etsy balance to your bank, from the ledger. It isn't extra income: gross, fees and net leave payouts out."),
+  };
+}
+
 /** Active listings with 2 or fewer left, best selling this period first, then fewest left (Products tab). */
 function lowStockList() {
   if (!state.listings) return { wait: 'Listings are still loading.' };
@@ -303,6 +323,7 @@ const DRILLS = {
   'repeat-buyers':    { title: 'Repeat Buyers',        build: repeatBuyerList },
   'repeat-revenue':   { title: 'Repeat Buyer Revenue', build: repeatRevenueSplit },
   'low-reviews':      { title: 'Rated 3 or Less',      build: lowReviewList },
+  payouts:            { title: 'Paid Out',             build: payoutsList },
   'no-sales':  { title: 'No Sales This Period', build: noSalesList },
   'low-stock': { title: 'Low Stock',            build: lowStockList },
   discounted: { title: 'Discounted Orders', build: () => discountList(true) },

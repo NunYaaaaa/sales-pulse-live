@@ -3,7 +3,7 @@
 import { axisLabelShown, drawBarChart, drawHeatmap, drawLineChart, hourLabel } from '../js/charts.js';
 import {
   adSpend, aovBreakdown, backlog, basketStats, customerStats, discountedOrders, discountStats, feeBreakdown, feeRateSeries, fulfilment, geography, grossBreakdown, orderStatusCounts,
-  heatmapMatrix, listingStats, payoutStats, productKey, productNames, refundedOrders, refundStats, revenueComposition, reviewStats,
+  heatmapMatrix, listingStats, payoutList, payoutStats, productKey, productNames, refundedOrders, refundStats, revenueComposition, reviewStats,
   shippingPnL, topProducts, unshippedOrders, variationStats,
 } from '../js/insights.js';
 import { computeLedgerTotals } from '../js/finance.js';
@@ -192,6 +192,9 @@ export const tests = [
     // A payout that bounced back and was sent again counts once
     const b = payoutStats([le('DISBURSE2', -25000), le('ADYENBALANCE_REVERSAL', 25000), le('DISBURSE2', -25000)]);
     eq([b.count, b.totalCents], [1, 25000], 'bounced payout');
+    const list = payoutList([le('DISBURSE2', -25000, at(2026, 3, 1)), le('ADYENBALANCE_REVERSAL', 25000, at(2026, 3, 2)), le('DISBURSE2', -25000, at(2026, 3, 3)), le('PAYMENT_GROSS', 900)]);
+    eq(list.map(x => [x.cents, x.returned]), [[25000, false], [-25000, true], [25000, false]], 'newest first; a returned payout counts against');
+    eq(list.reduce((s, x) => s + x.cents, 0), b.totalCents, 'sums to Paid out');
   }],
   ['revenueComposition: parts add up to gross, with a residual', () => {
     const c = revenueComposition([

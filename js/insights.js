@@ -150,6 +150,18 @@ export function payoutStats(entries) {
   };
 }
 
+/**
+ * Each payout and returned payout, newest first: `cents` is what it moved to
+ * the bank (positive) or back to the Etsy balance (negative, `returned`), so
+ * they sum to payoutStats' totalCents.
+ */
+export function payoutList(entries) {
+  return entries
+    .filter(e => PAYOUT_TYPES.has(ledgerType(e)) || PAYOUT_REVERSALS.has(ledgerType(e)))
+    .map(e => ({ ts: e.created_timestamp, cents: -e.amount, returned: PAYOUT_REVERSALS.has(ledgerType(e)) }))
+    .sort((a, b) => b.ts - a.ts);
+}
+
 // ─── REVENUE COMPOSITION (receipts) ─────────────────────────────────────────
 
 /**

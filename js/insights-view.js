@@ -267,7 +267,7 @@ function renderPayouts(entries) {
   const balance = p.balanceCents != null ? tile('Balance', fmtC(p.balanceCents), 'after the latest entry') : '';
   if (!p.count) { el.innerHTML = (balance ? tiles(balance) : '') + empty('No payouts in this period.'); return; }
   el.innerHTML = tiles(
-    tile('Paid out', fmtC(p.totalCents), plural(p.count, 'payout')),
+    tile('Paid out', fmtC(p.totalCents), plural(p.count, 'payout'), '', 'payouts'),
     tile('Average payout', fmtC(p.avgCents)),
     tile('Last payout', fmtDate(p.lastPayoutTs)),
     balance,
