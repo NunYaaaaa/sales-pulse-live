@@ -3,7 +3,7 @@
 // DRILLS[key], built from state for the selected period. Each breakdown's
 // total is the card's own figure. API text is escaped here.
 import { computeLedgerTotals } from './finance.js';
-import { aovBreakdown, customerStats, discountedOrders, feeBreakdown, grossBreakdown, listingStats, orderStatusCounts, payoutList, refundedOrders, reviewStats, unshippedOrders } from './insights.js';
+import { aovBreakdown, customerStats, discountedOrders, feeBreakdown, grossBreakdown, listingStats, offsiteAdSales, orderStatusCounts, payoutList, refundedOrders, reviewStats, unshippedOrders } from './insights.js';
 import { listingTitles, reviewPeriod, stars } from './insights-view.js';
 import { ordersWithItems, state } from './state.js';
 import { escHtml, fmtMoney, money, orderSales } from './util.js';
@@ -255,6 +255,30 @@ function lowReviewList() {
   };
 }
 
+/** The sales Etsy charged an Offsite Ads fee on, newest first, with the fee as a share of each sale (Finances tab). */
+function offsiteList() {
+  if (!ledgerReady()) return { wait: LEDGER_WAIT };
+  const list = offsiteAdSales(state.ledgerEntries);
+  const figure = fmtNum(list.length);
+  if (!list.length) return { figure, html: empty('No sales were charged an Offsite Ads fee in this period.') };
+  const byId = new Map(state.allOrders.map(o => [String(o.receipt_id), o]));
+  const feeCents = list.reduce((s, x) => s + x.feeCents, 0);
+  const rows = list.map(x => {
+    const o = byId.get(x.ref), sale = o ? orderSales(o) : null;
+    return {
+      name: o ? buyerName(o) : `Order #${x.ref}`,
+      sub: [`#${escHtml(x.ref)}`, `fee ${shortDate(x.ts)}`, sale != null ? `${fmtMoney(sale)} sale` : 'ordered before this period'].join(' · '),
+      mid: sale ? `${Math.round(x.feeCents / 100 / sale * 100)}%` : '—',
+      end: x.feeCents ? fmtC(x.feeCents) : 'refunded',
+    };
+  });
+  return {
+    figure,
+    html: itemList(rows, { head: ['Sale', 'Of sale', 'Fee'], totalLabel: plural(list.length, 'Offsite Ads sale'), totalAmount: fmtC(feeCents) }) +
+      note("Sales that came through Etsy's Offsite Ads, so Etsy charged its fee on them, net of any fee it refunded. The share is of the sale before tax. Etsy's API doesn't report ad views or clicks."),
+  };
+}
+
 /** Each payout to the bank in the ledger's period, newest first; they add up to Paid out (Finances tab). */
 function payoutsList() {
   if (!ledgerReady()) return { wait: LEDGER_WAIT };
@@ -324,6 +348,7 @@ const DRILLS = {
   'repeat-revenue':   { title: 'Repeat Buyer Revenue', build: repeatRevenueSplit },
   'low-reviews':      { title: 'Rated 3 or Less',      build: lowReviewList },
   payouts:            { title: 'Paid Out',             build: payoutsList },
+  offsite:            { title: 'Offsite Ads Sales',    build: offsiteList },
   'no-sales':  { title: 'No Sales This Period', build: noSalesList },
   'low-stock': { title: 'Low Stock',            build: lowStockList },
   discounted: { title: 'Discounted Orders', build: () => discountList(true) },

@@ -210,7 +210,7 @@ function renderAds(entries) {
     tiles(
       tile('Ad spend', fmtC(a.totalCents), '', 'red'),
       tile('Share of sales', pct(a.share), 'ad fees ÷ ledger gross'),
-      tile('Offsite Ads sales', fmtNum(a.offsiteSales), 'sales charged the fee'),
+      tile('Offsite Ads sales', fmtNum(a.offsiteSales), 'sales charged the fee', '', a.offsiteSales ? 'offsite' : null),
     ) +
     `<div class="top-prod-rows">${barRows(rows, {
       name: r => r.label, value: r => r.cents, fmt: r => fmtC(r.cents),

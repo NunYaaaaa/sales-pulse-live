@@ -3,7 +3,7 @@
 import { axisLabelShown, drawBarChart, drawHeatmap, drawLineChart, hourLabel } from '../js/charts.js';
 import {
   adSpend, aovBreakdown, backlog, basketStats, customerStats, discountedOrders, discountStats, feeBreakdown, feeRateSeries, fulfilment, geography, grossBreakdown, orderStatusCounts,
-  heatmapMatrix, listingStats, payoutList, payoutStats, productKey, productNames, refundedOrders, refundStats, revenueComposition, reviewStats,
+  heatmapMatrix, listingStats, offsiteAdSales, payoutList, payoutStats, productKey, productNames, refundedOrders, refundStats, revenueComposition, reviewStats,
   shippingPnL, topProducts, unshippedOrders, variationStats,
 } from '../js/insights.js';
 import { computeLedgerTotals } from '../js/finance.js';
@@ -167,6 +167,15 @@ export const tests = [
     eq(a.share, 0.065);
     eq(a.offsiteSales, 2);
     eq(adSpend([]).share, null, 'no gross');
+    const sales = offsiteAdSales([
+      le('offsite_ads_fee', -900, at(2026, 3, 2), { reference_id: 11 }),
+      le('offsite_ads_fee', -300, at(2026, 3, 4), { reference_id: 12 }),
+      le('offsite_ads_fee_refund', 300, at(2026, 3, 6), { reference_id: 12 }),
+      le('offsite_ads_fee_refund', 100, at(2026, 3, 6), { reference_id: 99 }), // refund of a fee outside the entries
+      le('offsite_ads_fee', -50, at(2026, 3, 6)),                               // no reference
+    ]);
+    eq(sales.map(s => [s.ref, s.feeCents]), [['12', 0], ['11', 900]], 'newest first, refunds netted');
+    eq(sales.length, adSpend([le('offsite_ads_fee', -900, at(2026, 3, 2), { reference_id: 11 }), le('offsite_ads_fee', -300, at(2026, 3, 4), { reference_id: 12 })]).offsiteSales);
   }],
   ['shippingPnL: clips orders to the ledger span; label refunds reduce cost', () => {
     const orders = [

@@ -116,6 +116,25 @@ export function adSpend(entries) {
 }
 
 /**
+ * The sales adSpend counts as Offsite Ads sales (references charged the fee),
+ * newest first: the receipt reference, when the fee was charged, and the fee
+ * in cents net of any Offsite Ads fee refund on the same reference.
+ */
+export function offsiteAdSales(entries) {
+  const byRef = new Map();
+  for (const e of entries) {
+    const t = ledgerType(e);
+    if (e.reference_id == null || (t !== 'offsite_ads_fee' && AD_REFUNDS[t] !== 'offsite_ads_fee')) continue;
+    const ref = String(e.reference_id);
+    const s = byRef.get(ref) ?? { ref, ts: null, feeCents: 0 };
+    s.feeCents -= e.amount; // fees are negative, refunds positive
+    if (t === 'offsite_ads_fee') s.ts = Math.max(s.ts ?? 0, e.created_timestamp);
+    byRef.set(ref, s);
+  }
+  return [...byRef.values()].filter(s => s.ts != null).sort((a, b) => b.ts - a.ts);
+}
+
+/**
  * Shipping charged to buyers vs Etsy shipping labels bought, in cents.
  * Orders are clipped to the ledger's span so both sides cover the same days.
  */
