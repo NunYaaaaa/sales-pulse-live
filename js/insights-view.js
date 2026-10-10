@@ -483,7 +483,7 @@ function renderListings(orders) {
   const allTime = state.filterFrom == null && state.filterTo == null;
   kpis.innerHTML = [
     kpi('Active Listings', fmtNum(L.active), `${fmtNum(L.soldOut)} sold out`),
-    kpi('No Sales This Period', fmtNum(L.noSales), `${pct(L.active ? L.noSales / L.active : null, 0)} of active listings`),
+    kpi('No Sales This Period', fmtNum(L.noSales), `${pct(L.active ? L.noSales / L.active : null, 0)} of active listings`, '', L.noSales ? 'no-sales' : null),
     kpi('Low Stock', fmtNum(L.lowStock), 'active, 2 or fewer left', L.lowStock ? 'red' : ''),
     kpi('Favorites per 100 Views', rate(L.favPer100Views, 1), 'lifetime, all listings'),
   ].join('');

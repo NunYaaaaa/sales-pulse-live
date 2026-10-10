@@ -3,7 +3,7 @@
 // DRILLS[key], built from state for the selected period. Each breakdown's
 // total is the card's own figure. API text is escaped here.
 import { computeLedgerTotals } from './finance.js';
-import { aovBreakdown, discountedOrders, feeBreakdown, grossBreakdown, orderStatusCounts, refundedOrders, unshippedOrders } from './insights.js';
+import { aovBreakdown, discountedOrders, feeBreakdown, grossBreakdown, listingStats, orderStatusCounts, refundedOrders, unshippedOrders } from './insights.js';
 import { ordersWithItems, state } from './state.js';
 import { escHtml, fmtMoney, money, orderSales } from './util.js';
 
@@ -71,26 +71,37 @@ const STATUS_NAMES = {
 const statusName = s => STATUS_NAMES[s] || { name: s.charAt(0).toUpperCase() + s.slice(1), color: '#6b7280' };
 
 /**
- * A list of orders: the buyer with the receipt number and a detail line, a
- * middle column and a right-hand value, then the total row. Rows are
- * { order, sub, mid, end }: API text is escaped here; sub, mid and end must
- * already be safe.
+ * A list: a name with a detail line, a middle column and a right-hand value,
+ * then the total row. Rows are { name, href, sub, mid, end }: name and href
+ * are escaped here (href opens in a new tab); sub, mid and end must already
+ * be safe.
  */
-function orderList(rows, { head, totalLabel, totalAmount }) {
-  const body = rows.map(r => `<tr>
+function itemList(rows, { head, totalLabel, totalAmount }) {
+  const body = rows.map(r => {
+    const name = escHtml(r.name);
+    return `<tr>
       <th scope="row">
-        <span class="drill-name">${escHtml(r.order.name || (r.order.buyer_user_id ? `Buyer #${r.order.buyer_user_id}` : 'Buyer'))}</span>
-        <span class="drill-sub">#${escHtml(r.order.receipt_id)}${r.sub ? ` · ${r.sub}` : ''}</span>
+        <span class="drill-name">${r.href ? `<a href="${escHtml(r.href)}" target="_blank" rel="noopener">${name}</a>` : name}</span>
+        ${r.sub ? `<span class="drill-sub">${r.sub}</span>` : ''}
       </th>
       <td class="drill-pct">${r.mid}</td>
       <td class="drill-amt">${r.end}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   return `<table class="drill-table drill-list">
     <thead><tr>${head.map(h => `<th scope="col">${h}</th>`).join('')}</tr></thead>
     <tbody>${body}</tbody>
     <tfoot><tr><th scope="row">${totalLabel}</th><td></td><td class="drill-amt">${totalAmount}</td></tr></tfoot>
   </table>`;
 }
+
+const buyerName = o => o.name || (o.buyer_user_id ? `Buyer #${o.buyer_user_id}` : 'Buyer');
+/** itemList of orders: rows are { order, sub, mid, end }, named by buyer, with the receipt number first in the detail line. */
+const orderList = (rows, opts) => itemList(rows.map(r => ({
+  ...r, name: buyerName(r.order), sub: `#${escHtml(r.order.receipt_id)}${r.sub ? ` · ${r.sub}` : ''}`,
+})), opts);
+
+const listingUrl = id => `https://www.etsy.com/listing/${encodeURIComponent(String(id))}`;
 
 const badge = (cls, text) => `<span class="ledger-type-badge ${cls}">${text}</span>`;
 const waited = days => days < 1 ? 'today' : plural(Math.floor(days), 'day');
@@ -165,11 +176,31 @@ function discountList(byCount) {
   };
 }
 
+/** Active listings that sold nothing in the period, most viewed first (Products tab). */
+function noSalesList() {
+  if (!state.listings) return { wait: 'Listings are still loading.' };
+  const rows = listingStats(state.listings, ordersWithItems()).rows.filter(r => r.noSales)
+    .sort((a, b) => (b.views || 0) - (a.views || 0) || b.favorites - a.favorites);
+  const figure = fmtNum(rows.length);
+  if (!rows.length) return { figure, html: empty('Every active listing sold at least once in this period.') };
+  return {
+    figure,
+    html: itemList(rows.map(r => ({
+      name: r.title, href: listingUrl(r.id),
+      sub: [r.price == null ? '' : fmtMoney(r.price), r.quantity == null ? '' : `${fmtNum(r.quantity)} in stock`].filter(Boolean).join(' · '),
+      mid: r.views == null ? '—' : fmtNum(r.views),
+      end: fmtNum(r.favorites),
+    })), { head: ['Listing', 'Views', 'Favorites'], totalLabel: 'Active, no sales', totalAmount: plural(rows.length, 'listing') }) +
+      note("Active listings that sold nothing in this period, most viewed first. Views and favorites are Etsy's lifetime totals for each listing."),
+  };
+}
+
 /**
  * Each drill-down: its title, and build() returning { figure, cls, html } for
  * the current data, or { wait } while that data is still loading.
  */
 const DRILLS = {
+  'no-sales': { title: 'No Sales This Period', build: noSalesList },
   discounted: { title: 'Discounted Orders', build: () => discountList(true) },
   discounts:  { title: 'Discounts Given',   build: () => discountList(false) },
   canceled:             { title: 'Canceled Orders',           build: () => refundList('canceled') },
