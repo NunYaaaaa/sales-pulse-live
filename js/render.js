@@ -96,7 +96,7 @@ function renderLedgerTable() {
     let amtStyle;
     if      (cat === 'revenue') amtStyle = `color:var(--green);font-family:'Fraunces',serif;font-weight:700;font-size:0.9rem`;
     else if (cat === 'fee')     amtStyle = `color:var(--red);font-family:'DM Mono',monospace;font-size:0.72rem`;
-    else if (cat === 'refund')  amtStyle = `color:var(--gold);font-family:'DM Mono',monospace;font-size:0.72rem`;
+    else if (cat === 'refund')  amtStyle = `color:var(--gold-ink);font-family:'DM Mono',monospace;font-size:0.72rem`;
     else                        amtStyle = `color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem`;
 
     const amtHtml = `<span style="${amtStyle}">${isPos ? '+' : ''}${fmtMoney(amt)}</span>`;
@@ -213,7 +213,7 @@ async function toggleDetail(tr, order) {
       if (needTx)  state.lineItems[rid] = await fetchTransactions(rid);
       if (needPay) state.payments[rid]  = await fetchPayment(rid);
     } catch (err) {
-      td.innerHTML = `<div class="detail-inner"><div class="detail-loading" style="color:var(--orange)">⚠ Failed to load details: ${escHtml(err.message)}</div></div>`;
+      td.innerHTML = `<div class="detail-inner"><div class="detail-loading" style="color:var(--orange-ink)">⚠ Failed to load details: ${escHtml(err.message)}</div></div>`;
       tr.classList.remove('expanded');
       state.expandedRow = null;
       return;
