@@ -351,7 +351,8 @@ export function renderDowChart() {
   // Richer tooltip showing both avg and total
   drawBarChart(svgEl, tipEl, data, key, fmtFn, color, d => isRev
     ? `<strong>${d.label}</strong><br>Avg: ${fmtMoney(d.revenue)}<br>Total: ${fmtMoney(d.rawRev)}`
-    : `<strong>${d.label}</strong><br>Avg: ${d.count.toFixed(1)} orders<br>Total: ${d.rawCnt}`);
+    : `<strong>${d.label}</strong><br>Avg: ${d.count.toFixed(1)} orders<br>Total: ${d.rawCnt}`,
+    { values: isRev ? fmtMoneyWhole : v => v.toFixed(1) });
 }
 
 // ── Top products ─────────────────────────────────────────────────────────────
