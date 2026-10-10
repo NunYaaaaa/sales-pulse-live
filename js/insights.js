@@ -22,21 +22,21 @@ export function feeRateSeries(entries, { bucket = 'week', exclude = null, from =
   const groups = new Map();
   const ts = entries.map(e => e.created_timestamp);
   for (const b of bucketRange(from ?? (ts.length ? Math.min(...ts) : null), to ?? (ts.length ? Math.max(...ts) : null), bucket)) {
-    groups.set(b.key, { label: b.label, ts: b.ts, entries: [] });
+    groups.set(b.key, { label: b.label, tip: b.tip, ts: b.ts, entries: [] });
   }
   for (const e of entries) {
     if (exclude?.has(ledgerType(e))) continue;
     const b = bucketStart(e.created_timestamp, bucket);
-    if (!groups.has(b.key)) groups.set(b.key, { label: b.label, ts: b.ts, entries: [] });
+    if (!groups.has(b.key)) groups.set(b.key, { label: b.label, tip: b.tip, ts: b.ts, entries: [] });
     groups.get(b.key).entries.push(e);
   }
   return [...groups.values()]
     .sort((a, b) => a.ts - b.ts)
-    .map(({ label, ts, entries }) => {
+    .map(({ label, tip, ts, entries }) => {
       const t = computeLedgerTotals(entries);
       const feesCents = -t.feesCents; // positive cost
       return {
-        label, ts,
+        label, tip, ts,
         grossCents: t.grossCents, feesCents, netCents: t.netCents,
         feeRate: t.grossCents > 0 ? feesCents / t.grossCents : null,
         margin:  t.grossCents > 0 ? t.netCents / t.grossCents : null,

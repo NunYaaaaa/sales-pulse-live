@@ -197,9 +197,17 @@
               <div class="ochart-title">Revenue Over Time</div>
               <div class="ochart-subtitle" id="rev-chart-sub">—</div>
             </div>
-            <div class="ochart-toggle">
-              <button class="ochart-toggle-btn active" data-action="chart-mode" data-chart="rev" data-mode="revenue">Revenue</button>
-              <button class="ochart-toggle-btn" data-action="chart-mode" data-chart="rev" data-mode="orders">Orders</button>
+            <div class="ochart-controls">
+              <div class="ochart-toggle">
+                <button class="ochart-toggle-btn active" data-action="chart-mode" data-chart="rev" data-mode="revenue">Revenue</button>
+                <button class="ochart-toggle-btn" data-action="chart-mode" data-chart="rev" data-mode="orders">Orders</button>
+              </div>
+              <div class="ochart-toggle" id="rev-bucket" role="group" aria-label="Group by">
+                <button class="ochart-toggle-btn" data-action="chart-mode" data-chart="revBucket" data-mode="day">Day</button>
+                <button class="ochart-toggle-btn" data-action="chart-mode" data-chart="revBucket" data-mode="week">Week</button>
+                <button class="ochart-toggle-btn" data-action="chart-mode" data-chart="revBucket" data-mode="month">Month</button>
+                <button class="ochart-toggle-btn" data-action="chart-mode" data-chart="revBucket" data-mode="year">Year</button>
+              </div>
             </div>
           </div>
           <div class="ochart-canvas" id="rev-chart-canvas">
@@ -495,9 +503,17 @@
               <div class="ochart-title">Fees &amp; Margin Over Time</div>
               <div class="ochart-subtitle" id="ins-fee-sub">—</div>
             </div>
-            <div class="ochart-toggle">
-              <button class="ochart-toggle-btn active" data-action="insight-mode" data-key="insFeeMode" data-mode="all">All fees</button>
-              <button class="ochart-toggle-btn" data-action="insight-mode" data-key="insFeeMode" data-mode="excl-postage">Excl. postage</button>
+            <div class="ochart-controls">
+              <div class="ochart-toggle">
+                <button class="ochart-toggle-btn active" data-action="insight-mode" data-key="insFeeMode" data-mode="all">All fees</button>
+                <button class="ochart-toggle-btn" data-action="insight-mode" data-key="insFeeMode" data-mode="excl-postage">Excl. postage</button>
+              </div>
+              <div class="ochart-toggle" id="fee-bucket" role="group" aria-label="Group by">
+                <button class="ochart-toggle-btn" data-action="insight-mode" data-key="feeBucket" data-mode="day">Day</button>
+                <button class="ochart-toggle-btn" data-action="insight-mode" data-key="feeBucket" data-mode="week">Week</button>
+                <button class="ochart-toggle-btn" data-action="insight-mode" data-key="feeBucket" data-mode="month">Month</button>
+                <button class="ochart-toggle-btn" data-action="insight-mode" data-key="feeBucket" data-mode="year">Year</button>
+              </div>
             </div>
           </div>
           <div class="ochart-canvas">

@@ -2,14 +2,14 @@
 // Draws the analysis panels on every tab from state. The numbers come from
 // the pure functions in insights.js; this module only formats and escapes them.
 import { FEE_GROUPS, FEE_OTHER_COLOR, LABEL_FEES, LABEL_REFUNDS, PALETTE } from './config.js';
-import { animateBars, DAY_NAMES, drawBarChart, drawHeatmap, drawLineChart, hourLabel, setToggleActive } from './charts.js';
+import { animateBars, DAY_NAMES, drawBarChart, drawHeatmap, drawLineChart, hourLabel, setToggleActive, syncBucketToggle } from './charts.js';
 import {
   adSpend, backlog, basketStats, customerStats, discountStats, feeRateSeries, fulfilment, geography,
   heatmapMatrix, listingStats, payoutStats, productKey, productNames, refundStats, revenueComposition, reviewStats,
   shippingPnL, variationStats,
 } from './insights.js';
 import { lineItems, state } from './state.js';
-import { escHtml, fmtMoney, getCurrency, pickBucket } from './util.js';
+import { bucketOptions, chooseBucket, escHtml, fmtMoney, getCurrency, markPartialBuckets, pickBucket } from './util.js';
 
 const $ = id => document.getElementById(id);
 
@@ -93,6 +93,7 @@ export function renderFinancesPanels() {
 // Toggles (data-key names a state field) redraw just their own panel
 const MODE_RENDER = {
   insFeeMode: () => { if (state.detailsLoaded && state.ledgerEntries) renderFeeChart(state.ledgerEntries); },
+  feeBucket:  () => MODE_RENDER.insFeeMode(),
   insGeoMode: () => renderGeo(ordersWithItems()),
 };
 
@@ -165,24 +166,29 @@ function renderFeeChart(entries) {
   const svg = $('ins-fee-svg'), tip = $('ins-fee-tooltip'), sub = $('ins-fee-sub');
   const span = state.ledgerSpan;
   let bucket = span ? pickBucket(span.from, span.to) : 'week';
-  if (bucket === 'day') bucket = 'week'; // daily fee rates are too noisy (ads and renewals post daily)
+  if (bucket === 'day') bucket = 'week'; // by default; daily fee rates are noisy (ads and renewals post daily)
+  if (span) {
+    const options = bucketOptions(span.from, span.to);
+    bucket = chooseBucket(state.feeBucket, options, bucket);
+    syncBucketToggle($('fee-bucket'), options, bucket);
+  }
 
   const exclude = state.insFeeMode === 'excl-postage' ? POSTAGE : null;
   // Every bucket of the ledger span; one without sales has no rate and shows as a gap
   const all     = feeRateSeries(entries, { bucket, exclude, from: span?.from, to: span?.to });
   const gross   = all.reduce((s, r) => s + r.grossCents, 0);
   const fees    = all.reduce((s, r) => s + r.feesCents, 0);
-  const data    = all.map(r => ({ ...r, feePct: r.feeRate === null ? null : r.feeRate * 100 }));
+  const data    = markPartialBuckets(all.map(r => ({ ...r, feePct: r.feeRate === null ? null : r.feeRate * 100 })), span?.from, span?.to, bucket);
 
   if (!data.some(r => r.feePct !== null)) { svg.innerHTML = ''; sub.textContent = 'No sales in the ledger for this period'; return; }
   sub.textContent = `${pct(gross > 0 ? fees / gross : null)} of sales (excl. tax) went to fees · by ${bucket}`;
 
   // No rate when gross isn't positive: either nothing sold, or refunds outweighed the week's sales
   const tipHtml = d => d.feeRate !== null
-    ? `<strong>${escHtml(d.label)}</strong><br>Fees ${pct(d.feeRate)} · Margin ${pct(d.margin)}<br>Gross ${fmtC(d.grossCents)} · Fees ${fmtC(d.feesCents)}<br>Net ${fmtC(d.netCents)}`
+    ? `<strong>${escHtml(d.tip)}</strong><br>Fees ${pct(d.feeRate)} · Margin ${pct(d.margin)}<br>Gross ${fmtC(d.grossCents)} · Fees ${fmtC(d.feesCents)}<br>Net ${fmtC(d.netCents)}`
     : d.grossCents < 0
-      ? `<strong>${escHtml(d.label)}</strong><br>Refunds exceeded sales<br>Gross ${fmtC(d.grossCents)} · Fees ${fmtC(d.feesCents)}<br>Net ${fmtC(d.netCents)}`
-      : `<strong>${escHtml(d.label)}</strong><br>No sales${d.feesCents ? `<br>Fees ${fmtC(d.feesCents)}` : ''}`;
+      ? `<strong>${escHtml(d.tip)}</strong><br>Refunds exceeded sales<br>Gross ${fmtC(d.grossCents)} · Fees ${fmtC(d.feesCents)}<br>Net ${fmtC(d.netCents)}`
+      : `<strong>${escHtml(d.tip)}</strong><br>No sales${d.feesCents ? `<br>Fees ${fmtC(d.feesCents)}` : ''}`;
   const fmt = v => `${v.toFixed(1)}%`;
   if (data.length > 14) drawLineChart(svg, tip, data, 'feePct', fmt, '#b91c1c', tipHtml);
   else                  drawBarChart(svg,  tip, data, 'feePct', fmt, '#b91c1c', tipHtml, { values: v => `${Math.round(v)}%` });

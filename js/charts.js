@@ -3,7 +3,7 @@ import { FEE_GROUPS, FEE_OTHER_COLOR, FEE_REFUND_OF, PALETTE } from './config.js
 import { categoriseEntry, ledgerType } from './finance.js';
 import { topProducts } from './insights.js';
 import { lineItems, state } from './state.js';
-import { bucketRange, bucketStart, escHtml, fmtMoney, fmtMoneyWhole, orderSales, pickBucket, weekdayCounts } from './util.js';
+import { bucketOptions, bucketRange, bucketStart, chooseBucket, escHtml, fmtMoney, fmtMoneyWhole, markPartialBuckets, orderSales, pickBucket, weekdayCounts } from './util.js';
 
 const $ = id => document.getElementById(id);
 
@@ -14,17 +14,17 @@ const $ = id => document.getElementById(id);
  * Returns array of { label, ts (unix), revenue, count } sorted by ts, with a
  * zero bucket for every period without orders between span.from and span.to
  * (default: the first and last order).
- * bucketSize: 'day' | 'week' | 'month'
+ * bucketSize: 'day' | 'week' | 'month' | 'year'
  */
 export function bucketOrders(orders, bucketSize, span = {}) {
   const ts   = orders.map(o => o.create_timestamp);
   const from = span.from ?? (ts.length ? Math.min(...ts) : null);
   const to   = span.to   ?? (ts.length ? Math.max(...ts) : null);
   const map  = {};
-  for (const b of bucketRange(from, to, bucketSize)) map[b.key] = { label: b.label, ts: b.ts, revenue:0, count:0 };
+  for (const b of bucketRange(from, to, bucketSize)) map[b.key] = { label: b.label, tip: b.tip, ts: b.ts, revenue:0, count:0 };
   for (const o of orders) {
     const b = bucketStart(o.create_timestamp, bucketSize);
-    map[b.key] ??= { label: b.label, ts: b.ts, revenue:0, count:0 };
+    map[b.key] ??= { label: b.label, tip: b.tip, ts: b.ts, revenue:0, count:0 };
     map[b.key].revenue += orderSales(o);
     map[b.key].count++;
   }
@@ -129,7 +129,7 @@ export function drawLineChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, to
   svgEl.querySelectorAll('.chart-dot').forEach(dot => {
     dot.addEventListener('mouseenter', () => {
       const d = data[parseInt(dot.dataset.i)];
-      tooltipEl.innerHTML = tooltipHtml ? tooltipHtml(d) : `<strong>${escHtml(d.label)}</strong><br>${fmtFn(d[valueKey])}`;
+      tooltipEl.innerHTML = tooltipHtml ? tooltipHtml(d) : `<strong>${escHtml(d.tip ?? d.label)}</strong><br>${fmtFn(d[valueKey])}`;
       tooltipEl.classList.add('visible');
       positionTooltip(tooltipEl, svgEl, parseFloat(dot.getAttribute('cx')), parseFloat(dot.getAttribute('cy')));
     });
@@ -188,7 +188,7 @@ export function drawBarChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, too
   svgEl.querySelectorAll('.chart-bar').forEach(bar => {
     bar.addEventListener('mouseenter', () => {
       const d = data[parseInt(bar.dataset.i)];
-      tooltipEl.innerHTML = tooltipHtml ? tooltipHtml(d) : `<strong>${escHtml(d.label)}</strong><br>${fmtFn(d[valueKey])}`;
+      tooltipEl.innerHTML = tooltipHtml ? tooltipHtml(d) : `<strong>${escHtml(d.tip ?? d.label)}</strong><br>${fmtFn(d[valueKey])}`;
       tooltipEl.classList.add('visible');
       const bx = parseFloat(bar.getAttribute('x')) + parseFloat(bar.getAttribute('width')) / 2;
       const by = parseFloat(bar.getAttribute('y'));
@@ -262,6 +262,19 @@ export function drawHeatmap(svgEl, tooltipEl, counts, revenue, color, fmtFn) {
 }
 
 /** Toggle the active button within one chart's toggle group. */
+/**
+ * Show which bucket size a time chart is drawn by in its Day/Week/Month/Year
+ * switch, and disable the sizes that don't suit the period (see bucketOptions).
+ */
+export function syncBucketToggle(el, options, current) {
+  for (const btn of el.querySelectorAll('.ochart-toggle-btn')) {
+    const o = options.find(x => x.size === btn.dataset.mode);
+    btn.classList.toggle('active', btn.dataset.mode === current);
+    btn.disabled = !o?.ok;
+    btn.title = !o || o.ok ? '' : o.count < 2 ? `The period is within one ${o.size}` : `Too many ${o.size}s to show; pick a shorter period`;
+  }
+}
+
 export function setToggleActive(btn) {
   btn.closest('.ochart-toggle').querySelectorAll('.ochart-toggle-btn').forEach(b => {
     b.classList.toggle('active', b === btn);
@@ -278,10 +291,12 @@ export function renderRevChart() {
   const orders = state.allOrders;
   if (!orders.length) { svgEl.innerHTML = ''; subEl.textContent = NO_ORDERS; return; }
 
-  // Every day/week/month of the period, so quiet ones show as zero instead of being skipped
-  const span   = chartSpan(orders);
-  const bucket = pickBucket(span.from, span.to);
-  const data   = bucketOrders(orders, bucket, span);
+  // Every day/week/month/year of the period, so quiet ones show as zero instead of being skipped
+  const span    = chartSpan(orders);
+  const options = bucketOptions(span.from, span.to);
+  const bucket  = chooseBucket(state.revBucket, options, pickBucket(span.from, span.to));
+  syncBucketToggle($('rev-bucket'), options, bucket);
+  const data   = markPartialBuckets(bucketOrders(orders, bucket, span), span.from, span.to, bucket);
   const isRev  = state.revChartMode === 'revenue';
   const total  = orders.reduce((s, o) => s + (isRev ? orderSales(o) : 1), 0);
   subEl.textContent = isRev
@@ -394,8 +409,8 @@ export function animateBars(root, selector) {
   });
 }
 
-const CHART_MODES = { rev: 'revChartMode', dow: 'dowChartMode', top: 'topProdMode' };
-const CHART_RENDER = { rev: renderRevChart, dow: renderDowChart, top: renderTopProducts };
+const CHART_MODES = { rev: 'revChartMode', dow: 'dowChartMode', top: 'topProdMode', revBucket: 'revBucket' };
+const CHART_RENDER = { rev: renderRevChart, dow: renderDowChart, top: renderTopProducts, revBucket: renderRevChart };
 
 /** Handle a Revenue/Orders toggle click for chart 'rev' | 'dow' | 'top'. */
 export function setChartMode(chart, mode, btn) {

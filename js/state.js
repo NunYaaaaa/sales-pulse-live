@@ -34,6 +34,9 @@ export const state = {
   topProdMode:  'revenue',
   insFeeMode:   'all',     // 'all' | 'excl-postage'
   insGeoMode:   'country', // 'country' | 'us-state'
+  // Time chart grouping the viewer picked ('day' | 'week' | 'month' | 'year'); null = automatic
+  revBucket:    null,
+  feeBucket:    null,
 
   feeSegments: [],      // last-drawn donut segments, for cross-highlighting
 };

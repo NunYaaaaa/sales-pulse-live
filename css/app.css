@@ -637,6 +637,7 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
 }
 
 /* Chart toggle pills */
+.ochart-controls { display:flex; flex-wrap:wrap; gap:6px 10px; }
 .ochart-toggle { display:flex; gap:4px; }
 .ochart-toggle-btn {
   font-family:'DM Mono',monospace; font-size:0.58rem; letter-spacing:0.05em;
@@ -645,6 +646,7 @@ tbody tr.detail-row > td { padding:0 !important; white-space:normal !important; 
   white-space:nowrap;
 }
 .ochart-toggle-btn.active { background:var(--ink); border-color:var(--ink); color:var(--cream); }
+.ochart-toggle-btn:disabled { opacity:0.4; cursor:default; }
 
 /* LEDGER TYPE BADGE */
 .ledger-type-badge {

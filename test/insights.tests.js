@@ -6,7 +6,7 @@ import {
   heatmapMatrix, listingStats, payoutStats, productKey, productNames, refundStats, revenueComposition, reviewStats,
   shippingPnL, topProducts, variationStats,
 } from '../js/insights.js';
-import { bucketRange, bucketStart, pickBucket } from '../js/util.js';
+import { bucketOptions, bucketRange, bucketStart, chooseBucket, countBuckets, markPartialBuckets, pickBucket } from '../js/util.js';
 
 function eq(actual, expected, msg = '') {
   const a = JSON.stringify(actual), e = JSON.stringify(expected);
@@ -34,6 +34,35 @@ export const tests = [
     eq(bucketRange(at(2026, 3, 9), at(2026, 3, 9), 'day').length, 1, 'same day');
     eq(bucketRange(null, at(2026, 3, 9), 'day'), [], 'missing end');
     eq(bucketRange(at(2026, 3, 9), at(2026, 3, 1), 'day'), [], 'reversed');
+  }],
+  ['year buckets: Jan 1 start, the year as label', () => {
+    eq(bucketStart(at(2026, 7, 4), 'year').key, '2026-01-01');
+    eq(bucketRange(at(2024, 12, 31), at(2026, 1, 1), 'year').map(b => b.label), ['2024', '2025', '2026']);
+    eq([bucketStart(at(2026, 3, 11), 'week').tip, bucketStart(at(2026, 3, 11), 'month').tip], ['Week of Mar 9, 2026', 'March 2026'], 'tooltips say what a bucket is');
+  }],
+  ['countBuckets agrees with bucketRange without building the buckets', () => {
+    const spans = [[at(2026, 3, 9, 23), at(2026, 3, 12, 1)], [at(2025, 12, 28), at(2026, 1, 4)], [at(2026, 3, 1), at(2026, 3, 31)],
+      [at(2024, 2, 29), at(2026, 10, 9)], [at(2026, 3, 8), at(2026, 3, 9)], [at(2026, 3, 9), at(2026, 3, 9)], [at(2026, 10, 25, 1), at(2026, 11, 2, 23)]];
+    for (const [from, to] of spans) for (const size of ['day', 'week', 'month', 'year'])
+      eq(countBuckets(from, to, size), bucketRange(from, to, size).length, `${size} ${new Date(from * 1000).toDateString()} – ${new Date(to * 1000).toDateString()}`);
+    eq(countBuckets(null, at(2026, 3, 9), 'day'), 0, 'missing end');
+  }],
+  ['bucketOptions: 2 to 370 buckets; chooseBucket keeps a pick only while it suits', () => {
+    const ok = (from, to) => bucketOptions(from, to).filter(o => o.ok).map(o => o.size);
+    eq(ok(at(2026, 10, 3), at(2026, 10, 9)), ['day', 'week'], '7 days: one month, one year');
+    eq(ok(at(2025, 10, 10), at(2026, 10, 9)), ['day', 'week', 'month', 'year'], '12 months');
+    eq(ok(at(2022, 1, 1), at(2026, 10, 9)), ['week', 'month', 'year'], 'years of days are too many');
+    const opts = bucketOptions(at(2026, 10, 3), at(2026, 10, 9));
+    eq([chooseBucket('week', opts, 'day'), chooseBucket('year', opts, 'day'), chooseBucket(null, opts, 'day')], ['week', 'day', 'day']);
+  }],
+  ['markPartialBuckets notes when the period covers only part of an edge bucket', () => {
+    const from = at(2026, 7, 11, 0), to = at(2026, 10, 9, 18);
+    const months = markPartialBuckets(bucketRange(from, to, 'month'), from, to, 'month').map(b => b.tip);
+    eq([months[0], months[1], months.at(-1)], ['July 2026 (Jul 11–31 only)', 'August 2026', 'October 2026 (Oct 1–9 only)']);
+    const whole = bucketRange(at(2026, 3, 1, 0), at(2026, 4, 30, 23), 'month');
+    eq(markPartialBuckets(whole, at(2026, 3, 1, 0), new Date(2026, 4, 1).getTime() / 1000 - 1, 'month').map(b => b.tip), ['March 2026', 'April 2026'], 'whole months stay as they are');
+    eq(markPartialBuckets(bucketRange(from, to, 'day'), from, to, 'day')[0].tip.includes('only'), false, 'days are left alone');
+    eq(markPartialBuckets(bucketRange(at(2026, 7, 12, 0), at(2026, 7, 14), 'week'), at(2026, 7, 12, 0), at(2026, 7, 14), 'week')[0].tip, 'Week of Jul 6, 2026 (Jul 12 only)', 'one day');
   }],
   ['pickBucket: day up to 35 days, week up to 180, then month', () => {
     eq(pickBucket(0, 35 * 86400), 'day');
