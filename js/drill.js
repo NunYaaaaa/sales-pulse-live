@@ -3,7 +3,7 @@
 // DRILLS[key], built from state for the selected period. Each breakdown's
 // total is the card's own figure. API text is escaped here.
 import { computeLedgerTotals } from './finance.js';
-import { aovBreakdown, feeBreakdown, grossBreakdown, orderStatusCounts, unshippedOrders } from './insights.js';
+import { aovBreakdown, feeBreakdown, grossBreakdown, orderStatusCounts, refundedOrders, unshippedOrders } from './insights.js';
 import { ordersWithItems, state } from './state.js';
 import { escHtml, fmtMoney, money, orderSales } from './util.js';
 
@@ -17,6 +17,8 @@ const fmtNum = n => n.toLocaleString('en-US');
 const plural = (n, word) => `${fmtNum(n)} ${word}${n === 1 ? '' : 's'}`;
 const pct  = x => x == null || !isFinite(x) ? '—' : `${(x * 100).toFixed(1)}%`;
 const fmtDate = (ts, year = true) => new Date(ts * 1000).toLocaleDateString('en-US', { month:'short', day:'numeric', ...(year && { year:'numeric' }) });
+/** "Oct 6", with the year when it isn't this year's (all-time lists span years). */
+const shortDate = ts => fmtDate(ts, new Date(ts * 1000).getFullYear() !== new Date().getFullYear());
 const empty = msg => `<div class="ins-empty">${msg}</div>`;
 const note  = msg => `<p class="drill-note">${msg}</p>`;
 const tiles = (...t) => `<div class="ins-tiles drill-tiles">${t.map(([label, val]) => `<div class="ins-tile"><div class="ins-tile-label">${label}</div><div class="ins-tile-val">${val}</div></div>`).join('')}</div>`;
@@ -102,9 +104,9 @@ function shipList(overdueOnly) {
     const items = u.order.transactions.reduce((s, t) => s + (t.quantity || 1), 0);
     return {
       order: u.order,
-      sub: [items ? plural(items, 'item') : '', u.order.grandtotal ? fmtMoney(money(u.order.grandtotal)) : '', u.expected ? `ship by ${fmtDate(u.expected, false)}` : '']
+      sub: [items ? plural(items, 'item') : '', u.order.grandtotal ? fmtMoney(money(u.order.grandtotal)) : '', u.expected ? `ship by ${shortDate(u.expected)}` : '']
         .filter(Boolean).join(' · '),
-      mid: fmtDate(u.paid, false),
+      mid: shortDate(u.paid),
       end: `${waited(u.ageDays)}${u.overdue ? badge('lt-fee', 'past due') : ''}`,
     };
   });
@@ -116,10 +118,39 @@ function shipList(overdueOnly) {
 }
 
 /**
+ * Canceled and refunded orders, newest first: `kind` keeps one status
+ * ('canceled', 'fully refunded', 'partially refunded'); without it, every
+ * affected order with the amount refunded, summing to the Refunded card.
+ */
+function refundList(kind) {
+  const all = refundedOrders(state.allOrders), list = kind ? all.filter(r => r.kind === kind) : all;
+  const totalCents = list.reduce((s, r) => s + r.refundedCents, 0);
+  const figure = kind ? fmtNum(list.length) : fmtC(totalCents);
+  if (!list.length) return { figure, html: empty(`No ${kind || 'canceled or refunded'} orders in this period.`) };
+  const rows = list.map(r => ({
+    order: r.order,
+    sub: [shortDate(r.order.create_timestamp), r.order.grandtotal ? `${fmtMoney(money(r.order.grandtotal))} paid` : '', ...r.reasons.map(escHtml)].filter(Boolean).join(' · '),
+    mid: escHtml(statusName(r.kind || String(r.order.status || '').toLowerCase()).name),
+    end: r.refundedCents ? fmtC(r.refundedCents) : '—',
+  }));
+  return {
+    figure, cls: kind ? '' : 'red',
+    html: orderList(rows, { head: ['Order', 'Status', 'Refunded'], totalLabel: kind ? statusName(kind).name : 'Refunded', totalAmount: kind ? plural(list.length, 'order') : figure }) +
+      note(kind
+        ? 'Orders from this period with this status, newest first. They count in Total Orders; their refunds come off Total Gross.'
+        : "Refunds recorded on this period's orders, newest first, whatever status the order has now. A partial refund can leave an order Completed."),
+  };
+}
+
+/**
  * Each drill-down: its title, and build() returning { figure, cls, html } for
  * the current data, or { wait } while that data is still loading.
  */
 const DRILLS = {
+  canceled:             { title: 'Canceled Orders',           build: () => refundList('canceled') },
+  'fully-refunded':     { title: 'Fully Refunded Orders',     build: () => refundList('fully refunded') },
+  'partially-refunded': { title: 'Partially Refunded Orders', build: () => refundList('partially refunded') },
+  refunds:              { title: 'Refunded',                  build: () => refundList(null) },
   unshipped: { title: 'Not Shipped Yet', build: () => shipList(false) },
   overdue:   { title: 'Past Due',        build: () => shipList(true) },
   aov: {
@@ -269,6 +300,8 @@ export function openDrill(card) {
   fill();
   if (!dialog.open) dialog.showModal();
   dialog.querySelector('.drill-box').scrollTop = 0;
+  // Start on the close button: a long list makes the box a scroller, which some browsers would focus first
+  dialog.querySelector('.drill-close').focus({ preventScroll: true });
 }
 
 export function closeDrill() {

@@ -536,22 +536,33 @@ export function orderStatusCounts(orders) {
   return [...by.values()].sort((a, b) => rank(a) - rank(b) || b.count - a.count);
 }
 
-/** Canceled / refunded orders (by status or a recorded refund) and the amount refunded. */
-export function refundStats(orders) {
-  let canceled = 0, fullyRefunded = 0, partiallyRefunded = 0, affected = 0, refunded = 0;
+/**
+ * Orders canceled or refunded (by status, in any case) or with a recorded
+ * refund, newest first: `kind` is 'canceled', the "…refunded" status, or null
+ * for a refund on an order with another status; with the refunded cents and
+ * the refunds' reasons.
+ */
+export function refundedOrders(orders) {
+  const out = [];
   for (const o of orders) {
     const s = lower(o.status);
     const refunds = o.refunds || [];
-    if (s === 'canceled' || s === 'cancelled') canceled++;
-    else if (s === 'fully refunded') fullyRefunded++;
-    else if (s === 'partially refunded') partiallyRefunded++;
-    if (s === 'canceled' || s === 'cancelled' || s.endsWith('refunded') || refunds.length) affected++;
-    refunded += sum(refunds, r => money(r.amount));
+    const kind = s === 'canceled' || s === 'cancelled' ? 'canceled' : s.endsWith('refunded') ? s : null;
+    if (!kind && !refunds.length) continue;
+    out.push({ order: o, kind, refundedCents: sum(refunds, r => cents(r.amount)), reasons: [...new Set(refunds.map(r => r.reason).filter(Boolean))] });
   }
+  return out.sort((a, b) => (b.order.create_timestamp ?? 0) - (a.order.create_timestamp ?? 0));
+}
+
+/** Canceled / refunded orders (refundedOrders) and the amount refunded. */
+export function refundStats(orders) {
+  const list = refundedOrders(orders);
+  const count = kind => list.filter(r => r.kind === kind).length;
   return {
-    orders: orders.length, canceled, fullyRefunded, partiallyRefunded, affected,
-    rate: orders.length ? affected / orders.length : null,
-    refundedAmount: Math.round(refunded * 100) / 100,
+    orders: orders.length, canceled: count('canceled'), fullyRefunded: count('fully refunded'), partiallyRefunded: count('partially refunded'),
+    affected: list.length,
+    rate: orders.length ? list.length / orders.length : null,
+    refundedAmount: sum(list, r => r.refundedCents) / 100,
   };
 }
 

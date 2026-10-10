@@ -442,11 +442,12 @@ function renderRefunds(orders) {
   const el = $('ins-refunds');
   if (!orders.length) { el.innerHTML = ''; return; }
   const r = refundStats(orders);
+  const drill = (n, key) => n ? key : null; // nothing to list behind a zero
   el.innerHTML = [
-    kpi('Canceled', fmtNum(r.canceled), 'orders'),
-    kpi('Fully Refunded', fmtNum(r.fullyRefunded), 'orders'),
-    kpi('Partially Refunded', fmtNum(r.partiallyRefunded), 'orders'),
-    kpi('Refunded', fmtMoney(r.refundedAmount), `${pct(r.rate)} of orders affected`, r.refundedAmount ? 'red' : ''),
+    kpi('Canceled', fmtNum(r.canceled), 'orders', '', drill(r.canceled, 'canceled')),
+    kpi('Fully Refunded', fmtNum(r.fullyRefunded), 'orders', '', drill(r.fullyRefunded, 'fully-refunded')),
+    kpi('Partially Refunded', fmtNum(r.partiallyRefunded), 'orders', '', drill(r.partiallyRefunded, 'partially-refunded')),
+    kpi('Refunded', fmtMoney(r.refundedAmount), `${pct(r.rate)} of orders affected`, r.refundedAmount ? 'red' : '', drill(r.affected, 'refunds')),
   ].join('');
 }
 

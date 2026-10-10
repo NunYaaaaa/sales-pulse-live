@@ -3,7 +3,7 @@
 import { axisLabelShown, drawBarChart, drawHeatmap, drawLineChart, hourLabel } from '../js/charts.js';
 import {
   adSpend, aovBreakdown, backlog, basketStats, customerStats, discountStats, feeBreakdown, feeRateSeries, fulfilment, geography, grossBreakdown, orderStatusCounts,
-  heatmapMatrix, listingStats, payoutStats, productKey, productNames, refundStats, revenueComposition, reviewStats,
+  heatmapMatrix, listingStats, payoutStats, productKey, productNames, refundedOrders, refundStats, revenueComposition, reviewStats,
   shippingPnL, topProducts, unshippedOrders, variationStats,
 } from '../js/insights.js';
 import { computeLedgerTotals } from '../js/finance.js';
@@ -381,6 +381,12 @@ export const tests = [
     ]);
     eq([r.canceled, r.fullyRefunded, r.partiallyRefunded, r.affected, r.refundedAmount], [1, 1, 1, 4, 42.5]);
     eq(r.rate, 0.8);
+    const list = refundedOrders([
+      order({ status: 'completed', refunds: [{ amount: usd(2.5), reason: 'damaged' }, { amount: usd(1), reason: 'damaged' }], create_timestamp: at(2026, 3, 2) }),
+      order({ status: 'Cancelled', create_timestamp: at(2026, 3, 5) }),
+      order({ status: 'paid' }),
+    ]);
+    eq(list.map(x => [x.kind, x.refundedCents, x.reasons]), [['canceled', 0, []], [null, 350, ['damaged']]], 'newest first; reasons once each');
   }],
   ['heatmapMatrix: local weekday × hour, with the busiest cell', () => {
     const m = heatmapMatrix([
