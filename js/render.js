@@ -59,6 +59,21 @@ export function renderFinances() {
 }
 
 /** The current page of the ledger, newest first. */
+/**
+ * Spell out the table roles on a stacked table (.stack-rows): on phones its
+ * rows become display:flex, and some browsers (Safari especially) then stop
+ * treating it as a table, so screen readers would lose rows, cells and the
+ * column names. Nested tables (an order's line items) are left alone.
+ */
+function keepTableRoles(tbody) {
+  const table = tbody.closest('table');
+  table.setAttribute('role', 'table');
+  table.querySelectorAll(':scope > thead, :scope > tbody').forEach(g => g.setAttribute('role', 'rowgroup'));
+  table.querySelectorAll(':scope > thead > tr, :scope > tbody > tr').forEach(r => r.setAttribute('role', 'row'));
+  table.querySelectorAll(':scope > thead > tr > th').forEach(h => h.setAttribute('role', 'columnheader'));
+  table.querySelectorAll(':scope > tbody > tr > td').forEach(c => c.setAttribute('role', 'cell'));
+}
+
 function renderLedgerTable() {
   const sorted = [...(state.ledgerEntries || [])].sort(newestFirst);
   const start  = (state.ledgerPage - 1) * PAGE_SIZE;
@@ -112,6 +127,7 @@ function renderLedgerTable() {
   });
 
   $('finances-tbody').innerHTML = rows.join('');
+  keepTableRoles($('finances-tbody'));
   renderPagination($('ledger-pagination'), sorted.length, state.ledgerPage, 'ledger-page');
 }
 
@@ -131,6 +147,7 @@ export function renderTable() {
 
   if (!page.length) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">No orders found.</td></tr>`;
+    keepTableRoles(tbody);
     renderPagination($('pagination'), state.allOrders.length, state.currentPage, 'page'); return;
   }
 
@@ -175,6 +192,7 @@ export function renderTable() {
     tbody.appendChild(dtr);
   });
 
+  keepTableRoles(tbody);
   renderPagination($('pagination'), state.allOrders.length, state.currentPage, 'page');
 }
 
