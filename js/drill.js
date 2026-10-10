@@ -3,7 +3,7 @@
 // DRILLS[key], built from state for the selected period. Each breakdown's
 // total is the card's own figure. API text is escaped here.
 import { computeLedgerTotals } from './finance.js';
-import { aovBreakdown, discountedOrders, feeBreakdown, grossBreakdown, listingStats, orderStatusCounts, refundedOrders, unshippedOrders } from './insights.js';
+import { aovBreakdown, customerStats, discountedOrders, feeBreakdown, grossBreakdown, listingStats, orderStatusCounts, refundedOrders, unshippedOrders } from './insights.js';
 import { ordersWithItems, state } from './state.js';
 import { escHtml, fmtMoney, money, orderSales } from './util.js';
 
@@ -176,6 +176,63 @@ function discountList(byCount) {
   };
 }
 
+const BUYER_NOTE = 'Buyers are Etsy accounts that ordered in this period; spend is what they paid, including shipping and tax.';
+const buyerLabel = b => b.name || `Buyer #${b.id}`;
+const noIdNote = c => c.noId ? ` ${plural(c.noId, 'order')} without a buyer ID ${c.noId === 1 ? 'is' : 'are'} left out.` : '';
+
+/**
+ * Buyers by how many orders each placed this period (Customers tab). The
+ * groups add up to Unique Buyers; for Orders per Buyer the total row is the
+ * orders divided by the buyers.
+ */
+function buyerSpread(perBuyer) {
+  const c = customerStats(state.allOrders);
+  const orders = c.byOrders.reduce((s, g) => s + g.orders * g.buyers, 0);
+  const figure = perBuyer ? (c.ordersPerBuyer == null ? '—' : c.ordersPerBuyer.toFixed(2)) : fmtNum(c.buyers);
+  if (!c.buyers) return { figure, html: empty('None of these orders has a buyer ID.') };
+  const rows = c.byOrders.map((g, i) => ({
+    name: plural(g.orders, 'order'), value: g.buyers, amount: plural(g.buyers, 'buyer'),
+    sub: `${fmtMoney(g.revenue)} spent`, color: i ? 'var(--orange)' : '#a89e90',
+  }));
+  return {
+    figure,
+    html: breakdown(rows, perBuyer
+      ? { head: ['Orders each', 'Share', 'Buyers'], total: c.buyers, totalLabel: `${plural(orders, 'order')} ÷ ${plural(c.buyers, 'buyer')}`, totalAmount: figure }
+      : { head: ['Orders each', 'Share', 'Buyers'], total: c.buyers, totalLabel: 'Unique buyers', totalAmount: figure }) +
+      note(BUYER_NOTE + noIdNote(c)),
+  };
+}
+
+/** Buyers with 2+ orders this period, by spend (Customers tab). */
+function repeatBuyerList() {
+  const c = customerStats(state.allOrders);
+  const figure = fmtNum(c.repeatBuyers);
+  if (!c.repeat.length) return { figure, html: empty('No buyer ordered more than once in this period.') };
+  return {
+    figure,
+    html: itemList(c.repeat.map(b => ({ name: buyerLabel(b), sub: `Buyer #${escHtml(b.id)}`, mid: fmtNum(b.orders), end: fmtMoney(b.revenue) })),
+      { head: ['Buyer', 'Orders', 'Spent'], totalLabel: plural(c.repeat.length, 'repeat buyer'), totalAmount: fmtMoney(c.repeatRevenue) }) +
+      note(`Buyers with 2 or more orders in this period, by spend. ${BUYER_NOTE}`),
+  };
+}
+
+/** Spend from repeat buyers vs one-time buyers; the repeat share is the card's figure (Customers tab). */
+function repeatRevenueSplit() {
+  const c = customerStats(state.allOrders);
+  const figure = c.repeatRevenueShare == null ? '—' : `${(c.repeatRevenueShare * 100).toFixed(1)}%`;
+  if (!(c.revenue > 0)) return { figure, html: empty('None of these orders has a buyer ID.') };
+  const once = c.buyers - c.repeatBuyers;
+  const rows = [
+    { name: 'Repeat buyers', sub: `${plural(c.repeatBuyers, 'buyer')} · ${plural(c.repeat.reduce((s, b) => s + b.orders, 0), 'order')}`, value: c.repeatRevenue, color: 'var(--orange)' },
+    { name: 'One-time buyers', sub: `${plural(once, 'buyer')} · ${plural(once, 'order')}`, value: c.revenue - c.repeatRevenue, color: '#a89e90' },
+  ];
+  return {
+    figure,
+    html: breakdown(rows.map(r => ({ ...r, amount: fmtMoney(r.value) })), { head: ['Buyers', 'Share', 'Spent'], total: c.revenue, totalLabel: 'All buyers', totalAmount: fmtMoney(c.revenue) }) +
+      note(BUYER_NOTE + noIdNote(c)),
+  };
+}
+
 /** Active listings with 2 or fewer left, best selling this period first, then fewest left (Products tab). */
 function lowStockList() {
   if (!state.listings) return { wait: 'Listings are still loading.' };
@@ -219,6 +276,10 @@ function noSalesList() {
  * the current data, or { wait } while that data is still loading.
  */
 const DRILLS = {
+  buyers:             { title: 'Unique Buyers',        build: () => buyerSpread(false) },
+  'orders-per-buyer': { title: 'Orders per Buyer',     build: () => buyerSpread(true) },
+  'repeat-buyers':    { title: 'Repeat Buyers',        build: repeatBuyerList },
+  'repeat-revenue':   { title: 'Repeat Buyer Revenue', build: repeatRevenueSplit },
   'no-sales':  { title: 'No Sales This Period', build: noSalesList },
   'low-stock': { title: 'Low Stock',            build: lowStockList },
   discounted: { title: 'Discounted Orders', build: () => discountList(true) },

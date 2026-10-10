@@ -214,6 +214,10 @@ export const tests = [
     eq(c.repeatRevenueShare, 0.5);
     eq(c.ordersPerBuyer, 4 / 3);
     eq(c.top.map(b => [b.id, b.orders, b.revenue]), [[1, 2, 50], [2, 1, 25], [3, 1, 25]]);
+    eq(c.repeat.map(b => b.id), [1]);
+    eq([c.revenue, c.repeatRevenue], [100, 50], 'buyers with an ID only');
+    eq(c.byOrders, [{ orders: 1, buyers: 2, revenue: 50 }, { orders: 2, buyers: 1, revenue: 50 }]);
+    eq(c.byOrders.reduce((s, g) => s + g.buyers, 0), c.buyers, 'groups sum to Unique Buyers');
     eq(customerStats([]).repeatRate, null, 'empty');
   }],
   ['geography: countries vs US states; unknowns counted separately', () => {

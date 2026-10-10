@@ -281,11 +281,12 @@ function renderCustomers(orders) {
   if (!orders.length) { kpis.innerHTML = ''; top.innerHTML = empty(NO_ORDERS); return; }
 
   const c = customerStats(orders);
+  const some = key => c.buyers ? key : null; // nothing to show without buyer IDs
   kpis.innerHTML = [
-    kpi('Unique Buyers', fmtNum(c.buyers), c.noId ? `${plural(c.noId, 'order')} without a buyer ID` : 'distinct Etsy accounts'),
-    kpi('Repeat Buyers', fmtNum(c.repeatBuyers), `${pct(c.repeatRate)} ordered 2+ times this period`),
-    kpi('Repeat Buyer Revenue', pct(c.repeatRevenueShare), 'share of gross from repeat buyers'),
-    kpi('Orders per Buyer', c.ordersPerBuyer == null ? '—' : c.ordersPerBuyer.toFixed(2), 'average this period'),
+    kpi('Unique Buyers', fmtNum(c.buyers), c.noId ? `${plural(c.noId, 'order')} without a buyer ID` : 'distinct Etsy accounts', '', some('buyers')),
+    kpi('Repeat Buyers', fmtNum(c.repeatBuyers), `${pct(c.repeatRate)} ordered 2+ times this period`, '', c.repeatBuyers ? 'repeat-buyers' : null),
+    kpi('Repeat Buyer Revenue', pct(c.repeatRevenueShare), 'share of buyer spend from repeat buyers', '', c.revenue > 0 ? 'repeat-revenue' : null),
+    kpi('Orders per Buyer', c.ordersPerBuyer == null ? '—' : c.ordersPerBuyer.toFixed(2), 'average this period', '', some('orders-per-buyer')),
   ].join('');
 
   setHtml(top, c.top.length

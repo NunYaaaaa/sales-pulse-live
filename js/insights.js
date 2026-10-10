@@ -214,7 +214,9 @@ export function aovBreakdown(orders) {
 
 /**
  * Buyers grouped by buyer_user_id. "Repeat" means 2+ orders among the orders
- * passed in (i.e. within the selected period). `top` is sorted by spend.
+ * passed in (i.e. within the selected period). Spend is what they paid
+ * (grand total). `top` and `repeat` are sorted by spend; `byOrders` counts
+ * buyers (and their spend) by how many orders each placed, fewest first.
  */
 export function customerStats(orders, topN = 8) {
   const byBuyer = new Map();
@@ -228,17 +230,27 @@ export function customerStats(orders, topN = 8) {
     if (o.name) b.name = o.name;
     byBuyer.set(id, b);
   }
-  const buyers  = [...byBuyer.values()];
+  const buyers  = [...byBuyer.values()].sort((a, b) => b.revenue - a.revenue);
   const repeat  = buyers.filter(b => b.orders > 1);
-  const revenue = sum(buyers, b => b.revenue);
+  const revenue = sum(buyers, b => b.revenue), repeatRevenue = sum(repeat, b => b.revenue);
+  const byOrders = new Map();
+  for (const b of buyers) {
+    const g = byOrders.get(b.orders) ?? { orders: b.orders, buyers: 0, revenue: 0 };
+    g.buyers++;
+    g.revenue += b.revenue;
+    byOrders.set(b.orders, g);
+  }
   return {
     buyers: buyers.length,
     repeatBuyers: repeat.length,
     repeatRate: buyers.length ? repeat.length / buyers.length : null,
-    repeatRevenueShare: revenue > 0 ? sum(repeat, b => b.revenue) / revenue : null,
+    repeatRevenueShare: revenue > 0 ? repeatRevenue / revenue : null,
     ordersPerBuyer: buyers.length ? (orders.length - noId) / buyers.length : null,
     noId,
-    top: [...buyers].sort((a, b) => b.revenue - a.revenue).slice(0, topN),
+    revenue, repeatRevenue,
+    top: buyers.slice(0, topN),
+    repeat,
+    byOrders: [...byOrders.values()].sort((a, b) => a.orders - b.orders),
   };
 }
 
