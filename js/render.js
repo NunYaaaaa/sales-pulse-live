@@ -38,6 +38,8 @@ export function renderFinances() {
 
   const entries = state.ledgerEntries || [];
   if (!entries.length) {
+    // Nothing in the ledger for this period: the totals are zero, not still loading
+    for (const id of ['fin-gross', 'fin-fees', 'fin-net']) $(id).textContent = fmtMoney(0);
     $('finances-tbody').innerHTML =
       `<tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">No ledger entries found for this date range.</td></tr>`;
     $('fin-count').textContent = '0 entries';
