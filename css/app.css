@@ -90,9 +90,11 @@ nav { position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-i
   .kpi-row > :nth-child(n) { grid-column:auto; }
   .kpi-row > :first-child { grid-column:1 / -1; }
 }
-.kpi-card { background:var(--offwhite); border:1px solid var(--border); border-radius:16px; padding:1.25rem 1.25rem 1rem; }
+.kpi-card { background:var(--offwhite); border:1px solid var(--border); border-radius:16px; padding:1.25rem 1.25rem 1rem; container-type:inline-size; }
 .kpi-label { font-family:'DM Mono',monospace; font-size:0.6rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted2); margin-bottom:0.5rem; }
-.kpi-val { font-family:'Fraunces',serif; font-size:1.5rem; font-weight:700; letter-spacing:-0.03em; color:var(--ink); line-height:1; }
+.kpi-val { font-family:'Fraunces',serif; font-size:1.5rem; font-weight:700; letter-spacing:-0.03em; color:var(--ink); line-height:1; white-space:nowrap; }
+/* Scale with the tile (up to the usual 1.5rem), so six-figure totals fit a phone's half-width tile */
+.kpi-val { font-size:clamp(1.1rem, 17cqi, 1.5rem); }
 .kpi-val.green { color:var(--green); }
 .kpi-val.red   { color:var(--red); }
 .kpi-sub { font-size:0.72rem; color:var(--muted2); margin-top:4px; font-weight:300; }
