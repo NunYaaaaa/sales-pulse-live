@@ -193,6 +193,7 @@ export const tests = [
     drawBarChart(bars, document.createElement('div'), data, 'v', String, '#000');
     eq(bars.querySelectorAll('.chart-bar').length, 4, 'one bar slot per point');
     eq(bars.querySelectorAll('.chart-bar')[1].getAttribute('fill'), 'var(--border2)', 'null drawn as a faint stub');
+    eq([...bars.querySelectorAll('.chart-hit')].map(h => h.dataset.i), ['0', '1', '2', '3'], 'every bar, the stub too, gets a full-height hover column');
     eq(bars.querySelectorAll('.chart-val').length, 0, 'no value labels unless asked');
     drawBarChart(bars, document.createElement('div'), data, 'v', v => `${v} ★`, '#000', null, { values: true });
     eq([...bars.querySelectorAll('.chart-val')].map(t => t.textContent), ['1 ★', '2 ★', '3 ★'], 'values: a label per bar, none for the null');

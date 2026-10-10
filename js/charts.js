@@ -190,11 +190,16 @@ export function drawBarChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, too
     return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"
         rx="${none ? 1 : 3}" fill="${none ? 'var(--border2)' : color}" opacity="0.85" class="chart-bar" data-i="${i}" style="cursor:pointer;transition:opacity 0.15s"/>
       ${val}${lbl}`;
-  }).join('');
+  }).join('') + data.map((d, i) => `<rect x="${(xOf(i) - gap / 2).toFixed(1)}" y="0" width="${(barW + gap).toFixed(1)}" height="${H}"
+      fill="transparent" pointer-events="all" class="chart-hit" data-i="${i}" style="cursor:pointer"/>`).join('');
 
-  svgEl.querySelectorAll('.chart-bar').forEach(bar => {
-    bar.addEventListener('mouseenter', () => {
-      const d = data[parseInt(bar.dataset.i)];
+  // As on line charts, each bar's whole column is its hover/tap target, so a
+  // $0 day's 1px stub or a no-sales week's faint stub can still be read
+  const bars = svgEl.querySelectorAll('.chart-bar');
+  svgEl.querySelectorAll('.chart-hit').forEach(hit => {
+    const bar = bars[parseInt(hit.dataset.i)];
+    hit.addEventListener('mouseenter', () => {
+      const d = data[parseInt(hit.dataset.i)];
       tooltipEl.innerHTML = tooltipHtml ? tooltipHtml(d) : `<strong>${escHtml(d.tip ?? d.label)}</strong><br>${fmtFn(d[valueKey])}`;
       tooltipEl.classList.add('visible');
       const bx = parseFloat(bar.getAttribute('x')) + parseFloat(bar.getAttribute('width')) / 2;
@@ -202,7 +207,7 @@ export function drawBarChart(svgEl, tooltipEl, data, valueKey, fmtFn, color, too
       positionTooltip(tooltipEl, svgEl, bx, by);
       bar.style.opacity = '1';
     });
-    bar.addEventListener('mouseleave', () => {
+    hit.addEventListener('mouseleave', () => {
       tooltipEl.classList.remove('visible');
       bar.style.opacity = '0.85';
     });
