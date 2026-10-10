@@ -1,6 +1,6 @@
-// ─── INSIGHTS TAB (rendering) ──────────────────────────────────────────────
-// Draws the Insights panels from state. The numbers come from the pure
-// functions in insights.js; this module only formats and escapes them.
+// ─── INSIGHTS PANELS (rendering) ───────────────────────────────────────────
+// Draws the analysis panels on every tab from state. The numbers come from
+// the pure functions in insights.js; this module only formats and escapes them.
 import { FEE_GROUPS, FEE_OTHER_COLOR, LABEL_FEES, LABEL_REFUNDS, PALETTE } from './config.js';
 import { animateBars, DAY_NAMES, drawBarChart, drawHeatmap, drawLineChart, hourLabel, setToggleActive } from './charts.js';
 import {
@@ -13,7 +13,6 @@ import { escHtml, fmtMoney, getCurrency, pickBucket } from './util.js';
 const $ = id => document.getElementById(id);
 
 const POSTAGE = new Set([...LABEL_FEES, ...LABEL_REFUNDS]);
-const MODES   = new Set(['insFeeMode', 'insGeoMode']);
 const NO_ORDERS     = 'No orders to show yet.';
 const LEDGER_WAIT   = 'Financial details are still loading.';
 
@@ -58,28 +57,65 @@ function setHtml(el, html) {
 const ordersWithItems = () => state.allOrders.map(o => o.transactions ? o : { ...o, transactions: lineItems(o) || [] });
 
 // ─── ENTRY POINTS ───────────────────────────────────────────────────────────
+// One per tab. js/tabs.js calls only the showing tab's (charts size from clientWidth).
 
-/** Redraw every Insights panel. No-op unless the tab is showing (charts size from clientWidth). */
-export function renderInsights() {
-  if (state.activeTab !== 'insights') return;
-  requestAnimationFrame(() => {
-    const orders = ordersWithItems();
-    renderSnapshot();
-    renderProfitability(orders);
-    renderCustomers(orders);
-    renderProducts(orders);
-    renderOperations(orders, Math.floor(Date.now() / 1000));
-    renderListings(orders);
-    renderReviews(orders);
-  });
+const nowTs = () => Math.floor(Date.now() / 1000);
+
+export function renderOverviewPanels() {
+  renderAttention(ordersWithItems(), nowTs());
+  renderSnapshot();
 }
 
-/** Handle an Insights toggle (data-key names a state field). */
+export function renderOrdersPanels() {
+  const orders = ordersWithItems();
+  renderOperations(orders, nowTs());
+  renderBasket(orders);
+  renderDiscounts(orders);
+}
+
+export function renderProductsPanels() {
+  const orders = ordersWithItems();
+  renderVariations(orders);
+  renderListings(orders);
+}
+
+export function renderCustomersPanels() {
+  const orders = ordersWithItems();
+  renderCustomers(orders);
+  renderReviews(orders);
+}
+
+export function renderFinancesPanels() {
+  renderProfitability(ordersWithItems());
+}
+
+// Toggles (data-key names a state field) redraw just their own panel
+const MODE_RENDER = {
+  insFeeMode: () => { if (state.detailsLoaded && state.ledgerEntries) renderFeeChart(state.ledgerEntries); },
+  insGeoMode: () => renderGeo(ordersWithItems()),
+};
+
+/** Handle an Insights toggle. */
 export function setInsightMode(key, mode, btn) {
-  if (!MODES.has(key)) return;
+  if (!MODE_RENDER[key]) return;
   state[key] = mode;
   setToggleActive(btn);
-  renderInsights();
+  MODE_RENDER[key]();
+}
+
+// ─── NEEDS ATTENTION (Overview) ─────────────────────────────────────────────
+function renderAttention(orders, now) {
+  const el = $('ov-attention');
+  if (!orders.length) { el.style.display = 'none'; return; }
+  const b = backlog(orders, now);
+  el.style.display = '';
+  el.className = `attention ${b.overdue ? 'is-late' : b.count ? 'is-open' : 'is-clear'}`;
+  el.innerHTML = b.count
+    ? `<span class="attention-dot"></span>
+       <span class="attention-text"><strong>${plural(b.count, 'order')}</strong> not shipped yet${b.overdue ? ` · <strong>${fmtNum(b.overdue)}</strong> past Etsy's expected ship date` : ''} · oldest paid ${plural(Math.floor(b.oldestDays), 'day')} ago</span>
+       <button class="attention-link" data-action="tab" data-tab="orders" data-jump="sec-fulfilment">See fulfilment →</button>`
+    : `<span class="attention-dot"></span>
+       <span class="attention-text">Every physical order in this period has been marked shipped.</span>`;
 }
 
 // ─── SHOP SNAPSHOT ──────────────────────────────────────────────────────────
@@ -279,12 +315,6 @@ function fmtShort(n) {
   catch { return fmtMoney(n); }
 }
 
-function renderProducts(orders) {
-  renderVariations(orders);
-  renderBasket(orders);
-  renderDiscounts(orders);
-}
-
 function renderVariations(orders) {
   const el = $('ins-variations'), sub = $('ins-var-sub');
   const products = variationStats(orders);
@@ -421,7 +451,7 @@ function renderListings(orders) {
     kpis.innerHTML = '';
     count.textContent = '—';
     el.innerHTML = st?.error
-      ? empty(`Couldn't load listings: ${escHtml(st.error)}`) + '<button class="apply-btn" data-action="insights-retry">Retry</button>'
+      ? empty(`Couldn't load listings: ${escHtml(st.error)}`) + '<button class="apply-btn" data-action="tab-data-retry">Retry</button>'
       : st?.loading
         ? empty(`Loading listings…${st.total ? ` ${fmtNum(st.done)} of ${fmtNum(st.total)}` : ''}`)
         : empty('Listings load once the orders and ledger for this period are in.');
@@ -493,7 +523,7 @@ function renderReviews(orders) {
     const st = state.reviewsStatus;
     body.style.display = 'none';
     status.innerHTML = st?.error
-      ? empty(`Couldn't load reviews: ${escHtml(st.error)}`) + '<button class="apply-btn" data-action="insights-retry">Retry</button>'
+      ? empty(`Couldn't load reviews: ${escHtml(st.error)}`) + '<button class="apply-btn" data-action="tab-data-retry">Retry</button>'
       : st?.loading
         ? empty(`Loading reviews…${st.total ? ` ${fmtNum(st.done)} of ${fmtNum(st.total)}` : ''}`)
         : empty('Reviews load once the orders and ledger for this period are in.');

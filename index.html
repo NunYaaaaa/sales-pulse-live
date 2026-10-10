@@ -111,6 +111,7 @@
     .preview {
       position: relative; background: var(--cream);
       border: 1px solid var(--border); border-radius: 20px;
+      container-type: inline-size; /* the dashboard's grids lay out for the preview's width */
       padding: 1.75rem 1.5rem 1.5rem;
       box-shadow: 0 20px 60px rgba(26,17,8,0.06);
     }
@@ -319,10 +320,6 @@
             <div class="dash-shop-name">YourShopName</div>
             <div class="dash-shop-sub">Shop ID: 12345678 · @yourshopname</div>
           </div>
-          <div class="dash-actions">
-            <span class="export-btn export-csv">↓ CSV</span>
-            <span class="export-btn export-json">↓ JSON</span>
-          </div>
         </div>
         <div class="date-filter-bar">
           <span class="date-filter-label">Period</span>
@@ -334,7 +331,6 @@
             <span class="preset-chip">12 months</span>
             <span class="preset-chip">All time</span>
           </div>
-          <div class="date-filter-sep"></div>
           <div class="date-range-inputs">
             <span class="fake-date">09/07/2026</span>
             <span class="date-range-dash">→</span>
@@ -479,9 +475,11 @@
       <div class="preview reveal" role="img" aria-label="Order history preview with sample data: a list of orders with one expanded to show its totals, processing fee, shipping location, buyer note and line items.">
         <div class="preview-tag">Preview · sample data</div>
         <div class="tabs">
-          <span class="tab-btn active">Order History</span>
+          <span class="tab-btn">Overview</span>
+          <span class="tab-btn active">Orders</span>
+          <span class="tab-btn">Products</span>
+          <span class="tab-btn">Customers</span>
           <span class="tab-btn">Finances</span>
-          <span class="tab-btn">Insights</span>
         </div>
         <div class="panel">
           <div class="panel-header">
@@ -582,9 +580,11 @@
       <div class="preview reveal" role="img" aria-label="Finances preview with sample data: $812.36 of Etsy fees split into transaction fees, shipping labels, processing fees, Etsy Ads, listing renewals and Offsite Ads, above a payment ledger table.">
         <div class="preview-tag">Preview · sample data</div>
         <div class="tabs">
-          <span class="tab-btn">Order History</span>
+          <span class="tab-btn">Overview</span>
+          <span class="tab-btn">Orders</span>
+          <span class="tab-btn">Products</span>
+          <span class="tab-btn">Customers</span>
           <span class="tab-btn active">Finances</span>
-          <span class="tab-btn">Insights</span>
         </div>
         <div class="fee-chart-panel" style="border-top-left-radius:0">
           <div class="fee-chart-header">
@@ -696,23 +696,25 @@
     </div>
   </div>
 
-  <!-- INSIGHTS -->
+  <!-- BEYOND THE TOTALS (Orders, Products, Customers) -->
   <div class="section off">
     <div class="section-inner">
-      <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Insights</div>
+      <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Beyond the Totals</div>
       <h2 class="section-title reveal">Know your buyers, <em>listings and reviews.</em></h2>
-      <p class="section-body reveal">The Insights tab digs further into the same data: repeat buyers and where orders ship, best-selling variations, time to ship and late orders, what ads and shipping labels cost, listing views and favorites, and review ratings.</p>
-      <div class="preview reveal" role="img" aria-label="Insights preview with sample data: 7 repeat buyers, $60.83 of ad spend, a 1.4-day median time to ship and a 4.86 average rating, with orders by country and best-selling variations.">
+      <p class="section-body reveal">Each tab digs into its own part of the shop. Orders shows time to ship and late orders, Products shows best-selling variations and listing views and favorites, Customers shows repeat buyers, where orders ship and review ratings, and Finances shows what ads and shipping labels cost.</p>
+      <div class="preview reveal" role="img" aria-label="Customers preview with sample data: 57 buyers, 7 of them repeat buyers bringing in 18.6% of gross, a 4.86 average rating, orders by country and reviews by stars.">
         <div class="preview-tag">Preview · sample data</div>
         <div class="tabs">
-          <span class="tab-btn">Order History</span>
+          <span class="tab-btn">Overview</span>
+          <span class="tab-btn">Orders</span>
+          <span class="tab-btn">Products</span>
+          <span class="tab-btn active">Customers</span>
           <span class="tab-btn">Finances</span>
-          <span class="tab-btn active">Insights</span>
         </div>
         <div class="ins-kpis" style="margin:1.25rem 0 14px">
-          <div class="kpi-card"><div class="kpi-label">Repeat Buyers</div><div class="kpi-val">7</div><div class="kpi-sub">12.3% of 57 buyers ordered 2+ times</div></div>
-          <div class="kpi-card"><div class="kpi-label">Ad Spend</div><div class="kpi-val red">$60.83</div><div class="kpi-sub">Etsy Ads + Offsite Ads fees</div></div>
-          <div class="kpi-card"><div class="kpi-label">Median Time to Ship</div><div class="kpi-val">1.4 days</div><div class="kpi-sub">94% by Etsy's expected date</div></div>
+          <div class="kpi-card"><div class="kpi-label">Unique Buyers</div><div class="kpi-val">57</div><div class="kpi-sub">distinct Etsy accounts</div></div>
+          <div class="kpi-card"><div class="kpi-label">Repeat Buyers</div><div class="kpi-val">7</div><div class="kpi-sub">12.3% ordered 2+ times this period</div></div>
+          <div class="kpi-card"><div class="kpi-label">Repeat Buyer Revenue</div><div class="kpi-val">18.6%</div><div class="kpi-sub">share of gross from repeat buyers</div></div>
           <div class="kpi-card"><div class="kpi-label">Average Rating</div><div class="kpi-val">4.86 ★</div><div class="kpi-sub">21 reviews this period</div></div>
         </div>
         <div class="ins-grid">
@@ -750,28 +752,41 @@
             </div>
           </div>
           <div class="ochart-panel">
-            <div class="ochart-header"><div><div class="ochart-title">Best-Selling Variations</div><div class="ochart-subtitle">top 3 products with variations · by units sold</div></div></div>
+            <div class="ochart-header"><div><div class="ochart-title">Star Ratings</div><div class="ochart-subtitle">reviews by stars</div></div></div>
             <div class="ins-body">
-              <div class="ins-var">
-                <div class="ins-var-head"><span class="top-prod-name">Custom Name Ring — Sterling</span><span class="top-prod-sub">14 units · Ring size · Metal</span></div>
-                <div class="ins-seg"><span style="width:35.71%;background:#d4622a"></span><span style="width:28.57%;background:#3a7d4c"></span><span style="width:21.43%;background:#5a3d9e"></span><span style="width:14.29%;background:#b8860b"></span></div>
-                <div class="ins-legend"><span><i style="background:#d4622a"></i>7 · Silver<b>5</b></span><span><i style="background:#3a7d4c"></i>6 · Silver<b>4</b></span><span><i style="background:#5a3d9e"></i>8 · Gold<b>3</b></span><span><i style="background:#b8860b"></i>7 · Gold<b>2</b></span></div>
+              <div class="top-prod-rows">
+                <div class="top-prod-row">
+                  <div><div class="top-prod-name">5 stars</div><div class="top-prod-sub">90%</div></div>
+                  <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:100%;background:#3a7d4c"></div></div>
+                  <div><div class="top-prod-val">19</div></div>
+                </div>
+                <div class="top-prod-row">
+                  <div><div class="top-prod-name">4 stars</div><div class="top-prod-sub">5%</div></div>
+                  <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:5.3%;background:#65a30d"></div></div>
+                  <div><div class="top-prod-val">1</div></div>
+                </div>
+                <div class="top-prod-row">
+                  <div><div class="top-prod-name">3 stars</div><div class="top-prod-sub">5%</div></div>
+                  <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:5.3%;background:#b8860b"></div></div>
+                  <div><div class="top-prod-val">1</div></div>
+                </div>
+                <div class="top-prod-row">
+                  <div><div class="top-prod-name">2 stars</div><div class="top-prod-sub">0%</div></div>
+                  <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:0%;background:#d4622a"></div></div>
+                  <div><div class="top-prod-val">0</div></div>
+                </div>
+                <div class="top-prod-row">
+                  <div><div class="top-prod-name">1 star</div><div class="top-prod-sub">0%</div></div>
+                  <div class="top-prod-bar-track"><div class="top-prod-bar-fill" style="width:0%;background:#b91c1c"></div></div>
+                  <div><div class="top-prod-val">0</div></div>
+                </div>
               </div>
-              <div class="ins-var">
-                <div class="ins-var-head"><span class="top-prod-name">Botanical Print Set</span><span class="top-prod-sub">11 units · Size</span></div>
-                <div class="ins-seg"><span style="width:54.55%;background:#d4622a"></span><span style="width:45.45%;background:#3a7d4c"></span></div>
-                <div class="ins-legend"><span><i style="background:#d4622a"></i>A4<b>6</b></span><span><i style="background:#3a7d4c"></i>A3<b>5</b></span></div>
-              </div>
-              <div class="ins-var">
-                <div class="ins-var-head"><span class="top-prod-name">Linen Tote Bag</span><span class="top-prod-sub">9 units · Color</span></div>
-                <div class="ins-seg"><span style="width:55.56%;background:#d4622a"></span><span style="width:33.33%;background:#3a7d4c"></span><span style="width:11.11%;background:#5a3d9e"></span></div>
-                <div class="ins-legend"><span><i style="background:#d4622a"></i>Natural<b>5</b></span><span><i style="background:#3a7d4c"></i>Sage<b>3</b></span><span><i style="background:#5a3d9e"></i>Rust<b>1</b></span></div>
-              </div>
+              <div class="ins-caveat">Buyers review days or weeks after delivery, so recent periods show fewer reviews.</div>
             </div>
           </div>
         </div>
       </div>
-      <p class="ins-caveat reveal" style="margin-top:1rem">Listings and reviews take a few extra Etsy requests, so they load only when you open the Insights tab. Etsy's API has no visit, conversion or search data.</p>
+      <p class="ins-caveat reveal" style="margin-top:1rem">Listings and reviews take a few extra Etsy requests, so they load only when you open the Products or Customers tab. Etsy's API has no visit, conversion or search data.</p>
     </div>
   </div>
 
@@ -798,7 +813,7 @@
           <div class="step-num">03</div>
           <div class="step-icon p">📊</div>
           <h3>Explore &amp; Export</h3>
-          <p>Pick a date range, explore the charts, orders, fee breakdown and insights, then download your orders or ledger as CSV or JSON.</p>
+          <p>Pick a date range, explore your overview, orders, products, customers and finances, then download your orders or ledger as CSV or JSON.</p>
         </div>
       </div>
     </div>
@@ -865,7 +880,7 @@
           </div>
           <div class="priv-item reveal">
             <div class="priv-check gold">✓</div>
-            <div class="priv-text"><strong>Gentle on Etsy's API</strong><p>Requests are paced and back off automatically when Etsy rate-limits them, and recent results are reused instead of fetched again. Listings and reviews are only requested when you open Insights.</p></div>
+            <div class="priv-text"><strong>Gentle on Etsy's API</strong><p>Requests are paced and back off automatically when Etsy rate-limits them, and recent results are reused instead of fetched again. Listings and reviews are only requested when you open Products or Customers.</p></div>
           </div>
         </div>
       </div>

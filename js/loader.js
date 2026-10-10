@@ -1,10 +1,9 @@
 // ─── DATA LOADING PIPELINE + DATE FILTER ───────────────────────────────────
 import { ApiError, AuthError, etsyFetch, fetchLedger, fetchListings, fetchOrders, fetchPayment, fetchReviews, fetchTransactions, isAbort } from './api.js';
-import { renderOrderCharts } from './charts.js';
-import { renderInsights } from './insights-view.js';
 import { renderFinances, renderKPIs, renderTable } from './render.js';
 import { session } from './session.js';
 import { cacheCurrentRange, cachedRange, cachedReviews, cacheReviews, clearRangeData, lineItems, state } from './state.js';
+import { renderActiveTab, TABS, togglePeriod } from './tabs.js';
 import { clearError, setFetchStatus, showConnect, showDashboard, showError, showLoading, showSkeletons } from './ui.js';
 import { dateStrToTs, daysAgoStr, setCurrency, todayStr, ytdStr } from './util.js';
 
@@ -107,9 +106,8 @@ function markDetailsLoaded() {
 function renderAll() {
   renderKPIs();
   renderTable();
-  renderOrderCharts();
   renderFinances();
-  renderInsights();
+  renderActiveTab();
 }
 
 /** Show orders, then full details, for the active date filter (from cache when fresh). */
@@ -124,6 +122,7 @@ async function reload() {
   $('fin-export-csv').disabled  = true;
   $('fin-export-json').disabled = true;
   $('finances-tbody').innerHTML = FINANCES_PLACEHOLDER;
+  $('ledger-pagination').innerHTML = '';
   $('fee-chart-panel').style.display = 'none';
 
   const hit = cachedRange();
@@ -134,7 +133,7 @@ async function reload() {
     markDetailsLoaded();
     renderAll();
     setFetchStatus(`${hit.orders.length} orders (cached)`, true);
-    ensureInsightsData();
+    ensureTabData();
     return;
   }
 
@@ -147,8 +146,7 @@ async function reload() {
     state.allOrders = orders;
     renderKPIs();
     renderTable();
-    renderOrderCharts();
-    renderInsights();
+    renderActiveTab();
     setFetchStatus(`${orders.length} orders loaded`, false);
   } catch(e) {
     if (!handleLoadError(e, 'Order fetch')) {
@@ -230,10 +228,9 @@ export async function loadAllDetails(background = false, signal = currentLoad?.s
 
     renderFinances();
     renderKPIs();
-    renderOrderCharts(); // refresh top products now we have line items
-    renderInsights();
+    renderActiveTab(); // refreshes top products too, now every order has line items
     setFetchStatus('All data loaded ✓', true);
-    ensureInsightsData();
+    ensureTabData();
 
   } catch (err) {
     if (isAbort(err)) return;
@@ -245,21 +242,22 @@ export async function loadAllDetails(background = false, signal = currentLoad?.s
   }
 }
 
-// ─── INSIGHTS DATA ──────────────────────────────────────────────────────────
-// Listings and reviews are only used by the Insights tab, so they're fetched
-// the first time it's open after a range has fully loaded. Listings don't
-// depend on the range and are reused for 10 minutes; reviews are cached per
-// period start like the range data.
-let insightsRunFor = null; // the load signal the last run belonged to
+// ─── TAB DATA ───────────────────────────────────────────────────────────────
+// Listings and reviews are only used by the Products and Customers tabs (see
+// TABS[tab].needs), so each is fetched the first time a tab that needs it is
+// open after a range has fully loaded. Listings don't depend on the range and
+// are reused for 10 minutes; reviews are cached per period start like the
+// range data.
+const ranFor = { listings: null, reviews: null }; // the load signal each fetch last ran (or is running) for
 
 /**
- * Run one Insights fetch, tracking its progress or error in state[statusKey].
+ * Run one tab-data fetch, tracking its progress or error in state[statusKey].
  * run(progress) does the fetching and stores the result. Returns false on failure.
  */
-async function insightsStep(statusKey, signal, run) {
+async function tabDataStep(statusKey, signal, run) {
   const progress = (done, total) => {
     state[statusKey] = { loading: true, done, total };
-    renderInsights();
+    renderActiveTab();
   };
   try {
     progress(0, null);
@@ -268,51 +266,55 @@ async function insightsStep(statusKey, signal, run) {
     state[statusKey] = null;
   } catch (e) {
     if (isAbort(e)) return true;
-    if (e instanceof AuthError) { handleLoadError(e, 'Insights data'); return true; }
+    if (e instanceof AuthError) { handleLoadError(e, 'Listing and review data'); return true; }
     state[statusKey] = { error: e.message };
     return false;
   } finally {
-    if (!signal.aborted) renderInsights();
+    if (!signal.aborted) renderActiveTab();
   }
   return true;
 }
 
-/** Fetch the Insights tab's extra data if it's showing and the range has loaded. */
-export async function ensureInsightsData() {
+/** Fetch the extra data the showing tab needs, once the range has loaded. */
+export async function ensureTabData() {
   const signal = currentLoad?.signal;
-  if (state.activeTab !== 'insights' || !signal || signal.aborted || !state.detailsLoaded) return;
-  if (insightsRunFor === signal) return; // already ran (or running) for this load
-  insightsRunFor = signal;
-  let ok = true;
+  const needs  = TABS[state.activeTab].needs || [];
+  if (!needs.length || !signal || signal.aborted || !state.detailsLoaded) return;
 
-  if (!state.listings || Date.now() - state.listingsAt > LISTINGS_TTL_MS) {
-    ok = await insightsStep('listingsStatus', signal, async progress => {
-      const active  = await fetchListings('active',   { signal, onPage: progress });
-      const soldOut = await fetchListings('sold_out', { signal });
-      if (signal.aborted) return;
-      state.listings   = [...active, ...soldOut];
-      state.listingsAt = Date.now();
-    }) && ok;
-  }
-  if (signal.aborted) return;
-
-  if (!state.reviews) {
-    state.reviews = cachedReviews();
-    if (!state.reviews) {
-      // Up to now, so reviews of this period's orders count even if left later.
-      const from = state.filterFrom ?? 0;
-      ok = await insightsStep('reviewsStatus', signal, async progress => {
-        const reviews = await fetchReviews(from, { signal, onPage: progress });
+  if (needs.includes('listings') && ranFor.listings !== signal) {
+    ranFor.listings = signal;
+    if (!state.listings || Date.now() - state.listingsAt > LISTINGS_TTL_MS) {
+      const ok = await tabDataStep('listingsStatus', signal, async progress => {
+        const active  = await fetchListings('active',   { signal, onPage: progress });
+        const soldOut = await fetchListings('sold_out', { signal });
         if (signal.aborted) return;
-        state.reviews = reviews;
-        cacheReviews(reviews);
-      }) && ok;
-    } else {
-      renderInsights();
+        state.listings   = [...active, ...soldOut];
+        state.listingsAt = Date.now();
+      });
+      if (!ok) ranFor.listings = null; // let the retry button run it again
+    }
+    if (signal.aborted) return;
+  }
+
+  if (needs.includes('reviews') && ranFor.reviews !== signal) {
+    ranFor.reviews = signal;
+    if (!state.reviews) {
+      state.reviews = cachedReviews();
+      if (!state.reviews) {
+        // Up to now, so reviews of this period's orders count even if left later.
+        const from = state.filterFrom ?? 0;
+        const ok = await tabDataStep('reviewsStatus', signal, async progress => {
+          const reviews = await fetchReviews(from, { signal, onPage: progress });
+          if (signal.aborted) return;
+          state.reviews = reviews;
+          cacheReviews(reviews);
+        });
+        if (!ok) ranFor.reviews = null;
+      } else {
+        renderActiveTab();
+      }
     }
   }
-
-  if (!ok) insightsRunFor = null; // let the retry button run it again
 }
 
 /**
@@ -351,7 +353,17 @@ export function applyPreset(preset, el) {
   const [from, to] = PRESETS[preset]();
   $('filter-from').value = from || '';
   $('filter-to').value   = to   || '';
+  setPeriodLabel(el.textContent.trim());
   setDateFilter(from, to);
+}
+
+/** "Sep 10" for a YYYY-MM-DD string. */
+const shortDate = s => new Date(dateStrToTs(s, false) * 1000).toLocaleDateString('en-US', { month:'short', day:'numeric' });
+
+/** Name the period on the phone's period button and close the picker. */
+function setPeriodLabel(text) {
+  $('period-label').textContent = text;
+  togglePeriod(false);
 }
 
 export function applyCustomRange() {
@@ -363,6 +375,7 @@ export function applyCustomRange() {
   }
 
   document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+  setPeriodLabel(from || to ? `${from ? shortDate(from) : 'Start'} – ${to ? shortDate(to) : 'now'}` : 'All time');
   setDateFilter(from || null, to || null);
 }
 

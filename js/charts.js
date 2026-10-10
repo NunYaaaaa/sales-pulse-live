@@ -218,13 +218,15 @@ export function setToggleActive(btn) {
   });
 }
 
+const NO_ORDERS = 'No orders in this period';
+
 // ── Revenue / Orders over time ───────────────────────────────────────────────
-function renderRevChart() {
+export function renderRevChart() {
   const svgEl = $('rev-chart-svg');
   const tipEl = $('rev-tooltip');
   const subEl = $('rev-chart-sub');
   const orders = state.allOrders;
-  if (!svgEl || !orders.length) return;
+  if (!orders.length) { svgEl.innerHTML = ''; subEl.textContent = NO_ORDERS; return; }
 
   const bucket = autoBucket(orders);
   const data   = bucketOrders(orders, bucket);
@@ -244,11 +246,11 @@ function renderRevChart() {
 }
 
 // ── Day of week chart ────────────────────────────────────────────────────────
-function renderDowChart() {
+export function renderDowChart() {
   const svgEl = $('dow-chart-svg');
   const tipEl = $('dow-tooltip');
   const subEl = $('dow-chart-sub');
-  if (!svgEl || !state.allOrders.length) return;
+  if (!state.allOrders.length) { svgEl.innerHTML = ''; subEl.textContent = NO_ORDERS; return; }
 
   const tally = Array(7).fill(0).map(() => ({ revenue:0, count:0 }));
 
@@ -290,14 +292,14 @@ function renderDowChart() {
 }
 
 // ── Top products ─────────────────────────────────────────────────────────────
-function renderTopProducts() {
+export function renderTopProducts() {
   const wrap = $('top-prod-rows');
   const sub  = $('top-prods-sub');
-  if (!wrap) return;
+  if (!state.allOrders.length) { wrap.innerHTML = `<div class="ins-empty">${NO_ORDERS}.</div>`; sub.textContent = '—'; return; }
 
   // Need line items for every order, not just the rows the user has expanded
   if (!state.allOrders.every(lineItems)) {
-    wrap.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted2);padding:0.5rem 0">${state.detailsLoaded ? 'Some line items could not be loaded.' : 'Loading product breakdown…'}</div>`;
+    wrap.innerHTML = `<div class="ins-empty">${state.detailsLoaded ? 'Some line items could not be loaded.' : 'Loading product breakdown…'}</div>`;
     return;
   }
 
@@ -322,7 +324,7 @@ function renderTopProducts() {
     .slice(0, 8);
 
   if (!sorted.length) {
-    wrap.innerHTML = `<div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted2)">No product data found.</div>`;
+    wrap.innerHTML = `<div class="ins-empty">No product data found.</div>`;
     return;
   }
 
@@ -365,20 +367,6 @@ export function setChartMode(chart, mode, btn) {
   state[CHART_MODES[chart]] = mode;
   setToggleActive(btn);
   CHART_RENDER[chart]();
-}
-
-/** Main entry — render all order charts. Called after orders load and after full details load. */
-export function renderOrderCharts() {
-  const wrap = $('order-charts-wrap');
-  if (!state.allOrders.length) { wrap.style.display = 'none'; return; }
-  wrap.style.display = 'block';
-
-  // Give the DOM a tick to paint before reading clientWidth
-  requestAnimationFrame(() => {
-    renderRevChart();
-    renderDowChart();
-    renderTopProducts();
-  });
 }
 
 // ─── FEE BREAKDOWN CHART ────────────────────────────────────────────────────

@@ -19,7 +19,6 @@ export function showConnect() {
   $('connect-screen').style.display  = 'flex';
   $('loading-screen').style.display  = 'none';
   $('dashboard').style.display       = 'none';
-  $('date-filter-bar').style.display = 'none';
   $('live-badge').style.display      = 'none';
   $('disconnect-btn').style.display  = 'none';
 }
@@ -28,13 +27,11 @@ export function showLoading(msg) {
   $('connect-screen').style.display  = 'none';
   $('loading-screen').style.display  = 'flex';
   $('dashboard').style.display       = 'none';
-  $('date-filter-bar').style.display = 'none';
 }
 export function showDashboard() {
   $('connect-screen').style.display  = 'none';
   $('loading-screen').style.display  = 'none';
   $('dashboard').style.display       = 'block';
-  $('date-filter-bar').style.display = 'flex';
   $('live-badge').style.display      = 'flex';
   $('disconnect-btn').style.display  = 'block';
 

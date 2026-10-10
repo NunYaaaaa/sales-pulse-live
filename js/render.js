@@ -1,9 +1,8 @@
 // ─── RENDERING: KPIs, order table, detail panel, finances ─────────────────
 import { LEDGER_LABEL, PAGE_SIZE } from './config.js';
 import { fetchPayment, fetchTransactions } from './api.js';
-import { renderFeeChart, renderOrderCharts } from './charts.js';
+import { renderFeeChart } from './charts.js';
 import { categoriseEntry, computeLedgerTotals, ledgerType } from './finance.js';
-import { renderInsights } from './insights-view.js';
 import { lineItems, state } from './state.js';
 import { escHtml, fmtMoney, getStatus, money, orderSales, statusClass } from './util.js';
 
@@ -42,6 +41,7 @@ export function renderFinances() {
     $('finances-tbody').innerHTML =
       `<tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">No ledger entries found for this date range.</td></tr>`;
     $('fin-count').textContent = '0 entries';
+    $('ledger-pagination').innerHTML = '';
     return;
   }
 
@@ -53,11 +53,15 @@ export function renderFinances() {
   $('fin-fees').textContent  = fmtMoney(Math.abs(feesCents / 100));
   $('fin-net').textContent   = fmtMoney(netCents / 100);
   $('fin-count').textContent = `${entries.length} entries`;
+  renderLedgerTable();
+}
 
-  // Sort newest first
-  const sorted = [...entries].sort((a, b) => b.created_timestamp - a.created_timestamp);
+/** The current page of the ledger, newest first. */
+function renderLedgerTable() {
+  const sorted = [...(state.ledgerEntries || [])].sort((a, b) => b.created_timestamp - a.created_timestamp);
+  const start  = (state.ledgerPage - 1) * PAGE_SIZE;
 
-  const rows = sorted.map(e => {
+  const rows = sorted.slice(start, start + PAGE_SIZE).map(e => {
     const cat   = categoriseEntry(e);
     const amt   = e.amount / 100;
     const bal   = e.balance / 100;
@@ -106,6 +110,15 @@ export function renderFinances() {
   });
 
   $('finances-tbody').innerHTML = rows.join('');
+  renderPagination($('ledger-pagination'), sorted.length, state.ledgerPage, 'ledger-page');
+}
+
+export function goLedgerPage(n) {
+  const totalPages = Math.ceil((state.ledgerEntries?.length || 0) / PAGE_SIZE);
+  if (n < 1 || n > totalPages) return;
+  state.ledgerPage = n;
+  renderLedgerTable();
+  $('ledger-panel').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 // ─── ORDER TABLE ────────────────────────────────────────────────────────────
@@ -116,7 +129,7 @@ export function renderTable() {
 
   if (!page.length) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">No orders found.</td></tr>`;
-    renderPagination(); return;
+    renderPagination($('pagination'), state.allOrders.length, state.currentPage, 'page'); return;
   }
 
   tbody.innerHTML = '';
@@ -153,7 +166,7 @@ export function renderTable() {
     tbody.appendChild(dtr);
   });
 
-  renderPagination();
+  renderPagination($('pagination'), state.allOrders.length, state.currentPage, 'page');
 }
 
 async function toggleDetail(tr, order) {
@@ -314,33 +327,20 @@ function renderDetailPanel(td, o, detail) {
     </div>`;
 }
 
-// ─── TABS ──────────────────────────────────────────────────────────────────
-export function switchTab(name, btn) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  $(`tab-${name}`).classList.add('active');
-  btn.classList.add('active');
-  state.activeTab = name;
-  if (name === 'finances' && state.detailsLoaded) renderFinances();
-  if (name === 'orders') requestAnimationFrame(() => renderOrderCharts());
-  if (name === 'insights') renderInsights();
-}
-
 // ─── PAGINATION ────────────────────────────────────────────────────────────
-function renderPagination() {
-  const totalPages = Math.ceil(state.allOrders.length / PAGE_SIZE);
-  const cur = state.currentPage;
-  const pg  = $('pagination');
+/** Page buttons for `total` rows into `pg`; each button carries data-action=`action`. */
+function renderPagination(pg, total, cur, action) {
+  const totalPages = Math.ceil(total / PAGE_SIZE);
   if (totalPages <= 1) { pg.innerHTML = ''; return; }
 
-  let html = `<button class="page-btn" data-action="page" data-page="${cur - 1}" ${cur === 1 ? 'disabled' : ''}>← Prev</button>`;
+  let html = `<button class="page-btn" data-action="${action}" data-page="${cur - 1}" ${cur === 1 ? 'disabled' : ''}>← Prev</button>`;
   for (let i = 1; i <= totalPages; i++) {
     if (i === 1 || i === totalPages || Math.abs(i - cur) <= 1)
-      html += `<button class="page-btn ${i === cur ? 'active' : ''}" data-action="page" data-page="${i}">${i}</button>`;
+      html += `<button class="page-btn ${i === cur ? 'active' : ''}" data-action="${action}" data-page="${i}">${i}</button>`;
     else if (Math.abs(i - cur) === 2)
       html += `<span style="color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.7rem">…</span>`;
   }
-  html += `<button class="page-btn" data-action="page" data-page="${cur + 1}" ${cur === totalPages ? 'disabled' : ''}>Next →</button>`;
+  html += `<button class="page-btn" data-action="${action}" data-page="${cur + 1}" ${cur === totalPages ? 'disabled' : ''}>Next →</button>`;
   html += `<span class="page-info">Page ${cur} of ${totalPages}</span>`;
   pg.innerHTML = html;
 }
@@ -351,5 +351,5 @@ export function goPage(n) {
   state.expandedRow = null;
   state.currentPage = n;
   renderTable();
-  document.querySelector('.panel').scrollIntoView({ behavior:'smooth', block:'start' });
+  $('orders-panel').scrollIntoView({ behavior:'smooth', block:'start' });
 }
