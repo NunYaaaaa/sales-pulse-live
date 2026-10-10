@@ -176,6 +176,25 @@ function discountList(byCount) {
   };
 }
 
+/** Active listings with 2 or fewer left, best selling this period first, then fewest left (Products tab). */
+function lowStockList() {
+  if (!state.listings) return { wait: 'Listings are still loading.' };
+  const rows = listingStats(state.listings, ordersWithItems()).rows.filter(r => r.lowStock)
+    .sort((a, b) => b.units - a.units || a.quantity - b.quantity); // selling and nearly out first
+  const figure = fmtNum(rows.length);
+  if (!rows.length) return { figure, html: empty('No active listing is down to 2 or fewer.') };
+  return {
+    figure, cls: 'red',
+    html: itemList(rows.map(r => ({
+      name: r.title, href: listingUrl(r.id),
+      sub: [r.price == null ? '' : fmtMoney(r.price), r.units ? `${fmtMoney(r.revenue)} this period` : 'no sales this period'].join(' · '),
+      mid: fmtNum(r.units),
+      end: r.quantity === 0 ? badge('lt-fee', 'none left') : `${fmtNum(r.quantity)} left`,
+    })), { head: ['Listing', 'Sold', 'In stock'], totalLabel: 'Low stock', totalAmount: plural(rows.length, 'listing') }) +
+      note("Active listings with 2 or fewer left, best sellers first. Sold counts this period's units; stock is Etsy's count now."),
+  };
+}
+
 /** Active listings that sold nothing in the period, most viewed first (Products tab). */
 function noSalesList() {
   if (!state.listings) return { wait: 'Listings are still loading.' };
@@ -200,7 +219,8 @@ function noSalesList() {
  * the current data, or { wait } while that data is still loading.
  */
 const DRILLS = {
-  'no-sales': { title: 'No Sales This Period', build: noSalesList },
+  'no-sales':  { title: 'No Sales This Period', build: noSalesList },
+  'low-stock': { title: 'Low Stock',            build: lowStockList },
   discounted: { title: 'Discounted Orders', build: () => discountList(true) },
   discounts:  { title: 'Discounts Given',   build: () => discountList(false) },
   canceled:             { title: 'Canceled Orders',           build: () => refundList('canceled') },
