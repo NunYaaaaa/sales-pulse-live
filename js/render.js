@@ -138,8 +138,9 @@ export function renderTable() {
     const date   = o.create_timestamp ? new Date(o.create_timestamp * 1000).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '—';
     const buyer  = escHtml(o.name || o.buyer_user_id || '—');
     const items  = o.transaction_count || (o.transactions?.length) || '—';
-    const gross  = o.grandtotal ? fmtMoney(money(o.grandtotal)) : '—';
+    const total  = o.grandtotal ? fmtMoney(money(o.grandtotal)) : '—';
     const status = getStatus(o);
+    const kept   = !/^(fully refunded|canceled)$/i.test(status); // money the shop didn't keep is struck through
 
     const tr = document.createElement('tr');
     tr.className = 'order-row';
@@ -151,7 +152,7 @@ export function renderTable() {
       <td class="sr-main" title="${buyer}">${buyer}</td>
       <td class="td-mono sr-off" style="color:var(--muted)">${escHtml(items)}</td>
       <td class="sr-side"><span class="status-badge ${statusClass(status)}">${escHtml(status)}</span></td>
-      <td class="sr-end"><span class="amount-pos">${gross}</span></td>
+      <td class="sr-end"><span class="${kept ? 'amount-pos' : 'amount-void'}">${total}</span></td>
     `;
     tr.addEventListener('click', () => toggleDetail(tr, o));
     tbody.appendChild(tr);

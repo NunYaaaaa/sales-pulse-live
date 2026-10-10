@@ -270,6 +270,7 @@ tbody td { padding:0.75rem 1.25rem; color:var(--ink); vertical-align:middle; whi
 .s-other     { background:var(--paper);     border-color:var(--border2);   color:var(--muted); }
 
 .amount-pos { color:var(--green); font-family:'Fraunces',serif; font-weight:700; font-size:0.9rem; }
+.amount-void { color:var(--muted2); font-family:'Fraunces',serif; font-weight:700; font-size:0.9rem; text-decoration:line-through; }
 
 /* DETAIL PANEL */
 tbody tr.detail-row { border-bottom:1px solid var(--border); }
