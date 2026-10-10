@@ -4,7 +4,7 @@
 // items in `transactions`; ledger amounts are integer cents; receipt money
 // objects go through money(). Anything time-dependent takes `now` as an argument.
 import { AD_FEES, AD_REFUNDS, LABEL_FEES, LABEL_REFUNDS, PAYOUT_REVERSALS, PAYOUT_TYPES } from './config.js';
-import { computeLedgerTotals, ledgerType } from './finance.js';
+import { computeLedgerTotals, ledgerType, newestFirst } from './finance.js';
 import { bucketRange, bucketStart, money } from './util.js';
 
 const cents = m => Math.round(money(m) * 100);
@@ -91,9 +91,7 @@ export function payoutStats(entries) {
   const returned = entries.filter(e => PAYOUT_REVERSALS.has(ledgerType(e)));
   const payouts  = sent.slice(0, Math.max(0, sent.length - returned.length)); // for the count only
   const totalCents = -sum(sent, e => e.amount) - sum(returned, e => e.amount);
-  const latest = entries.reduce((best, e) =>
-    !best || e.created_timestamp > best.created_timestamp ||
-    (e.created_timestamp === best.created_timestamp && (e.sequence_number ?? 0) > (best.sequence_number ?? 0)) ? e : best, null);
+  const latest = entries.reduce((best, e) => !best || newestFirst(e, best) < 0 ? e : best, null);
   return {
     count: payouts.length,
     totalCents,

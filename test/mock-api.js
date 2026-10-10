@@ -44,10 +44,8 @@ function country(i) {
 function buildData() {
   const now = Math.floor(Date.now() / 1000);
   const receipts = [], ledger = [];
-  let entryId = 1, balance = 0;
   const addLedger = (ts, ledger_type, amount, reference_type, reference_id) => {
-    balance += amount;
-    ledger.push({ entry_id: entryId++, ledger_type, amount, balance, created_timestamp: ts, reference_type, reference_id: String(reference_id) });
+    ledger.push({ ledger_type, amount, created_timestamp: ts, reference_type, reference_id: String(reference_id) });
   };
 
   for (let i = 0; i < 400; i++) {
@@ -137,8 +135,17 @@ function buildData() {
       addLedger(ts + 2 * DAY, 'transaction_refund', Math.round(refundCents * 0.065), 'transaction', rid);
     }
   }
-  for (let d = 0; d < 400; d += 7) addLedger(now - d * DAY, 'DISBURSE2', -20000, 'disbursement', d);
+  for (let d = 2; d < 400; d += 7) addLedger(now - d * DAY, 'DISBURSE2', null, 'disbursement', d);
   for (let d = 0; d < 400; d++) addLedger(now - d * DAY - 7200, 'prolist', -(80 + Math.floor(rand2() * 220)), 'shop', SHOP_ID);
+  // As in real ledgers, entry IDs, sequence numbers and the running balance
+  // follow time, and each weekly payout sends out the balance built up so far
+  ledger.sort((a, b) => a.created_timestamp - b.created_timestamp);
+  let balance = 0;
+  ledger.forEach((e, k) => {
+    if (e.amount === null) e.amount = -Math.max(0, balance);
+    balance += e.amount;
+    Object.assign(e, { entry_id: k + 1, sequence_number: k + 1, balance });
+  });
   receipts.sort((a, b) => b.create_timestamp - a.create_timestamp);
   return { receipts, ledger, listings: buildListings(), reviews: buildReviews(receipts, now) };
 }

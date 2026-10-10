@@ -1,6 +1,6 @@
 // ─── EXPORTS ───────────────────────────────────────────────────────────────
 import { LEDGER_LABEL } from './config.js';
-import { categoriseEntry, computeLedgerTotals } from './finance.js';
+import { categoriseEntry, computeLedgerTotals, newestFirst } from './finance.js';
 import { bestPaymentAmount, refundedAmount } from './render.js';
 import { ensurePayments } from './loader.js';
 import { showError } from './ui.js';
@@ -113,7 +113,7 @@ function ordersJSON() {
 function sortedLedger() {
   const entries = state.ledgerEntries || [];
   if (!entries.length) { alert('No ledger entries to export for this period.'); return null; }
-  return [...entries].sort((a, b) => b.created_timestamp - a.created_timestamp);
+  return [...entries].sort(newestFirst);
 }
 
 export function exportFinancesCSV() {

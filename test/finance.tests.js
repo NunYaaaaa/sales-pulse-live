@@ -1,7 +1,7 @@
 // Unit tests for the pure helpers — run via test/finance.test.html in a browser.
 import { bucketOrders, feeTally, groupFees } from '../js/charts.js';
 import { csvCell } from '../js/export.js';
-import { categoriseEntry, computeLedgerTotals } from '../js/finance.js';
+import { categoriseEntry, computeLedgerTotals, newestFirst } from '../js/finance.js';
 import { dateStrToTs, escHtml, localDateKey, orderSales, paymentMethodLabel, weekdayCounts } from '../js/util.js';
 
 function eq(actual, expected, msg = '') {
@@ -174,6 +174,12 @@ export const tests = [
     eq(escHtml(`"><img src=x onerror='a'>&`), '&quot;&gt;&lt;img src=x onerror=&#39;a&#39;&gt;&amp;');
     eq(escHtml(null), '');
     eq(escHtml(0), '0');
+  }],
+  ['newestFirst orders same-second ledger entries by sequence number', () => {
+    const e = (id, ts, seq) => ({ entry_id: id, created_timestamp: ts, sequence_number: seq });
+    const sorted = [e(1, 100, 10), e(2, 100, 11), e(3, 200, 12), e(4, 100, 9)].sort(newestFirst);
+    eq(sorted.map(x => x.entry_id), [3, 2, 1, 4]);
+    eq([{ entry_id: 5, created_timestamp: 1 }, { entry_id: 6, created_timestamp: 1 }].sort(newestFirst).map(x => x.entry_id), [6, 5], 'no sequence number: by entry ID');
   }],
   ['paymentMethodLabel names the Etsy payment codes', () => {
     eq(['cc', 'paypal', 'apple_pay', 'ideal', 'k_pay_in_4'].map(paymentMethodLabel), ['Card', 'PayPal', 'Apple Pay', 'iDEAL', 'Klarna Pay in 4']);

@@ -11,6 +11,17 @@ export function ledgerType(e) {
 }
 
 /**
+ * Sort ledger entries newest first. Entries made in the same second (a sale
+ * and its tax and fees) go by Etsy's sequence_number, which only grows, so
+ * each running balance follows from the row below it.
+ */
+export function newestFirst(a, b) {
+  return b.created_timestamp - a.created_timestamp
+    || (b.sequence_number ?? 0) - (a.sequence_number ?? 0)
+    || (b.entry_id ?? 0) - (a.entry_id ?? 0);
+}
+
+/**
  * Categorise a single ledger entry using the taxonomy.
  *
  * Rules (applied in order):

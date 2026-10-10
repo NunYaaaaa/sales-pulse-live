@@ -2,7 +2,7 @@
 import { LEDGER_LABEL, PAGE_SIZE } from './config.js';
 import { fetchPayment, fetchTransactions } from './api.js';
 import { renderFeeChart } from './charts.js';
-import { categoriseEntry, computeLedgerTotals, ledgerType } from './finance.js';
+import { categoriseEntry, computeLedgerTotals, ledgerType, newestFirst } from './finance.js';
 import { lineItems, state } from './state.js';
 import { escHtml, fmtMoney, getStatus, money, orderSales, paymentMethodLabel, statusClass } from './util.js';
 
@@ -58,7 +58,7 @@ export function renderFinances() {
 
 /** The current page of the ledger, newest first. */
 function renderLedgerTable() {
-  const sorted = [...(state.ledgerEntries || [])].sort((a, b) => b.created_timestamp - a.created_timestamp);
+  const sorted = [...(state.ledgerEntries || [])].sort(newestFirst);
   const start  = (state.ledgerPage - 1) * PAGE_SIZE;
 
   const rows = sorted.slice(start, start + PAGE_SIZE).map(e => {
