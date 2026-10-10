@@ -457,6 +457,8 @@ export const tests = [
     eq(gap.monthly.map(m => [m.label, m.count, m.avg]), [['Mar 2026', 1, 5], ['Apr 2026', 0, null], ['May 2026', 1, 3]], 'months without reviews are kept, with no average');
     eq(r.byListing, [{ id: 1, count: 3, avg: 11 / 3 }], 'listings with 3+ reviews only');
     eq(r.low.map(x => x.review), ['Late']);
+    const all = reviewStats([rev(3.4, 6), rev(2, 7), rev(1, 8), rev(4, 9)], [], { from: at(2026, 3, 1, 0), to: at(2026, 3, 31, 23), recentLow: Infinity });
+    eq(all.low.length, all.stars.slice(2).reduce((s, x) => s + x.count, 0), 'every low review, counted like the stars (3.4 rounds to 3)');
     eq([r.items, r.itemsReviewed, r.coverage], [7, 5, 5 / 7]);
   }],
 ];

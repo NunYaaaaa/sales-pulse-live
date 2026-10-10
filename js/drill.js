@@ -3,7 +3,8 @@
 // DRILLS[key], built from state for the selected period. Each breakdown's
 // total is the card's own figure. API text is escaped here.
 import { computeLedgerTotals } from './finance.js';
-import { aovBreakdown, customerStats, discountedOrders, feeBreakdown, grossBreakdown, listingStats, orderStatusCounts, refundedOrders, unshippedOrders } from './insights.js';
+import { aovBreakdown, customerStats, discountedOrders, feeBreakdown, grossBreakdown, listingStats, orderStatusCounts, refundedOrders, reviewStats, unshippedOrders } from './insights.js';
+import { listingTitles, reviewPeriod, stars } from './insights-view.js';
 import { ordersWithItems, state } from './state.js';
 import { escHtml, fmtMoney, money, orderSales } from './util.js';
 
@@ -21,6 +22,7 @@ const fmtDate = (ts, year = true) => new Date(ts * 1000).toLocaleDateString('en-
 const shortDate = ts => fmtDate(ts, new Date(ts * 1000).getFullYear() !== new Date().getFullYear());
 const empty = msg => `<div class="ins-empty">${msg}</div>`;
 const note  = msg => `<p class="drill-note">${msg}</p>`;
+const total = (label, amount) => `<div class="drill-total"><span>${label}</span><span class="drill-amt">${amount}</span></div>`;
 const tiles = (...t) => `<div class="ins-tiles drill-tiles">${t.map(([label, val]) => `<div class="ins-tile"><div class="ins-tile-label">${label}</div><div class="ins-tile-val">${val}</div></div>`).join('')}</div>`;
 const ledgerReady = () => state.detailsLoaded && !!state.ledgerEntries;
 
@@ -233,6 +235,26 @@ function repeatRevenueSplit() {
   };
 }
 
+/** Every review rated 3 stars or less in the period, newest first, split by stars above (Customers tab). */
+function lowReviewList() {
+  if (!state.reviews) return { wait: 'Reviews are still loading.' };
+  const orders = ordersWithItems();
+  const r = reviewStats(state.reviews, orders, { ...reviewPeriod(), recentLow: Infinity });
+  const figure = fmtNum(r.low.length);
+  if (!r.low.length) return { figure, html: empty('No reviews of 3 stars or fewer in this period.') };
+  const title = listingTitles(orders);
+  const items = r.low.map(v => `<div class="ins-review">
+      <div class="ins-review-head">${stars(Math.round(v.rating))}<span class="what">${escHtml(title(v.listing_id))} · ${shortDate(v.created_timestamp)}</span></div>
+      <p>${v.review ? escHtml(v.review) : '<span class="ins-empty">(no written review)</span>'}</p>
+    </div>`).join('');
+  return {
+    figure, cls: 'red',
+    html: tiles(...r.stars.slice(2).map(s => [plural(s.stars, 'star'), fmtNum(s.count)])) +
+      `<div class="drill-reviews">${items}</div>` + total('Rated 3 or less', plural(r.low.length, 'review')) +
+      note('Every review of 3 stars or fewer left in this period, newest first. Star Ratings on this tab shows how they compare with the rest.'),
+  };
+}
+
 /** Active listings with 2 or fewer left, best selling this period first, then fewest left (Products tab). */
 function lowStockList() {
   if (!state.listings) return { wait: 'Listings are still loading.' };
@@ -280,6 +302,7 @@ const DRILLS = {
   'orders-per-buyer': { title: 'Orders per Buyer',     build: () => buyerSpread(true) },
   'repeat-buyers':    { title: 'Repeat Buyers',        build: repeatBuyerList },
   'repeat-revenue':   { title: 'Repeat Buyer Revenue', build: repeatRevenueSplit },
+  'low-reviews':      { title: 'Rated 3 or Less',      build: lowReviewList },
   'no-sales':  { title: 'No Sales This Period', build: noSalesList },
   'low-stock': { title: 'Low Stock',            build: lowStockList },
   discounted: { title: 'Discounted Orders', build: () => discountList(true) },

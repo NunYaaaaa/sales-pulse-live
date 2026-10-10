@@ -700,7 +700,7 @@ export function reviewStats(reviews, orders, { from = null, to = null, minReview
     byListing: [...listings.values()].filter(l => l.count >= minReviews)
       .map(l => ({ id: l.id, count: l.count, avg: l.total / l.count }))
       .sort((a, b) => b.count - a.count || a.avg - b.avg),
-    low: period.filter(r => r.rating <= 3).sort((a, b) => b.created_timestamp - a.created_timestamp).slice(0, recentLow),
+    low: period.filter(r => Math.round(r.rating) <= 3).sort((a, b) => b.created_timestamp - a.created_timestamp).slice(0, recentLow),
     items, itemsReviewed,
     coverage: items ? itemsReviewed / items : null,
   };

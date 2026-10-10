@@ -531,13 +531,16 @@ function renderListings(orders) {
 
 const STAR_COLORS = { 5: '#3a7d4c', 4: '#65a30d', 3: '#b8860b', 2: '#d4622a', 1: '#b91c1c' };
 // Filled stars in gold, empty ones greyed so the count reads at a glance; named for screen readers
-const stars = n => `<span class="stars" role="img" aria-label="${n} of 5 stars">${'★'.repeat(n)}<span class="stars-off">${'☆'.repeat(5 - n)}</span></span>`;
+export const stars = n => `<span class="stars" role="img" aria-label="${n} of 5 stars">${'★'.repeat(n)}<span class="stars-off">${'☆'.repeat(5 - n)}</span></span>`;
 
 /** listing_id → its current title (or newest title it sold under), see productNames. */
-function listingTitles(orders) {
+export function listingTitles(orders) {
   const names = productNames(orders, state.listings);
   return id => names(productKey({ listing_id: id })).name || `Listing #${id}`;
 }
+
+/** Reviews left from the period start to its end or now, whichever is earlier (months run no further than today). */
+export const reviewPeriod = () => ({ from: state.filterFrom, to: Math.min(state.filterTo ?? nowTs(), nowTs()) });
 
 function renderReviews(orders) {
   const status = $('ins-reviews-status'), body = $('ins-reviews-body');
@@ -555,13 +558,13 @@ function renderReviews(orders) {
   body.style.display = '';
 
   // Months run to the period end or today, whichever is earlier, like the other time charts
-  const r = reviewStats(state.reviews, orders, { from: state.filterFrom, to: Math.min(state.filterTo ?? nowTs(), nowTs()) });
+  const r = reviewStats(state.reviews, orders, reviewPeriod());
   const fiveStar = r.count ? r.stars[0].count / r.count : null;
   const lowCount = r.stars.slice(2).reduce((s, x) => s + x.count, 0);
   $('ins-review-kpis').innerHTML = [
     kpi('Average Rating', r.avg == null ? '—' : `${r.avg.toFixed(2)} ★`, `${plural(r.count, 'review')} this period`),
     kpi('5-Star Reviews', pct(fiveStar, 0), 'of reviews this period', 'green'),
-    kpi('Rated 3 or Less', fmtNum(lowCount), 'reviews this period', lowCount ? 'red' : ''),
+    kpi('Rated 3 or Less', fmtNum(lowCount), 'reviews this period', lowCount ? 'red' : '', lowCount ? 'low-reviews' : null),
     kpi('Items Reviewed', pct(r.coverage, 0), r.items ? `${fmtNum(r.itemsReviewed)} of ${fmtNum(r.items)} items sold this period, so far` : 'no items to match'),
   ].join('');
 
