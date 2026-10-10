@@ -2,8 +2,9 @@
 // A card with data-action="drill" data-drill="<key>" opens #drill with
 // DRILLS[key], built from state for the selected period. Each breakdown's
 // total is the card's own figure. API text is escaped here.
+import { LEDGER_LABEL } from './config.js';
 import { computeLedgerTotals } from './finance.js';
-import { aovBreakdown, customerStats, discountedOrders, feeBreakdown, grossBreakdown, listingStats, offsiteAdSales, orderStatusCounts, payoutList, refundedOrders, reviewStats, unshippedOrders } from './insights.js';
+import { aovBreakdown, customerStats, discountedOrders, feeBreakdown, grossBreakdown, labelEntries, listingStats, offsiteAdSales, orderStatusCounts, payoutList, refundedOrders, reviewStats, unshippedOrders } from './insights.js';
 import { listingTitles, reviewPeriod, stars } from './insights-view.js';
 import { ordersWithItems, state } from './state.js';
 import { escHtml, fmtMoney, money, orderSales } from './util.js';
@@ -279,6 +280,25 @@ function offsiteList() {
   };
 }
 
+/** Each Etsy shipping label bought, and each label refund or postage credit, newest first (Finances tab). */
+function labelList() {
+  if (!ledgerReady()) return { wait: LEDGER_WAIT };
+  const list = labelEntries(state.ledgerEntries);
+  const totalCents = list.reduce((s, x) => s + x.cents, 0), bought = list.filter(x => !x.credit).length;
+  const figure = fmtC(totalCents);
+  if (!bought) return { figure, html: empty('No Etsy shipping labels were bought in this period.') };
+  return {
+    figure,
+    html: itemList(list.map(x => ({
+      name: x.credit ? LEDGER_LABEL[x.type] || x.type : 'Label bought',
+      sub: x.description && x.description !== x.type ? escHtml(x.description) : '',
+      mid: shortDate(x.ts),
+      end: x.credit ? `−${fmtC(-x.cents)}` : fmtC(x.cents),
+    })), { head: ['Entry', 'Date', 'Amount'], totalLabel: `${plural(bought, 'label')}, after credits`, totalAmount: figure }) +
+      note("Labels bought through Etsy, from the ledger, with any refund or postage adjustment taken off. Labels are charged when bought, so ones for orders near the period's edges may fall either side."),
+  };
+}
+
 /** Each payout to the bank in the ledger's period, newest first; they add up to Paid out (Finances tab). */
 function payoutsList() {
   if (!ledgerReady()) return { wait: LEDGER_WAIT };
@@ -349,6 +369,7 @@ const DRILLS = {
   'low-reviews':      { title: 'Rated 3 or Less',      build: lowReviewList },
   payouts:            { title: 'Paid Out',             build: payoutsList },
   offsite:            { title: 'Offsite Ads Sales',    build: offsiteList },
+  labels:             { title: 'Labels Bought',        build: labelList },
   'no-sales':  { title: 'No Sales This Period', build: noSalesList },
   'low-stock': { title: 'Low Stock',            build: lowStockList },
   discounted: { title: 'Discounted Orders', build: () => discountList(true) },

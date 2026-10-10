@@ -3,7 +3,7 @@
 import { axisLabelShown, drawBarChart, drawHeatmap, drawLineChart, hourLabel } from '../js/charts.js';
 import {
   adSpend, aovBreakdown, backlog, basketStats, customerStats, discountedOrders, discountStats, feeBreakdown, feeRateSeries, fulfilment, geography, grossBreakdown, orderStatusCounts,
-  heatmapMatrix, listingStats, offsiteAdSales, payoutList, payoutStats, productKey, productNames, refundedOrders, refundStats, revenueComposition, reviewStats,
+  heatmapMatrix, labelEntries, listingStats, offsiteAdSales, payoutList, payoutStats, productKey, productNames, refundedOrders, refundStats, revenueComposition, reviewStats,
   shippingPnL, topProducts, unshippedOrders, variationStats,
 } from '../js/insights.js';
 import { computeLedgerTotals } from '../js/finance.js';
@@ -176,6 +176,17 @@ export const tests = [
     ]);
     eq(sales.map(s => [s.ref, s.feeCents]), [['12', 0], ['11', 900]], 'newest first, refunds netted');
     eq(sales.length, adSpend([le('offsite_ads_fee', -900, at(2026, 3, 2), { reference_id: 11 }), le('offsite_ads_fee', -300, at(2026, 3, 4), { reference_id: 12 })]).offsiteSales);
+  }],
+  ['labelEntries: each label bought and credited, summing to the labels total', () => {
+    const entries = [
+      le('shipping_labels', -450, at(2026, 3, 1)), le('shipping_labels', -820, at(2026, 3, 3)),
+      le('shipping_label_refund', 450, at(2026, 3, 4)), le('shipping_label_usps_adjustment_credit', 150, at(2026, 3, 5)),
+      le('transaction', -100, at(2026, 3, 6)),
+    ];
+    const list = labelEntries(entries);
+    eq(list.map(x => [x.cents, x.credit]), [[-150, true], [-450, true], [820, false], [450, false]], 'newest first; credits negative');
+    const s = shippingPnL([], entries, null);
+    eq([list.reduce((t, x) => t + x.cents, 0), list.filter(x => !x.credit).length], [s.labelsCents, s.labelCount], 'matches shippingPnL');
   }],
   ['shippingPnL: clips orders to the ledger span; label refunds reduce cost', () => {
     const orders = [

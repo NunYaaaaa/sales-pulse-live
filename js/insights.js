@@ -151,6 +151,18 @@ export function shippingPnL(orders, entries, span) {
 }
 
 /**
+ * The Etsy shipping labels shippingPnL counts, newest first: each purchase
+ * (cost in positive cents) and each refund or postage credit (`credit`,
+ * negative cents), so they sum to labelsCents.
+ */
+export function labelEntries(entries) {
+  return entries
+    .filter(e => LABEL_FEES.has(ledgerType(e)) || LABEL_REFUNDS.has(ledgerType(e)))
+    .map(e => ({ ts: e.created_timestamp, type: ledgerType(e), cents: -e.amount, credit: LABEL_REFUNDS.has(ledgerType(e)), description: e.description || '' }))
+    .sort((a, b) => b.ts - a.ts);
+}
+
+/**
  * Payouts to the bank and the latest running balance, in cents. A payout
  * that bounced back (and was usually sent again) counts once.
  */

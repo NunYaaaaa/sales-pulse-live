@@ -230,7 +230,7 @@ function renderShipping(orders, entries) {
   setHtml(el,
     tiles(
       tile('Charged to buyers', fmtC(s.chargedCents)),
-      tile('Labels bought', fmtC(s.labelsCents), plural(s.labelCount, 'label')),
+      tile('Labels bought', fmtC(s.labelsCents), plural(s.labelCount, 'label'), '', 'labels'),
       tile(profit ? 'Shipping profit' : 'Shipping loss', fmtC(Math.abs(s.diffCents)), '', profit ? 'green' : 'red'),
     ) +
     `<div class="top-prod-rows">${barRows([
