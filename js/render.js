@@ -154,7 +154,13 @@ export function renderTable() {
       <td class="sr-side"><span class="status-badge ${statusClass(status)}">${escHtml(status)}</span></td>
       <td class="sr-end"><span class="${kept ? 'amount-pos' : 'amount-void'}">${total}</span></td>
     `;
+    // Reachable and openable from the keyboard too: Tab to a row, Enter or Space to expand it
+    tr.tabIndex = 0;
+    tr.setAttribute('aria-expanded', 'false');
     tr.addEventListener('click', () => toggleDetail(tr, o));
+    tr.addEventListener('keydown', e => {
+      if (e.target === tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleDetail(tr, o); }
+    });
     tbody.appendChild(tr);
 
     const dtr = document.createElement('tr');
@@ -177,18 +183,21 @@ async function toggleDetail(tr, order) {
 
   if (state.expandedRow && state.expandedRow !== tr) {
     state.expandedRow.classList.remove('expanded');
+    state.expandedRow.setAttribute('aria-expanded', 'false');
     const prevDtr = $(`detail-${state.expandedRow.dataset.rid}`);
     if (prevDtr) prevDtr.style.display = 'none';
   }
 
   if (isOpen) {
     tr.classList.remove('expanded');
+    tr.setAttribute('aria-expanded', 'false');
     dtr.style.display = 'none';
     state.expandedRow = null;
     return;
   }
 
   tr.classList.add('expanded');
+  tr.setAttribute('aria-expanded', 'true');
   dtr.style.display = '';
   state.expandedRow = tr;
 

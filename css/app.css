@@ -228,6 +228,7 @@ thead th { font-family:'DM Mono',monospace; font-size:0.6rem; letter-spacing:0.0
 tbody tr.order-row { border-bottom:1px solid var(--border); transition:background 0.15s; cursor:pointer; }
 tbody tr.order-row:hover { background:var(--paper); }
 tbody tr.order-row.expanded { background:var(--paper); }
+tbody tr.order-row:focus-visible { outline:2px solid var(--orange); outline-offset:-2px; }
 tbody tr.detail-row { border-bottom:1px solid var(--border); }
 tbody td { padding:0.75rem 1.25rem; color:var(--ink); vertical-align:middle; white-space:nowrap; }
 .td-mono  { font-family:'DM Mono',monospace; font-size:0.72rem; }
