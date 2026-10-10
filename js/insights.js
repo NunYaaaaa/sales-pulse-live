@@ -5,7 +5,7 @@
 // objects go through money(). Anything time-dependent takes `now` as an argument.
 import { AD_FEES, AD_REFUNDS, FEE_GROUPS, FEE_OTHER_COLOR, FEE_REFUND_OF, LABEL_FEES, LABEL_REFUNDS, PAYOUT_REVERSALS, PAYOUT_TYPES } from './config.js';
 import { categoriseEntry, computeLedgerTotals, ledgerType, newestFirst } from './finance.js';
-import { bucketRange, bucketStart, money } from './util.js';
+import { bucketRange, bucketStart, getStatus, money, orderSales } from './util.js';
 
 const cents = m => Math.round(money(m) * 100);
 const sum   = (arr, fn) => arr.reduce((s, x) => s + fn(x), 0);
@@ -468,6 +468,28 @@ export function backlog(orders, now) {
     if (expected && now > endOfLocalDay(expected)) overdue++;
   }
   return { count, overdue, oldestDays, bins };
+}
+
+// Receipt statuses in the order a seller works through them; any other status follows as Etsy names it
+const STATUS_ORDER = ['paid', 'payment processing', 'open', 'completed', 'shipped', 'partially refunded', 'fully refunded', 'canceled'];
+
+/**
+ * Orders by status (getStatus, lower-cased; "cancelled" counts as canceled),
+ * each with its count and sales (orderSales: before refunds, excl. tax).
+ * Known statuses come in STATUS_ORDER, others after by count; counts sum to orders.length.
+ */
+export function orderStatusCounts(orders) {
+  const by = new Map();
+  for (const o of orders) {
+    let key = lower(getStatus(o));
+    if (key === 'cancelled') key = 'canceled';
+    const row = by.get(key) || { status: key, count: 0, sales: 0 };
+    row.count++;
+    row.sales += orderSales(o);
+    by.set(key, row);
+  }
+  const rank = r => { const i = STATUS_ORDER.indexOf(r.status); return i < 0 ? STATUS_ORDER.length : i; };
+  return [...by.values()].sort((a, b) => rank(a) - rank(b) || b.count - a.count);
 }
 
 /** Canceled / refunded orders (by status or a recorded refund) and the amount refunded. */

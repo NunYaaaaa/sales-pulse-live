@@ -2,7 +2,7 @@
 // primitives' escaping — run via test/finance.test.html in a browser.
 import { axisLabelShown, drawBarChart, drawHeatmap, drawLineChart, hourLabel } from '../js/charts.js';
 import {
-  adSpend, backlog, basketStats, customerStats, discountStats, feeBreakdown, feeRateSeries, fulfilment, geography, grossBreakdown,
+  adSpend, backlog, basketStats, customerStats, discountStats, feeBreakdown, feeRateSeries, fulfilment, geography, grossBreakdown, orderStatusCounts,
   heatmapMatrix, listingStats, payoutStats, productKey, productNames, refundStats, revenueComposition, reviewStats,
   shippingPnL, topProducts, variationStats,
 } from '../js/insights.js';
@@ -124,6 +124,17 @@ export const tests = [
     eq(g.grossCents, computeLedgerTotals(entries).grossCents, 'sums to Total Gross');
     eq(grossBreakdown([]).grossCents, 0);
     eq(g.grossCents - feeBreakdown(entries).totalCents, computeLedgerTotals(entries).netCents, 'gross less the fee groups is Net Earnings');
+  }],
+  ['orderStatusCounts: statuses in working order, counts summing to the orders', () => {
+    const orders = [
+      order({ status: 'Completed' }), order({ status: 'Paid' }), order({ status: 'completed' }), order({ status: 'Cancelled' }),
+      order({ status: 'Fully Refunded' }), order({ status: 'Weird' }), order({ was_shipped: true }), order({ status: 'Canceled' }),
+    ];
+    const rows = orderStatusCounts(orders);
+    eq(rows.map(r => [r.status, r.count]), [['paid', 1], ['completed', 2], ['shipped', 1], ['fully refunded', 1], ['canceled', 2], ['weird', 1]]);
+    eq(rows.reduce((s, r) => s + r.count, 0), orders.length, 'counts sum to the orders');
+    eq(rows[0].sales, 10, 'sales per status (grand total less tax)');
+    eq(orderStatusCounts([]), []);
   }],
   ['adSpend: nets ad refunds and counts Offsite Ads sales once each', () => {
     const a = adSpend([

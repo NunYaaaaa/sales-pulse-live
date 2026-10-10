@@ -3,7 +3,7 @@
 // DRILLS[key], built from state for the selected period. Each breakdown's
 // total is the card's own figure. API text is escaped here.
 import { computeLedgerTotals } from './finance.js';
-import { feeBreakdown, grossBreakdown } from './insights.js';
+import { feeBreakdown, grossBreakdown, orderStatusCounts } from './insights.js';
 import { state } from './state.js';
 import { escHtml, fmtMoney } from './util.js';
 
@@ -13,7 +13,8 @@ const LEDGER_WAIT = 'Financial details are still loading.';
 
 const fmtC = c => fmtMoney(c / 100);
 const signed = c => `${c < 0 ? '−' : '+'}${fmtC(Math.abs(c))}`;
-const plural = (n, word) => `${n.toLocaleString('en-US')} ${word}${n === 1 ? '' : 's'}`;
+const fmtNum = n => n.toLocaleString('en-US');
+const plural = (n, word) => `${fmtNum(n)} ${word}${n === 1 ? '' : 's'}`;
 const pct  = x => x == null || !isFinite(x) ? '—' : `${(x * 100).toFixed(1)}%`;
 const fmtDate = (ts, year = true) => new Date(ts * 1000).toLocaleDateString('en-US', { month:'short', day:'numeric', ...(year && { year:'numeric' }) });
 const empty = msg => `<div class="ins-empty">${msg}</div>`;
@@ -53,11 +54,41 @@ function breakdown(rows, { head, total, totalLabel, totalAmount, share = true })
   </table>`;
 }
 
+// Order statuses as a seller reads them, coloured like their badges in Order History
+const STATUS_NAMES = {
+  'paid':               { name: 'Paid',                  color: 'var(--green)', sub: 'not marked complete yet' },
+  'payment processing': { name: 'Payment processing',    color: 'var(--gold)' },
+  'open':               { name: 'Open, not paid yet',    color: 'var(--gold)' },
+  'completed':          { name: 'Completed',             color: 'var(--purple)', sub: 'marked shipped' },
+  'shipped':            { name: 'Shipped',               color: 'var(--purple)' },
+  'partially refunded': { name: 'Partially refunded',    color: '#d4622a' },
+  'fully refunded':     { name: 'Fully refunded',        color: '#b91c1c' },
+  'canceled':           { name: 'Canceled',              color: '#a89e90' },
+};
+const statusName = s => STATUS_NAMES[s] || { name: s.charAt(0).toUpperCase() + s.slice(1), color: '#6b7280' };
+
 /**
  * Each drill-down: its title, and build() returning { figure, cls, html } for
  * the current data, or { wait } while that data is still loading.
  */
 const DRILLS = {
+  orders: {
+    title: 'Total Orders',
+    build() {
+      const orders = state.allOrders, figure = fmtNum(orders.length);
+      if (!orders.length) return { figure, html: empty('No orders in this period.') };
+      const rows = orderStatusCounts(orders).map(r => {
+        const s = statusName(r.status);
+        return { name: s.name, color: s.color, value: r.count, amount: fmtNum(r.count),
+          sub: `${s.sub ? `${s.sub} · ` : ''}${fmtMoney(r.sales)} in sales` };
+      });
+      return {
+        figure,
+        html: breakdown(rows, { head: ['Status', 'Share', 'Orders'], total: orders.length, totalLabel: 'Total Orders', totalAmount: figure }) +
+          note('Sales are before refunds and without sales tax, as in Avg. Order Value. Open the Orders tab for each order.'),
+      };
+    },
+  },
   gross: {
     title: 'Total Gross',
     build() {

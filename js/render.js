@@ -17,7 +17,7 @@ export function renderKPIs() {
 
   $('kpi-revenue').textContent = fmtMoney(sales);
   $('kpi-revenue-sub').textContent = 'sales excl. tax · refunds load next';
-  $('kpi-orders').textContent  = count;
+  $('kpi-orders').textContent  = count.toLocaleString('en-US');
   $('kpi-aov').textContent     = fmtMoney(count ? sales / count : 0);
   $('order-count').textContent = `${count} order${count !== 1 ? 's' : ''}`;
 
