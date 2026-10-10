@@ -3,6 +3,7 @@ import { renderDowChart, renderRevChart, renderTopProducts } from './charts.js';
 import { renderCustomersPanels, renderFinancesPanels, renderOrdersPanels, renderOverviewPanels, renderProductsPanels } from './insights-view.js';
 import { renderFinances } from './render.js';
 import { state } from './state.js';
+import { syncTitle } from './ui.js';
 
 const $ = id => document.getElementById(id);
 
@@ -46,6 +47,7 @@ export function switchTab(name, jumpId) {
   });
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${name}`));
   state.activeTab = name;
+  syncTitle();
   togglePeriod(false);
 
   if (name === 'finances' && state.detailsLoaded) renderFinances();

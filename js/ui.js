@@ -14,6 +14,16 @@ export function clearError() {
   $('error-banner').style.display = 'none';
   $('dash-error').style.display   = 'none';
 }
+const BASE_TITLE = document.title;
+/**
+ * Name the open tab in the page title ("Orders · Sales Pulse Live") while the
+ * dashboard shows, so a browser tab or a screen reader says where you are.
+ */
+export function syncTitle() {
+  const tab = $('dashboard').style.display === 'block' && document.querySelector('.tab-btn.active');
+  document.title = tab ? `${tab.textContent.trim()} · Sales Pulse Live` : BASE_TITLE;
+}
+
 export function showConnect() {
   $('dash-error').style.display      = 'none';
   $('connect-screen').style.display  = 'flex';
@@ -21,6 +31,7 @@ export function showConnect() {
   $('dashboard').style.display       = 'none';
   $('live-badge').style.display      = 'none';
   $('disconnect-btn').style.display  = 'none';
+  syncTitle();
 }
 export function showLoading(msg) {
   $('loading-text').textContent      = msg || 'Loading…';
@@ -34,6 +45,7 @@ export function showDashboard() {
   $('dashboard').style.display       = 'block';
   $('live-badge').style.display      = 'flex';
   $('disconnect-btn').style.display  = 'block';
+  syncTitle();
 
   // Initialise date inputs to sensible defaults on first show
   if (!$('filter-to').value) $('filter-to').value = todayStr();
