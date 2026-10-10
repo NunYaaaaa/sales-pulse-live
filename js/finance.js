@@ -13,12 +13,13 @@ export function ledgerType(e) {
 /**
  * Sort ledger entries newest first. Entries made in the same second (a sale
  * and its tax and fees) go by Etsy's sequence_number, which only grows, so
- * each running balance follows from the row below it.
+ * each running balance follows from the row below it; without one they keep
+ * the order Etsy sent them in (sort is stable), which a real export showed
+ * to be right.
  */
 export function newestFirst(a, b) {
   return b.created_timestamp - a.created_timestamp
-    || (b.sequence_number ?? 0) - (a.sequence_number ?? 0)
-    || (b.entry_id ?? 0) - (a.entry_id ?? 0);
+    || (b.sequence_number ?? 0) - (a.sequence_number ?? 0);
 }
 
 /**

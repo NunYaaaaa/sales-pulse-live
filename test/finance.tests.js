@@ -179,7 +179,7 @@ export const tests = [
     const e = (id, ts, seq) => ({ entry_id: id, created_timestamp: ts, sequence_number: seq });
     const sorted = [e(1, 100, 10), e(2, 100, 11), e(3, 200, 12), e(4, 100, 9)].sort(newestFirst);
     eq(sorted.map(x => x.entry_id), [3, 2, 1, 4]);
-    eq([{ entry_id: 5, created_timestamp: 1 }, { entry_id: 6, created_timestamp: 1 }].sort(newestFirst).map(x => x.entry_id), [6, 5], 'no sequence number: by entry ID');
+    eq([{ entry_id: 5, created_timestamp: 1 }, { entry_id: 6, created_timestamp: 1 }].sort(newestFirst).map(x => x.entry_id), [5, 6], 'no sequence number: Etsy’s order is kept');
   }],
   ['fmtMoneyWhole rounds to whole units in the shop currency', () => {
     eq([fmtMoneyWhole(384.2), fmtMoneyWhole(1069.5), fmtMoneyWhole(0)], ['$384', '$1,070', '$0']);
