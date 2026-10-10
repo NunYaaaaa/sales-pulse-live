@@ -8,7 +8,7 @@ import { goLedgerPage, goPage } from './render.js';
 import { session } from './session.js';
 import { clearData, state } from './state.js';
 import { jumpTo, renderActiveTab, switchTab, togglePeriod } from './tabs.js';
-import { clearError, showConnect, showError } from './ui.js';
+import { clearError, showConnect, showError, watchFigures } from './ui.js';
 import { setCurrency } from './util.js';
 
 const $ = id => document.getElementById(id);
@@ -87,6 +87,7 @@ window.addEventListener('resize', () => {
 });
 
 // ─── BOOT ──────────────────────────────────────────────────────────────────
+watchFigures();
 (async () => {
   const params = new URLSearchParams(window.location.search);
   const code   = params.get('code');

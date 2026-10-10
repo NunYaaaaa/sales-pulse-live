@@ -3,7 +3,7 @@ import { renderDowChart, renderRevChart, renderTopProducts } from './charts.js';
 import { renderCustomersPanels, renderFinancesPanels, renderOrdersPanels, renderOverviewPanels, renderProductsPanels } from './insights-view.js';
 import { renderFinances } from './render.js';
 import { state } from './state.js';
-import { syncTitle } from './ui.js';
+import { fitFigures, syncTitle } from './ui.js';
 
 const $ = id => document.getElementById(id);
 
@@ -32,6 +32,7 @@ export function renderActiveTab() {
   requestAnimationFrame(() => {
     frameQueued = false;
     TABS[state.activeTab].render();
+    fitFigures(); // tiles that were hidden or resized
   });
 }
 

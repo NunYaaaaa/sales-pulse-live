@@ -14,6 +14,37 @@ export function clearError() {
   $('error-banner').style.display = 'none';
   $('dash-error').style.display   = 'none';
 }
+/**
+ * Shrink a summary figure that's wider than its tile (a seven-figure total in
+ * a narrow tile) until it fits; figures that already fit keep their size.
+ */
+function fitFigure(el) {
+  el.style.fontSize = '';
+  const room = el.clientWidth;
+  if (!room || el.scrollWidth <= room) return; // hidden, or fits
+  const size = parseFloat(getComputedStyle(el).fontSize);
+  el.style.fontSize = `${Math.max(11, Math.floor(size * room / el.scrollWidth * 10) / 10)}px`;
+}
+export const fitFigures = (root = document) => root.querySelectorAll('.kpi-val').forEach(fitFigure);
+
+/** Refit a figure whenever its text changes; the tab redraw refits them all after a resize or tab switch. */
+export function watchFigures() {
+  new MutationObserver(records => {
+    const changed = new Set();
+    for (const r of records) {
+      const target = r.target.nodeType === Node.TEXT_NODE ? r.target.parentElement : r.target;
+      const own = target?.closest?.('.kpi-val');
+      if (own) changed.add(own);
+      for (const n of r.addedNodes) {
+        if (n.nodeType !== Node.ELEMENT_NODE) continue;
+        if (n.matches('.kpi-val')) changed.add(n);
+        n.querySelectorAll('.kpi-val').forEach(el => changed.add(el));
+      }
+    }
+    changed.forEach(fitFigure);
+  }).observe(document.body, { subtree: true, childList: true, characterData: true });
+}
+
 const BASE_TITLE = document.title;
 /**
  * Name the open tab in the page title ("Orders · Sales Pulse Live") while the
