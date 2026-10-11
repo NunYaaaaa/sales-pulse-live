@@ -1,11 +1,11 @@
 // ─── EXPORTS ───────────────────────────────────────────────────────────────
 import { LEDGER_LABEL } from './config.js';
-import { categoriseEntry, computeLedgerTotals, newestFirst } from './finance.js';
+import { categoriseEntry, computeLedgerTotals, entryKind, newestFirst } from './finance.js';
 import { bestPaymentAmount, refundedAmount } from './render.js';
 import { ensurePayments } from './loader.js';
 import { showError } from './ui.js';
 import { lineItems, state } from './state.js';
-import { getCurrency, getStatus, localDateKey, money, orderSales } from './util.js';
+import { getCurrency, getStatus, localDateKey, money, orderSales, paymentMethodLabel } from './util.js';
 
 /**
  * Quote a CSV cell. Text starting with = + - @ (or tab/CR) is prefixed with '
@@ -58,7 +58,7 @@ function ordersCSV() {
       o.create_timestamp ? localDateKey(new Date(o.create_timestamp * 1000)) : '',
       o.name || o.buyer_user_id || '',
       o.transaction_count || (o.transactions?.length) || '',
-      o.payment_method || '',
+      o.payment_method ? paymentMethodLabel(o.payment_method) : '', // "Card", not Etsy's "cc"; the JSON keeps the code
       getStatus(o),
       money(o.grandtotal).toFixed(2),
       orderSales(o).toFixed(2),
@@ -124,7 +124,7 @@ export function exportFinancesCSV() {
   const headers = ['Date','Category','Type','Description','Reference Type','Reference ID',`Amount (${cur})`,`Running Balance (${cur})`];
   const rows = sorted.map(e => [
     localDateKey(new Date(e.created_timestamp * 1000)),
-    categoriseEntry(e),
+    entryKind(e), // the ledger table's badge words; the JSON keeps categoriseEntry's codes
     e.ledger_type || e.type || '',
     LEDGER_LABEL[e.ledger_type || e.type] || e.description || e.ledger_type || e.type || '',
     e.reference_type || '',

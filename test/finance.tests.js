@@ -1,7 +1,7 @@
 // Unit tests for the pure helpers — run via test/finance.test.html in a browser.
 import { bucketOrders, feeTally, groupFees } from '../js/charts.js';
 import { csvCell } from '../js/export.js';
-import { categoriseEntry, computeLedgerTotals, newestFirst } from '../js/finance.js';
+import { categoriseEntry, computeLedgerTotals, entryKind, newestFirst, refundSide } from '../js/finance.js';
 import { dateStrToTs, escHtml, fmtMoney, fmtMoneyWhole, fmtNum, fmtPeriod, localDateKey, orderSales, paymentMethodLabel, plural, setCurrency, weekdayCounts } from '../js/util.js';
 
 function eq(actual, expected, msg = '') {
@@ -185,6 +185,22 @@ export const tests = [
     eq([fmtMoneyWhole(384.2), fmtMoneyWhole(1069.5), fmtMoneyWhole(0)], ['$384', '$1,070', '$0']);
     setCurrency('EUR');
     try { eq(fmtMoneyWhole(12.4), '€12'); } finally { setCurrency('USD'); }
+  }],
+  ['refundSide: known fee credits and buyer refunds keep their side when Etsy reverses them', () => {
+    eq([refundSide(entry('transaction_refund', 195)), refundSide(entry('SELLER_DRIVEN_TRAFFIC_CREDIT', -400))], ['fees', 'fees'], 'fee credits, either sign');
+    eq([refundSide(entry('REFUND_GROSS', -3000)), refundSide(entry('REFUND_GROSS', 3000))], ['gross', 'gross'], 'buyer refunds, either sign');
+    eq([refundSide(entry('REFUND', -500)), refundSide(entry('REFUND', 500)), refundSide(entry('mystery_credit', 80))], ['gross', 'fees', 'fees'], 'anything else by sign');
+    // A Share & Save credit taken back after a refund is a fee again, not a cut in Net Sales
+    const t = computeLedgerTotals([entry('PAYMENT_GROSS', 10000), entry('SELLER_DRIVEN_TRAFFIC_CREDIT', 400), entry('SELLER_DRIVEN_TRAFFIC_CREDIT', -400), entry('transaction', -650)]);
+    eq([t.grossCents, t.feesCents, t.netCents], [10000, -650, 9350]);
+  }],
+  ['entryKind names entries in the ledger table and CSV words', () => {
+    const kinds = [
+      entry('PAYMENT_GROSS', 5000), entry('transaction', -65), entry('transaction_refund', 65), entry('REFUND_GROSS', -5000),
+      entry('sales_tax', -300), entry('buyer_fee', -27), entry('DISBURSE2', -9000), entry('ADYENBALANCE_REVERSAL', 9000),
+      entry('deposit', -100), entry('RECOUP', 500),
+    ].map(entryKind);
+    eq(kinds, ['sale', 'fee', 'fee credit', 'refund', 'sales tax', 'delivery fee', 'payout', 'payout', 'transfer', 'transfer']);
   }],
   ['negative money reads with a minus sign, not a hyphen', () => {
     eq([fmtMoney(-3.1), fmtMoneyWhole(-384.2), fmtMoney(5)], ['−$3.10', '−$384', '$5.00']);

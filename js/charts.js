@@ -1,6 +1,6 @@
 // ─── CHARTS (pure SVG, no libraries) ───────────────────────────────────────
 import { FEE_GROUPS, FEE_OTHER_COLOR, FEE_REFUND_OF } from './config.js';
-import { categoriseEntry, ledgerType } from './finance.js';
+import { categoriseEntry, ledgerType, refundSide } from './finance.js';
 import { topProducts } from './insights.js';
 import { lineItems, state } from './state.js';
 import { bucketOptions, bucketRange, bucketStart, chooseBucket, escHtml, fmtMoney, fmtMoneyWhole, fmtNum, markPartialBuckets, orderSales, pickBucket, plural, weekdayCounts } from './util.js';
@@ -486,9 +486,9 @@ export function feeTally(entries) {
     const cat = categoriseEntry(e);
     let key;
     if (cat === 'fee') key = ledgerType(e) || 'other';
-    else if (cat === 'refund' && e.amount > 0) key = FEE_REFUND_OF[ledgerType(e)] || 'other';
+    else if (cat === 'refund' && refundSide(e) === 'fees') key = FEE_REFUND_OF[ledgerType(e)] || 'other';
     else continue;
-    tally[key] = (tally[key] || 0) - e.amount; // fees are negative, credits positive
+    tally[key] = (tally[key] || 0) - e.amount; // fees are negative, credits positive (a credit taken back is negative)
   }
   return tally;
 }
@@ -504,8 +504,15 @@ export function renderFeeChart(entries) {
   panel.style.display = 'block';
   feeTotalCents = total;
 
-  // A group can net below zero if its refunds outweigh its fees in the period
-  const rows = groupFees(tally).filter(r => r.cents > 0);
+  // A group nets below zero when more of it was credited back in the period than
+  // charged (labels bought before the period, refunded in it). The donut shows
+  // what was charged, so it takes the groups that cost something, as shares of
+  // their sum; the credits follow as rows of their own, so the rows add up to
+  // the total.
+  const groups  = groupFees(tally).filter(r => r.cents);
+  const rows    = groups.filter(r => r.cents > 0);
+  const credits = groups.filter(r => r.cents < 0);
+  const charged = rows.reduce((s, r) => s + r.cents, 0);
 
   $('fee-chart-total').textContent = fmtMoney(total / 100);
   $('fee-donut-center-val').textContent = fmtMoney(total / 100);
@@ -518,7 +525,7 @@ export function renderFeeChart(entries) {
 
   let offset = 0;
   const segments = rows.map(row => {
-    const frac = row.cents / total;
+    const frac = row.cents / charged;
     const dash = frac * circumference;
     const seg  = { ...row, frac, dash, gap: circumference - dash, offset };
     offset += dash;
@@ -544,7 +551,7 @@ export function renderFeeChart(entries) {
   const barRows  = $('fee-bars-wrap');
   const maxCents = rows[0].cents;
   barRows.innerHTML = rows.map((row, i) => {
-    const pct    = (row.cents / total * 100).toFixed(1);
+    const pct    = (row.cents / charged * 100).toFixed(1);
     const barPct = (row.cents / maxCents * 100).toFixed(1);
     return `
       <div class="fee-bar-row" data-idx="${i}">
@@ -558,7 +565,15 @@ export function renderFeeChart(entries) {
           <div class="fee-bar-pct">${pct}%</div>
         </div>
       </div>`;
-  }).join('');
+  }).join('') + credits.map(row => `
+      <div class="fee-bar-row">
+        <div class="fee-bar-label" title="${escHtml(row.label)}">${escHtml(row.label)}</div>
+        <div class="fee-bar-track"></div>
+        <div>
+          <div class="fee-bar-val">${fmtMoney(row.cents / 100)}</div>
+          <div class="fee-bar-pct">credit</div>
+        </div>
+      </div>`).join('');
 
   animateBars(barRows, '.fee-bar-fill');
 }

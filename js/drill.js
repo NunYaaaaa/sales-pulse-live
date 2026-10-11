@@ -195,7 +195,7 @@ function discountList(byCount) {
   };
 }
 
-const BUYER_NOTE = 'Buyers are Etsy accounts that ordered in this period; spend is their order totals, including shipping and tax, before refunds.';
+const BUYER_NOTE = 'Buyers are Etsy accounts that ordered in this period; spend is their order totals, including shipping and tax, before refunds. Canceled orders are left out.';
 const buyerLabel = b => b.name || `Buyer #${b.id}`;
 const noIdNote = c => c.noId ? ` ${plural(c.noId, 'order')} without a buyer ID ${c.noId === 1 ? 'is' : 'are'} left out.` : '';
 

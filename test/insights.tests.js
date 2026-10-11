@@ -114,6 +114,10 @@ export const tests = [
     eq([f.chargedCents, f.creditedCents, f.totalCents], [1635, 200, 1435]);
     eq(f.totalCents, -computeLedgerTotals(entries).feesCents, 'sums to Total Fees');
     eq(feeBreakdown([]), { rows: [], totalCents: 0, chargedCents: 0, creditedCents: 0 });
+    // A credit Etsy takes back counts against the credits, not as a refund to a buyer
+    const back = feeBreakdown([le('transaction', -650), le('SELLER_DRIVEN_TRAFFIC_CREDIT', 400), le('SELLER_DRIVEN_TRAFFIC_CREDIT', -400)]);
+    eq(back.rows.map(r => [r.label, r.chargedCents, r.creditedCents, r.cents]), [['Transaction Fees', 650, 0, 650]], 'credit taken back');
+    eq(grossBreakdown([le('PAYMENT_GROSS', 10000), le('SELLER_DRIVEN_TRAFFIC_CREDIT', -400)]).refunds, 0, 'not a refund to a buyer');
   }],
   ['grossBreakdown: payments less tax passed on and refunds, summing to Total Gross', () => {
     const entries = [
@@ -194,6 +198,8 @@ export const tests = [
       order({ create_timestamp: at(2026, 3, 10), total_shipping_cost: usd(5) }),
       order({ create_timestamp: at(2026, 3, 12), total_shipping_cost: usd(7.5) }),
       order({ create_timestamp: at(2025, 1, 1),  total_shipping_cost: usd(99) }), // outside the span
+      order({ create_timestamp: at(2026, 3, 11), total_shipping_cost: usd(4), status: 'Canceled' }),       // shipping went back
+      order({ create_timestamp: at(2026, 3, 11), total_shipping_cost: usd(6), status: 'fully refunded' }),
     ];
     const s = shippingPnL(orders, [le('shipping_labels', -450), le('shipping_labels', -450), le('shipping_label_refund', 450)],
       { from: at(2026, 3, 1), to: at(2026, 3, 31) });
@@ -232,6 +238,8 @@ export const tests = [
       order({ buyer_user_id: 2, name: 'Bo',  grandtotal: usd(25) }),
       order({ buyer_user_id: 3, grandtotal: usd(25) }),
       order({ grandtotal: usd(99) }), // no buyer ID
+      order({ buyer_user_id: 2, name: 'Bo', grandtotal: usd(80), status: 'Canceled' }), // not purchases
+      order({ buyer_user_id: 4, grandtotal: usd(500), status: 'cancelled' }),
     ]);
     eq([c.buyers, c.repeatBuyers, c.noId], [3, 1, 1]);
     eq(c.repeatRate, 1 / 3);
@@ -251,6 +259,7 @@ export const tests = [
       order({ country_iso: 'US', grandtotal: usd(5) }),            // US, no state
       order({ country_iso: 'GB', grandtotal: usd(50) }),
       order({ grandtotal: usd(5) }),                                // no address
+      order({ country_iso: 'FR', grandtotal: usd(70), status: 'Canceled' }), // never shipped
     ];
     const byCountry = geography(orders, 'country');
     eq(byCountry.rows.map(r => [r.key, r.orders, r.revenue]), [['GB', 1, 50], ['US', 3, 25]]);
@@ -361,6 +370,8 @@ export const tests = [
     ]);
     eq([d.discounted, d.totalDiscount, d.aovWith, d.aovWithout], [1, 5, 45, 50]);
     eq(d.share, 1 / 3);
+    const taxed = discountStats([order({ discount_amt: usd(5), subtotal: usd(40), total_shipping_cost: usd(5), total_tax_cost: usd(3.6), grandtotal: usd(48.6) })]);
+    eq(taxed.aovWith, 45, 'order sales, like Avg. Order Value: tax left out');
     const orders = [
       order({ discount_amt: usd(2.1), total_price: usd(21), create_timestamp: at(2026, 3, 1) }),
       order({ discount_amt: usd(0) }),

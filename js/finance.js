@@ -1,6 +1,6 @@
 // ─── FINANCE CALCULATIONS ──────────────────────────────────────────────────
 // Pure functions — no DOM, no state. Covered by test/finance.test.html.
-import { LEDGER_TAXONOMY } from './config.js';
+import { FEE_REFUND_OF, LEDGER_TAXONOMY, PAYOUT_REVERSALS, PAYOUT_TYPES } from './config.js';
 
 /**
  * The Etsy API uses 'ledger_type' as the field name.
@@ -51,6 +51,38 @@ export function categoriseEntry(e) {
 }
 
 /**
+ * Which total a refund-type entry belongs to: 'gross' (money back to a
+ * buyer, off Net Sales) or 'fees' (a fee credited back). Etsy can reverse
+ * either: a credit for a known fee (FEE_REFUND_OF) stays on the fee side and
+ * a buyer refund (REFUND_GROSS) on the sales side whatever its sign, so a
+ * Share & Save credit taken back after a refund is a fee again, not a cut in
+ * sales. Anything else goes by sign: an unknown credit is money back on fees.
+ */
+export function refundSide(e) {
+  const t = ledgerType(e);
+  if (FEE_REFUND_OF[t]) return 'fees';
+  if (t === 'REFUND_GROSS') return 'gross';
+  return e.amount < 0 ? 'gross' : 'fees';
+}
+
+/**
+ * What an entry is, in the words the ledger table's badges and the ledger
+ * CSV use: 'sale', 'fee', 'fee credit', 'refund', 'sales tax', 'delivery
+ * fee', 'payout' (to the bank, or one the bank returned, as Paid out counts
+ * them) or 'transfer' (any other move between the bank and the Etsy balance).
+ */
+export function entryKind(e) {
+  const t = ledgerType(e);
+  switch (categoriseEntry(e)) {
+    case 'revenue':   return 'sale';
+    case 'fee':       return 'fee';
+    case 'refund':    return refundSide(e) === 'fees' ? 'fee credit' : 'refund';
+    case 'collected': return t === 'buyer_fee' ? 'delivery fee' : 'sales tax';
+    default:          return PAYOUT_TYPES.has(t) || PAYOUT_REVERSALS.has(t) ? 'payout' : 'transfer';
+  }
+}
+
+/**
  * Compute totals from ledger entries.
  * Returns { grossCents, feesCents, netCents, refundGrossCents, refundFeesCents, collectedCents }
  *
@@ -59,9 +91,10 @@ export function categoriseEntry(e) {
  * their sign: gross and net exclude them, and net equals the balance change
  * from everything except payouts.
  *
- * Etsy's refund entries are *negative* debits on the revenue side (the buyer
- * gets money back) and *positive* credits on the fee side (Etsy partially
- * refunds fees). We treat both correctly by always adding the raw amount.
+ * Etsy's refund entries are debits on the revenue side (the buyer gets
+ * money back) and credits on the fee side (Etsy partially refunds fees);
+ * refundSide says which, and the raw amount is added there, so a reversal
+ * (the opposite sign) takes its entry back out of the same total.
  */
 export function computeLedgerTotals(entries) {
   let grossCents = 0, feesCents = 0, refundGrossCents = 0, refundFeesCents = 0, collectedCents = 0;
@@ -74,10 +107,8 @@ export function computeLedgerTotals(entries) {
     else if (cat === 'fee')    { feesCents  += amt; } // amt is negative → increases total fee magnitude
     else if (cat === 'collected') { collectedCents += amt; } // tax / buyer-fee debits (negative), tax refund credits (positive)
     else if (cat === 'refund') {
-      // Refund entries can be either negative (buyer refund reducing gross)
-      // or positive (fee partial-refund crediting fees back).
-      if (amt < 0) { refundGrossCents += amt; } // reduces gross
-      else         { refundFeesCents  += amt; } // reduces fee burden
+      if (refundSide(e) === 'gross') refundGrossCents += amt; // a buyer refund reduces gross
+      else                           refundFeesCents  += amt; // a fee credit reduces fees
     }
     // passthroughs: skip
   }

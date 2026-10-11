@@ -4,11 +4,15 @@
 // items in `transactions`; ledger amounts are integer cents; receipt money
 // objects go through money(). Anything time-dependent takes `now` as an argument.
 import { AD_FEES, AD_REFUNDS, FEE_GROUPS, FEE_OTHER_COLOR, FEE_REFUND_OF, LABEL_FEES, LABEL_REFUNDS, PAYOUT_REVERSALS, PAYOUT_TYPES } from './config.js';
-import { categoriseEntry, computeLedgerTotals, ledgerType, newestFirst } from './finance.js';
+import { categoriseEntry, computeLedgerTotals, ledgerType, newestFirst, refundSide } from './finance.js';
 import { bucketRange, bucketStart, getStatus, money, orderSales } from './util.js';
 
 const cents = m => Math.round(money(m) * 100);
 const sum   = (arr, fn) => arr.reduce((s, x) => s + fn(x), 0);
+const lower = s => String(s ?? '').toLowerCase();
+// A canceled order was never a purchase; a fully refunded one gave everything back, shipping included
+const isCanceled  = o => ['canceled', 'cancelled'].includes(lower(o.status));
+const NEVER_SHIPS = new Set(['canceled', 'cancelled', 'fully refunded']);
 
 // ─── PROFITABILITY (ledger) ─────────────────────────────────────────────────
 
@@ -55,7 +59,7 @@ export function grossBreakdown(entries) {
   for (const e of entries) {
     const cat = categoriseEntry(e), t = ledgerType(e);
     if (cat === 'revenue') { g.paidCents += e.amount; g.sales++; }
-    else if (cat === 'refund' && e.amount < 0) { g.refundCents += e.amount; g.refunds++; }
+    else if (cat === 'refund' && refundSide(e) === 'gross') { g.refundCents += e.amount; if (e.amount < 0) g.refunds++; }
     else if (cat === 'collected') {
       if (t === 'sales_tax')      g.taxCents += e.amount;
       else if (t === 'buyer_fee') g.deliveryCents += e.amount;
@@ -82,7 +86,7 @@ export function feeBreakdown(entries) {
   for (const e of entries) {
     const cat = categoriseEntry(e);
     if (cat === 'fee') add(ledgerType(e) || 'other', 'chargedCents', -e.amount); // fees are negative
-    else if (cat === 'refund' && e.amount > 0) add(FEE_REFUND_OF[ledgerType(e)] || 'other', 'creditedCents', e.amount);
+    else if (cat === 'refund' && refundSide(e) === 'fees') add(FEE_REFUND_OF[ledgerType(e)] || 'other', 'creditedCents', e.amount); // a credit taken back is negative
   }
   const rows = [...byLabel.values()].map(r => ({ ...r, cents: r.chargedCents - r.creditedCents })).sort((a, b) => b.cents - a.cents);
   return {
@@ -136,11 +140,12 @@ export function offsiteAdSales(entries) {
 
 /**
  * Shipping charged to buyers vs Etsy shipping labels bought, in cents.
- * Orders are clipped to the ledger's span so both sides cover the same days.
+ * Orders are clipped to the ledger's span so both sides cover the same days;
+ * canceled and fully refunded ones are left out, as their shipping went back.
  */
 export function shippingPnL(orders, entries, span) {
   const inSpan = o => !span || (o.create_timestamp >= span.from && o.create_timestamp <= span.to);
-  const chargedCents = sum(orders.filter(inSpan), o => cents(o.total_shipping_cost));
+  const chargedCents = sum(orders.filter(o => inSpan(o) && !NEVER_SHIPS.has(lower(o.status))), o => cents(o.total_shipping_cost));
   let labelsCents = 0, labelCount = 0;
   for (const e of entries) {
     const t = ledgerType(e);
@@ -258,15 +263,18 @@ export function aovBreakdown(orders) {
 /**
  * Buyers grouped by buyer_user_id. "Repeat" means 2+ orders among the orders
  * passed in (i.e. within the selected period). Spend is what they paid
- * (grand total). `top` and `repeat` are sorted by spend; `byOrders` counts
- * buyers (and their spend) by how many orders each placed, fewest first.
+ * (grand total). Canceled orders are left out: they were never purchases.
+ * `top` and `repeat` are sorted by spend; `byOrders` counts buyers (and their
+ * spend) by how many orders each placed, fewest first.
  */
 export function customerStats(orders, topN = 8) {
   const byBuyer = new Map();
-  let noId = 0;
+  let noId = 0, counted = 0;
   for (const o of orders) {
+    if (isCanceled(o)) continue;
     const id = o.buyer_user_id;
     if (id == null || id === '') { noId++; continue; }
+    counted++;
     const b = byBuyer.get(id) ?? { id, name: '', orders: 0, revenue: 0 };
     b.orders++;
     b.revenue += money(o.grandtotal);
@@ -288,7 +296,7 @@ export function customerStats(orders, topN = 8) {
     repeatBuyers: repeat.length,
     repeatRate: buyers.length ? repeat.length / buyers.length : null,
     repeatRevenueShare: revenue > 0 ? repeatRevenue / revenue : null,
-    ordersPerBuyer: buyers.length ? (orders.length - noId) / buyers.length : null,
+    ordersPerBuyer: buyers.length ? counted / buyers.length : null,
     noId,
     revenue, repeatRevenue,
     top: buyers.slice(0, topN),
@@ -300,12 +308,14 @@ export function customerStats(orders, topN = 8) {
 /**
  * Orders and revenue by destination. level 'country' groups by country_iso;
  * 'us-state' groups US orders by state. Orders without that field are counted
- * in `unknown` and left out of `known` (shares should use `known`).
+ * in `unknown` and left out of `known` (shares should use `known`). Canceled
+ * orders are left out, as in customerStats.
  */
 export function geography(orders, level = 'country') {
   const map = new Map();
   let known = 0, unknown = 0;
   for (const o of orders) {
+    if (isCanceled(o)) continue;
     let key;
     if (level === 'us-state') {
       if (String(o.country_iso || '').toUpperCase() !== 'US') continue;
@@ -465,11 +475,15 @@ export function basketStats(orders) {
   };
 }
 
-/** Orders with a percent or fixed-amount discount (free-shipping coupons aren't in discount_amt). */
+/**
+ * Orders with a percent or fixed-amount discount (free-shipping coupons
+ * aren't in discount_amt). The averages are order sales (orderSales: before
+ * refunds, excl. tax), like Avg. Order Value, so the three compare.
+ */
 export function discountStats(orders) {
   const discounted = orders.filter(o => money(o.discount_amt) > 0);
   const fullPrice  = orders.filter(o => !(money(o.discount_amt) > 0));
-  const aov = list => list.length ? sum(list, o => money(o.grandtotal)) / list.length : null;
+  const aov = list => list.length ? sum(list, orderSales) / list.length : null;
   return {
     orders: orders.length,
     discounted: discounted.length,
@@ -493,8 +507,6 @@ export function discountedOrders(orders) {
 
 // ─── OPERATIONS (receipts) ──────────────────────────────────────────────────
 
-const lower = s => String(s ?? '').toLowerCase();
-const NEVER_SHIPS = new Set(['canceled', 'cancelled', 'fully refunded']);
 const isDigitalOnly = o => (o.transactions || []).length > 0 && o.transactions.every(t => t.is_digital);
 const earliest = arr => { const v = arr.filter(x => x > 0); return v.length ? Math.min(...v) : null; };
 const latest   = arr => { const v = arr.filter(x => x > 0); return v.length ? Math.max(...v) : null; };

@@ -2,7 +2,7 @@
 import { LEDGER_LABEL, PAGE_SIZE } from './config.js';
 import { fetchPayment, fetchTransactions } from './api.js';
 import { renderFeeChart } from './charts.js';
-import { categoriseEntry, computeLedgerTotals, ledgerType, newestFirst } from './finance.js';
+import { categoriseEntry, computeLedgerTotals, entryKind, ledgerType, newestFirst } from './finance.js';
 import { lineItems, state } from './state.js';
 import { escHtml, fmtMoney, fmtNum, getStatus, money, orderSales, paymentMethodLabel, plural, statusClass } from './util.js';
 
@@ -94,18 +94,10 @@ function renderLedgerTable() {
     // 'transaction' is a fee when negative and a sale when positive
     const label = escHtml((t_key === 'transaction' && e.amount > 0 ? 'Sale' : LEDGER_LABEL[t_key]) || e.description || t_key || '');
 
-    // Type badge
-    const isPayout = t_key.startsWith('DISBURSE') || t_key === 'deposit' || t_key === 'ADYENBALANCE_REVERSAL';
-    const badgeClass = {
-      revenue:     'lt-revenue',
-      fee:         'lt-fee',
-      refund:      'lt-refund',
-      collected:   'lt-tax',
-      passthrough: (t_key === 'DISBURSE' || t_key === 'DISBURSE2') ? 'lt-payout' : 'lt-tax',
-    }[cat] || 'lt-other';
-    // A refund-type credit is a fee given back to the seller; a debit is money back to a buyer
-    const badgeLabel = { revenue:'sale', fee:'fee', refund: e.amount > 0 ? 'fee credit' : 'refund', collected: t_key === 'buyer_fee' ? 'delivery fee' : 'sales tax', passthrough: isPayout ? 'payout' : 'transfer' }[cat] || cat;
-    const typeBadge = `<span class="ledger-type-badge ${badgeClass}">${badgeLabel}</span>`;
+    // Type badge, in the same words as the ledger CSV's Category column
+    const kind = entryKind(e);
+    const badgeClass = { sale: 'lt-revenue', fee: 'lt-fee', 'fee credit': 'lt-refund', refund: 'lt-refund', payout: 'lt-payout' }[kind] || 'lt-tax';
+    const typeBadge = `<span class="ledger-type-badge ${badgeClass}">${kind}</span>`;
 
     // Reference cell
     const refHtml = e.reference_type === 'receipt'

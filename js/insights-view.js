@@ -227,7 +227,7 @@ function renderShipping(orders, entries) {
   const s  = shippingPnL(orders, entries, state.ledgerSpan);
   const el = $('ins-shipping');
   if (!s.labelCount) {
-    el.innerHTML = tiles(tile('Charged to buyers', fmtC(s.chargedCents), 'on orders, before refunds')) +
+    el.innerHTML = tiles(tile('Charged to buyers', fmtC(s.chargedCents), 'excl. canceled and fully refunded')) +
       empty("No Etsy shipping labels were bought in this period, so there's nothing to compare. Labels bought elsewhere don't appear in Etsy's payment ledger.");
     return;
   }
@@ -235,7 +235,7 @@ function renderShipping(orders, entries) {
   const surplus = s.diffCents >= 0;
   setHtml(el,
     tiles(
-      tile('Charged to buyers', fmtC(s.chargedCents), 'on orders, before refunds'),
+      tile('Charged to buyers', fmtC(s.chargedCents), 'excl. canceled and fully refunded'),
       tile('Labels bought', fmtC(s.labelsCents), `${plural(s.labelCount, 'label')} · after refunds`, '', 'labels'),
       tile(surplus ? 'Shipping surplus' : 'Shipping shortfall', fmtC(Math.abs(s.diffCents)), "before Etsy's fees on shipping", surplus ? 'green' : 'red'),
     ) +
@@ -243,7 +243,7 @@ function renderShipping(orders, entries) {
       { label: 'Charged to buyers', cents: s.chargedCents, color: '#3a7d4c' },
       { label: 'Etsy labels bought', cents: s.labelsCents, color: '#d4622a' },
     ], { name: r => r.label, value: r => r.cents, fmt: r => fmtC(r.cents) })}</div>` +
-    caveat('Counts only labels bought through Etsy, and shipping on every order placed in the period, before refunds. Labels are charged when bought, so orders near the edges of the period may not line up.'));
+    caveat('Counts only labels bought through Etsy, and shipping on orders placed in the period, leaving out canceled and fully refunded ones. Labels are charged when bought, so orders near the edges of the period may not line up.'));
 }
 
 function renderComposition(orders) {
@@ -396,9 +396,9 @@ function renderDiscounts(orders) {
   el.innerHTML = [
     kpi('Discounted Orders', fmtNum(d.discounted), `${pct(d.share)} of orders`, '', d.discounted ? 'discounted' : null),
     kpi('Discounts Given', fmtMoney(d.totalDiscount), 'already taken off your sales', d.totalDiscount ? 'red' : '', d.discounted ? 'discounts' : null),
-    // Order totals, unlike Avg. Order Value (excl. tax), so the subs say what's in them
-    kpi('Avg. Order, Discounted', avg(d.aovWith), 'with a discount · incl. shipping + tax'),
-    kpi('Avg. Order, No Discount', avg(d.aovWithout), 'no discount · incl. shipping + tax'),
+    // On Avg. Order Value's basis (before refunds, excl. tax), so the three compare
+    kpi('Avg. Order, Discounted', avg(d.aovWith), 'with a discount · excl. tax'),
+    kpi('Avg. Order, No Discount', avg(d.aovWithout), 'no discount · excl. tax'),
   ].join('');
 }
 
