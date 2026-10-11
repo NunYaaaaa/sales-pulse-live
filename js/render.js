@@ -4,31 +4,31 @@ import { fetchPayment, fetchTransactions } from './api.js';
 import { renderFeeChart } from './charts.js';
 import { categoriseEntry, computeLedgerTotals, ledgerType, newestFirst } from './finance.js';
 import { lineItems, state } from './state.js';
-import { escHtml, fmtMoney, getStatus, money, orderSales, paymentMethodLabel, statusClass } from './util.js';
+import { escHtml, fmtMoney, fmtNum, getStatus, money, orderSales, paymentMethodLabel, plural, statusClass } from './util.js';
 
 const $ = id => document.getElementById(id);
 
 // ─── KPIs ──────────────────────────────────────────────────────────────────
 export function renderKPIs() {
   // Sales excl. sales tax from the orders until the ledger is in; then the
-  // ledger's gross (after refunds), so Gross − Fees = Net exactly.
+  // ledger's Net Sales (after refunds), so Net Sales − Fees = Net after Fees exactly.
   const sales = state.allOrders.reduce((s, o) => s + orderSales(o), 0);
   const count = state.allOrders.length;
 
   $('kpi-revenue').textContent = fmtMoney(sales);
-  $('kpi-revenue-sub').textContent = 'sales excl. tax · refunds load next';
-  $('kpi-orders').textContent  = count.toLocaleString('en-US');
+  $('kpi-revenue-sub').textContent = state.ledgerFailed ? "before refunds · ledger didn't load" : 'before refunds · ledger still loading';
+  $('kpi-orders').textContent  = fmtNum(count);
   $('kpi-aov').textContent     = fmtMoney(count ? sales / count : 0);
-  $('order-count').textContent = `${count} order${count !== 1 ? 's' : ''}`;
+  $('order-count').textContent = plural(count, 'order');
 
   if (state.detailsLoaded && state.ledgerEntries) {
     const { grossCents, feesCents, netCents } = computeLedgerTotals(state.ledgerEntries);
     $('kpi-revenue').textContent     = fmtMoney(grossCents / 100);
-    $('kpi-revenue-sub').textContent = 'sales after refunds, excl. tax';
+    $('kpi-revenue-sub').textContent = 'after refunds · excl. sales tax';
     $('kpi-fees').textContent     = fmtMoney(Math.abs(feesCents / 100));
     $('kpi-net').textContent      = fmtMoney(netCents / 100);
-    $('kpi-fees-sub').textContent = 'txn + processing + ads + listing + labels';
-    $('kpi-net-sub').textContent  = 'gross minus fees';
+    $('kpi-fees-sub').textContent = 'selling fees, ads and labels, less credits';
+    $('kpi-net-sub').textContent  = 'sales − fees · before your own costs';
   }
 }
 
@@ -41,7 +41,7 @@ export function renderFinances() {
     // Nothing in the ledger for this period: the totals are zero, not still loading
     for (const id of ['fin-gross', 'fin-fees', 'fin-net']) $(id).textContent = fmtMoney(0);
     $('finances-tbody').innerHTML =
-      `<tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">No ledger entries found for this date range.</td></tr>`;
+      `<tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">No ledger entries in this period.</td></tr>`;
     $('fin-count').textContent = '0 entries';
     $('ledger-pagination').innerHTML = '';
     return;
@@ -54,7 +54,7 @@ export function renderFinances() {
   $('fin-gross').textContent = fmtMoney(grossCents / 100);
   $('fin-fees').textContent  = fmtMoney(Math.abs(feesCents / 100));
   $('fin-net').textContent   = fmtMoney(netCents / 100);
-  $('fin-count').textContent = `${entries.length} entries`;
+  $('fin-count').textContent = plural(entries.length, 'entry', 'entries');
   renderLedgerTable();
 }
 
@@ -74,6 +74,9 @@ function keepTableRoles(tbody) {
   table.querySelectorAll(':scope > tbody > tr > td').forEach(c => c.setAttribute('role', 'cell'));
 }
 
+// Etsy's names for what a ledger entry refers to, as a seller would say them
+const REFERENCE_NAMES = { transaction: 'order item', disbursement: 'payout' };
+
 function renderLedgerTable() {
   const sorted = [...(state.ledgerEntries || [])].sort(newestFirst);
   const start  = (state.ledgerPage - 1) * PAGE_SIZE;
@@ -88,7 +91,8 @@ function renderLedgerTable() {
     });
 
     const t_key = ledgerType(e);
-    const label = escHtml(LEDGER_LABEL[t_key] || e.description || t_key || '');
+    // 'transaction' is a fee when negative and a sale when positive
+    const label = escHtml((t_key === 'transaction' && e.amount > 0 ? 'Sale' : LEDGER_LABEL[t_key]) || e.description || t_key || '');
 
     // Type badge
     const isPayout = t_key.startsWith('DISBURSE') || t_key === 'deposit' || t_key === 'ADYENBALANCE_REVERSAL';
@@ -99,13 +103,14 @@ function renderLedgerTable() {
       collected:   'lt-tax',
       passthrough: (t_key === 'DISBURSE' || t_key === 'DISBURSE2') ? 'lt-payout' : 'lt-tax',
     }[cat] || 'lt-other';
-    const badgeLabel = { revenue:'sale', fee:'fee', refund:'refund', collected: t_key === 'buyer_fee' ? 'delivery fee' : 'sales tax', passthrough: isPayout ? 'payout' : 'pass-through' }[cat] || cat;
+    // A refund-type credit is a fee given back to the seller; a debit is money back to a buyer
+    const badgeLabel = { revenue:'sale', fee:'fee', refund: e.amount > 0 ? 'fee credit' : 'refund', collected: t_key === 'buyer_fee' ? 'delivery fee' : 'sales tax', passthrough: isPayout ? 'payout' : 'transfer' }[cat] || cat;
     const typeBadge = `<span class="ledger-type-badge ${badgeClass}">${badgeLabel}</span>`;
 
     // Reference cell
     const refHtml = e.reference_type === 'receipt'
       ? `<span class="td-mono td-muted">#${escHtml(e.reference_id)}</span>`
-      : `<span style="color:var(--muted2);font-size:0.65rem;font-family:'DM Mono',monospace">${escHtml((e.reference_type || '—').replace(/_/g, ' '))}</span>`;
+      : `<span style="color:var(--muted2);font-size:0.65rem;font-family:'DM Mono',monospace">${escHtml(REFERENCE_NAMES[e.reference_type] || (e.reference_type || '—').replace(/_/g, ' '))}</span>`;
 
     // Amount cell — colour-coded by category
     let amtStyle;
@@ -146,7 +151,7 @@ export function renderTable() {
   const page  = state.allOrders.slice(start, start + PAGE_SIZE);
 
   if (!page.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">No orders found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">No orders in this period.</td></tr>`;
     keepTableRoles(tbody);
     renderPagination($('pagination'), state.allOrders.length, state.currentPage, 'page'); return;
   }
@@ -226,12 +231,12 @@ async function toggleDetail(tr, order) {
   const needTx  = !lineItems(order);
   const needPay = !(rid in state.payments);
   if (needTx || needPay) {
-    td.innerHTML = `<div class="detail-inner"><div class="detail-loading"><span class="mini-spinner"></span> Fetching order details…</div></div>`;
+    td.innerHTML = `<div class="detail-inner"><div class="detail-loading"><span class="mini-spinner"></span> Loading order details…</div></div>`;
     try {
       if (needTx)  state.lineItems[rid] = await fetchTransactions(rid);
       if (needPay) state.payments[rid]  = await fetchPayment(rid);
     } catch (err) {
-      td.innerHTML = `<div class="detail-inner"><div class="detail-loading" style="color:var(--orange-ink)">⚠ Failed to load details: ${escHtml(err.message)}</div></div>`;
+      td.innerHTML = `<div class="detail-inner"><div class="detail-loading" style="color:var(--orange-ink)">⚠ Couldn't load this order's details. (${escHtml(err.message)})</div></div>`;
       tr.classList.remove('expanded');
       state.expandedRow = null;
       return;
@@ -270,6 +275,9 @@ export function refundedAmount(o, pay) {
   return hasRefund(pay) ? Math.round((money(pay.amount_gross) - money(pay.adjusted_gross)) * 100) / 100 : 0;
 }
 
+// Etsy's payment statuses, in words (the panel capitalizes them)
+const PAY_STATUS = { authed: 'authorized' };
+
 function renderDetailPanel(td, o, detail) {
   const pay = detail?.payment;
   const txs = detail?.transactions || [];
@@ -288,19 +296,21 @@ function renderDetailPanel(td, o, detail) {
 
   const addr      = [o.city, o.state, o.country_iso].filter(Boolean).join(', ') || '—';
   const payMethod = escHtml(paymentMethodLabel(o.payment_method));
-  const payStatus = escHtml(pay?.status || '—');
+  const payStatus = escHtml(PAY_STATUS[pay?.status] || String(pay?.status || '—').replace(/_/g, ' '));
 
   const stats = [
-    { label:'Grand Total', val:fmtMoney(grandtotal), cls:'' },
-    { label:'Subtotal',    val:fmtMoney(subtotal),   cls:'' },
-    { label:'Shipping',    val:fmtMoney(shipping),   cls:'' },
-    { label:'Tax',         val:fmtMoney(tax),        cls:'' },
+    { label:'Order Total', val:fmtMoney(grandtotal), cls:'' },
+    // Etsy's subtotal is already after the coupon, so the discount sits beside it rather than after the tax
+    { label: discount > 0 ? 'Items after Discount' : 'Items', val:fmtMoney(subtotal), cls:'' },
     ...(discount > 0 ? [{ label:'Discount', val:`−${fmtMoney(discount)}`, cls:'red' }] : []),
+    { label:'Shipping',    val:fmtMoney(shipping),   cls:'' },
+    { label:'Sales Tax',   val:fmtMoney(tax),        cls:'' },
     ...(refunded ? [{ label:'⚠ Refunded', val:`−${fmtMoney(refunded)}`, cls:'red' }] : []),
     ...(pay ? [
       { sep:true },
       { label:'Processing Fee', val:`−${fmtMoney(Math.abs(feesAmt))}`, cls:'red' },
-      { label:'Net (after proc. fee)', val:fmtMoney(netAmt), cls:'green' },
+      // Etsy's amount_net: the order total, sales tax included, less only the processing fee
+      { label:'After Processing Fee', val:fmtMoney(netAmt), cls:'' },
     ] : []),
   ];
 
@@ -318,11 +328,11 @@ function renderDetailPanel(td, o, detail) {
     <div class="detail-col-info">
       <div class="detail-section-title">Order info</div>
       <div class="detail-kv"><span class="detail-kv-label">Payment</span><span class="detail-kv-val">${payMethod}</span></div>
-      ${pay ? `<div class="detail-kv"><span class="detail-kv-label">Pay status</span><span class="detail-kv-val" style="text-transform:capitalize">${payStatus}</span></div>` : ''}
+      ${pay ? `<div class="detail-kv"><span class="detail-kv-label">Payment status</span><span class="detail-kv-val" style="text-transform:capitalize">${payStatus}</span></div>` : ''}
       ${refunded ? `<div class="detail-kv"><span class="detail-kv-label">Refunded</span><span class="detail-kv-val red">Yes</span></div>` : ''}
       <div class="detail-kv"><span class="detail-kv-label">Ship to</span><span class="detail-kv-val muted" title="${escHtml(addr)}">${escHtml(addr)}</span></div>
       <div class="detail-kv"><span class="detail-kv-label">Gift order</span><span class="detail-kv-val">${o.is_gift ? 'Yes' : 'No'}</span></div>
-      ${pay ? `<div class="detail-note" style="font-size:0.68rem;color:var(--muted2)">⚠ Processing fee only. Full transaction + ad fees appear in the Finances tab.</div>` : ''}
+      ${pay ? `<div class="detail-note" style="font-size:0.68rem;color:var(--muted2)">⚠ Only the processing fee is taken off here, and the total still includes sales tax. This order's other fees are in the payment ledger on the Finances tab.</div>` : ''}
       ${o.message_from_buyer ? `<div class="detail-note"><strong style="font-size:0.7rem;font-weight:500;color:var(--ink)">Buyer note</strong><br>${escHtml(o.message_from_buyer)}</div>` : ''}
       ${o.is_gift && o.gift_message ? `<div class="detail-note"><strong style="font-size:0.7rem;font-weight:500;color:var(--ink)">Gift message</strong><br>${escHtml(o.gift_message)}</div>` : ''}
     </div>`;
@@ -345,7 +355,7 @@ function renderDetailPanel(td, o, detail) {
           </tr>`;
         }).join('')}</tbody>
        </table>`
-    : `<p style="padding:1rem 1.25rem;font-size:0.75rem;color:var(--muted2);font-family:'DM Mono',monospace">No line item data available.</p>`;
+    : `<p style="padding:1rem 1.25rem;font-size:0.75rem;color:var(--muted2);font-family:'DM Mono',monospace">No item details for this order.</p>`;
 
   td.innerHTML = `
     <div class="detail-inner">

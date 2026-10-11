@@ -5,18 +5,14 @@
 import { LEDGER_LABEL } from './config.js';
 import { computeLedgerTotals } from './finance.js';
 import { aovBreakdown, customerStats, discountedOrders, feeBreakdown, grossBreakdown, labelEntries, listingStats, offsiteAdSales, orderStatusCounts, payoutList, refundedOrders, reviewStats, shippedOrders, unshippedOrders } from './insights.js';
-import { listingTitles, reviewPeriod, stars } from './insights-view.js';
+import { ledgerWait, listingTitles, reviewPeriod, stars } from './insights-view.js';
 import { ordersWithItems, state } from './state.js';
-import { escHtml, fmtMoney, money, orderSales } from './util.js';
+import { escHtml, fmtMoney, fmtNum, money, orderSales, plural } from './util.js';
 
 const $ = id => document.getElementById(id);
 
-const LEDGER_WAIT = 'Financial details are still loading.';
-
 const fmtC = c => fmtMoney(c / 100);
 const signed = c => `${c < 0 ? '−' : '+'}${fmtC(Math.abs(c))}`;
-const fmtNum = n => n.toLocaleString('en-US');
-const plural = (n, word) => `${fmtNum(n)} ${word}${n === 1 ? '' : 's'}`;
 const pct  = x => x == null || !isFinite(x) ? '—' : `${(x * 100).toFixed(1)}%`;
 const fmtDate = (ts, year = true) => new Date(ts * 1000).toLocaleDateString('en-US', { month:'short', day:'numeric', ...(year && { year:'numeric' }) });
 /** "Oct 6", with the year when it isn't this year's (all-time lists span years). */
@@ -62,10 +58,10 @@ function breakdown(rows, { head, total, totalLabel, totalAmount, share = true })
 
 // Order statuses as a seller reads them, coloured like their badges in Order History
 const STATUS_NAMES = {
-  'paid':               { name: 'Paid',                  color: 'var(--green)', sub: 'not marked complete yet' },
+  'paid':               { name: 'Paid',                  color: 'var(--green)', sub: 'not marked shipped yet' },
   'payment processing': { name: 'Payment processing',    color: 'var(--gold)' },
   'open':               { name: 'Open, not paid yet',    color: 'var(--gold)' },
-  'completed':          { name: 'Completed',             color: 'var(--purple)', sub: 'marked shipped' },
+  'completed':          { name: 'Completed',             color: 'var(--purple)', sub: 'marked shipped or complete' },
   'shipped':            { name: 'Shipped',               color: 'var(--purple)' },
   'partially refunded': { name: 'Partially refunded',    color: '#d4622a' },
   'fully refunded':     { name: 'Fully refunded',        color: '#b91c1c' },
@@ -113,7 +109,7 @@ const waited = days => days < 1 ? 'today' : plural(Math.floor(days), 'day');
 function lateList() {
   const list = shippedOrders(ordersWithItems()), dated = list.filter(s => s.expected), late = dated.filter(s => s.late);
   const figure = dated.length ? `${((dated.length - late.length) / dated.length * 100).toFixed(1)}%` : '—';
-  if (!late.length) return { figure, html: empty("Every shipped order with an expected date went out by it.") };
+  if (!late.length) return { figure, html: empty('Every shipped order with a ship-by date went out by it.') };
   const rows = late.map(s => ({
     order: s.order,
     sub: [`paid ${shortDate(s.paid)}`, `ship by ${shortDate(s.expected)}`].join(' · '),
@@ -123,9 +119,9 @@ function lateList() {
   const undated = list.length - dated.length;
   return {
     figure,
-    html: tiles(['On time', fmtNum(dated.length - late.length)], ['Late', fmtNum(late.length)], ...(undated ? [['No expected date', fmtNum(undated)]] : [])) +
+    html: tiles(['On time', fmtNum(dated.length - late.length)], ['Late', fmtNum(late.length)], ...(undated ? [['No ship-by date', fmtNum(undated)]] : [])) +
       orderList(rows, { head: ['Order', 'Shipped', 'Late by'], totalLabel: `${fmtNum(dated.length - late.length)} of ${fmtNum(dated.length)} on time`, totalAmount: figure }) +
-      note("Physical orders from this period marked shipped after the end of Etsy's expected ship date, most late first. \"Shipped\" is when the order was first marked shipped; Etsy's API has no delivery dates."),
+      note("Physical orders from this period marked shipped after Etsy's ship-by date, most late first. “Shipped” is when the order was first marked shipped; Etsy's API has no delivery dates."),
   };
 }
 
@@ -133,7 +129,7 @@ function lateList() {
 function shipList(overdueOnly) {
   const list = unshippedOrders(ordersWithItems(), Math.floor(Date.now() / 1000)).filter(u => !overdueOnly || u.overdue);
   const figure = fmtNum(list.length);
-  if (!list.length) return { figure, html: empty(overdueOnly ? "No order is past Etsy's expected ship date." : 'Every physical order in this period has been marked shipped.') };
+  if (!list.length) return { figure, html: empty(overdueOnly ? "No order is past Etsy's ship-by date." : 'Every physical order in this period has been marked shipped.') };
   const rows = list.map(u => {
     const items = u.order.transactions.reduce((s, t) => s + (t.quantity || 1), 0);
     return {
@@ -147,7 +143,7 @@ function shipList(overdueOnly) {
   return {
     figure, cls: overdueOnly ? 'red' : '',
     html: orderList(rows, { head: ['Order', 'Paid', 'Waiting'], totalLabel: overdueOnly ? 'Past due' : 'Not shipped', totalAmount: plural(list.length, 'order') }) +
-      note("Physical orders from this period that aren't marked shipped, oldest first. \"Ship by\" is Etsy's expected ship date. Digital, canceled and fully refunded orders don't need shipping."),
+      note("Physical orders from this period that aren't marked shipped, oldest first, with Etsy's ship-by date. Digital, canceled and fully refunded orders don't need shipping."),
   };
 }
 
@@ -169,10 +165,10 @@ function refundList(kind) {
   }));
   return {
     figure, cls: kind ? '' : 'red',
-    html: orderList(rows, { head: ['Order', 'Status', 'Refunded'], totalLabel: kind ? statusName(kind).name : 'Refunded', totalAmount: kind ? plural(list.length, 'order') : figure }) +
+    html: orderList(rows, { head: ['Order', 'Status', 'Refunded'], totalLabel: kind ? statusName(kind).name : 'Amount Refunded', totalAmount: kind ? plural(list.length, 'order') : figure }) +
       note(kind
-        ? 'Orders from this period with this status, newest first. They count in Total Orders; their refunds come off Total Gross.'
-        : "Refunds recorded on this period's orders, newest first, whatever status the order has now. A partial refund can leave an order Completed."),
+        ? 'Orders placed in this period with this status, newest first. They count in Total Orders; their refunds come off Net Sales in the period each refund is made.'
+        : "Refunds recorded on this period's orders, newest first, whatever status the order has now. A partial refund can leave an order Completed. Net Sales takes refunds off on the day they're made, so its total can differ."),
   };
 }
 
@@ -195,11 +191,11 @@ function discountList(byCount) {
   return {
     figure, cls: byCount ? '' : 'red',
     html: orderList(rows, { head: ['Order', 'Off items', 'Discount'], totalLabel: plural(list.length, 'discounted order'), totalAmount: `−${fmtC(totalCents)}` }) +
-      note("Coupon discounts taken off these orders' items, newest first. Etsy's API doesn't say which coupon an order used."),
+      note("Coupon discounts taken off these orders' items, newest first; they're already out of your sales. Etsy's API doesn't say which coupon an order used."),
   };
 }
 
-const BUYER_NOTE = 'Buyers are Etsy accounts that ordered in this period; spend is what they paid, including shipping and tax.';
+const BUYER_NOTE = 'Buyers are Etsy accounts that ordered in this period; spend is their order totals, including shipping and tax, before refunds.';
 const buyerLabel = b => b.name || `Buyer #${b.id}`;
 const noIdNote = c => c.noId ? ` ${plural(c.noId, 'order')} without a buyer ID ${c.noId === 1 ? 'is' : 'are'} left out.` : '';
 
@@ -221,7 +217,7 @@ function buyerSpread(perBuyer) {
     figure,
     html: breakdown(rows, perBuyer
       ? { head: ['Orders each', 'Share', 'Buyers'], total: c.buyers, totalLabel: `${plural(orders, 'order')} ÷ ${plural(c.buyers, 'buyer')}`, totalAmount: figure }
-      : { head: ['Orders each', 'Share', 'Buyers'], total: c.buyers, totalLabel: 'Unique buyers', totalAmount: figure }) +
+      : { head: ['Orders each', 'Share', 'Buyers'], total: c.buyers, totalLabel: 'Unique Buyers', totalAmount: figure }) +
       note(BUYER_NOTE + noIdNote(c)),
   };
 }
@@ -258,7 +254,7 @@ function repeatRevenueSplit() {
 
 /** Every review rated 3 stars or less in the period, newest first, split by stars above (Customers tab). */
 function lowReviewList() {
-  if (!state.reviews) return { wait: 'Reviews are still loading.' };
+  if (!state.reviews) return { wait: state.ledgerFailed ? ledgerWait() : 'Loading reviews…' };
   const orders = ordersWithItems();
   const r = reviewStats(state.reviews, orders, { ...reviewPeriod(), recentLow: Infinity });
   const figure = fmtNum(r.low.length);
@@ -271,14 +267,14 @@ function lowReviewList() {
   return {
     figure, cls: 'red',
     html: tiles(...r.stars.slice(2).map(s => [plural(s.stars, 'star'), fmtNum(s.count)])) +
-      `<div class="drill-reviews">${items}</div>` + total('Rated 3 or less', plural(r.low.length, 'review')) +
+      `<div class="drill-reviews">${items}</div>` + total('3 stars or fewer', plural(r.low.length, 'review')) +
       note('Every review of 3 stars or fewer left in this period, newest first. Star Ratings on this tab shows how they compare with the rest.'),
   };
 }
 
 /** The sales Etsy charged an Offsite Ads fee on, newest first, with the fee as a share of each sale (Finances tab). */
 function offsiteList() {
-  if (!ledgerReady()) return { wait: LEDGER_WAIT };
+  if (!ledgerReady()) return { wait: ledgerWait() };
   const list = offsiteAdSales(state.ledgerEntries);
   const figure = fmtNum(list.length);
   if (!list.length) return { figure, html: empty('No sales were charged an Offsite Ads fee in this period.') };
@@ -288,7 +284,8 @@ function offsiteList() {
     const o = byId.get(x.ref), sale = o ? orderSales(o) : null;
     return {
       name: o ? buyerName(o) : `Order #${x.ref}`,
-      sub: [`#${escHtml(x.ref)}`, `fee ${shortDate(x.ts)}`, sale != null ? `${fmtMoney(sale)} sale` : 'ordered before this period'].join(' · '),
+      // An order from before the period isn't loaded, so it's named by its number and not repeated here
+      sub: [o ? `#${escHtml(x.ref)}` : '', `fee ${shortDate(x.ts)}`, sale != null ? `${fmtMoney(sale)} sale` : 'ordered before this period'].filter(Boolean).join(' · '),
       mid: sale ? `${Math.round(x.feeCents / 100 / sale * 100)}%` : '—',
       end: x.feeCents ? fmtC(x.feeCents) : 'refunded',
     };
@@ -296,13 +293,13 @@ function offsiteList() {
   return {
     figure,
     html: itemList(rows, { head: ['Sale', 'Of sale', 'Fee'], totalLabel: plural(list.length, 'Offsite Ads sale'), totalAmount: fmtC(feeCents) }) +
-      note("Sales that came through Etsy's Offsite Ads, so Etsy charged its fee on them, net of any fee it refunded. The share is of the sale before tax. Etsy's API doesn't report ad views or clicks."),
+      note("Sales that came through Etsy's Offsite Ads, newest first. Fee is what Etsy charged, less any of it refunded; “Of sale” is the fee as a share of the sale before tax. Etsy's API doesn't report ad views or clicks."),
   };
 }
 
 /** Each Etsy shipping label bought, and each label refund or postage credit, newest first (Finances tab). */
 function labelList() {
-  if (!ledgerReady()) return { wait: LEDGER_WAIT };
+  if (!ledgerReady()) return { wait: ledgerWait() };
   const list = labelEntries(state.ledgerEntries);
   const totalCents = list.reduce((s, x) => s + x.cents, 0), bought = list.filter(x => !x.credit).length;
   const figure = fmtC(totalCents);
@@ -315,13 +312,13 @@ function labelList() {
       mid: shortDate(x.ts),
       end: x.credit ? `−${fmtC(-x.cents)}` : fmtC(x.cents),
     })), { head: ['Entry', 'Date', 'Amount'], totalLabel: `${plural(bought, 'label')}, after credits`, totalAmount: figure }) +
-      note("Labels bought through Etsy, from the ledger, with any refund or postage adjustment taken off. Labels are charged when bought, so ones for orders near the period's edges may fall either side."),
+      note('Labels bought through Etsy, from the payment ledger, less any label refund or USPS adjustment. Labels are charged when bought, so labels for orders near the start or end of the period may be counted in the period before or after.'),
   };
 }
 
 /** Each payout to the bank in the ledger's period, newest first; they add up to Paid out (Finances tab). */
 function payoutsList() {
-  if (!ledgerReady()) return { wait: LEDGER_WAIT };
+  if (!ledgerReady()) return { wait: ledgerWait() };
   const list = payoutList(state.ledgerEntries);
   const totalCents = list.reduce((s, p) => s + p.cents, 0);
   const figure = fmtC(totalCents);
@@ -331,17 +328,17 @@ function payoutsList() {
     figure,
     html: itemList(list.map(p => ({
       name: shortDate(p.ts),
-      sub: p.returned ? 'the bank sent it back; Etsy usually pays it out again' : '',
+      sub: p.returned ? 'your bank sent it back; Etsy usually sends it again' : '',
       mid: p.returned ? 'Returned' : 'To bank',
       end: p.returned ? `−${fmtC(-p.cents)}` : fmtC(p.cents),
     })), { head: ['Date', 'Payout', 'Amount'], totalLabel: plural(sent - back, 'payout'), totalAmount: figure }) +
-      note("Money moved from your Etsy balance to your bank, from the ledger. It isn't extra income: gross, fees and net leave payouts out."),
+      note("Money moved from your Etsy balance to your bank, from the payment ledger. It isn't extra income: Net Sales, Total Fees and Net after Fees leave payouts out."),
   };
 }
 
 /** Active listings with 2 or fewer left, best selling this period first, then fewest left (Products tab). */
 function lowStockList() {
-  if (!state.listings) return { wait: 'Listings are still loading.' };
+  if (!state.listings) return { wait: state.ledgerFailed ? ledgerWait() : 'Loading listings…' };
   const rows = listingStats(state.listings, ordersWithItems()).rows.filter(r => r.lowStock)
     .sort((a, b) => b.units - a.units || a.quantity - b.quantity); // selling and nearly out first
   const figure = fmtNum(rows.length);
@@ -360,7 +357,7 @@ function lowStockList() {
 
 /** Active listings that sold nothing in the period, most viewed first (Products tab). */
 function noSalesList() {
-  if (!state.listings) return { wait: 'Listings are still loading.' };
+  if (!state.listings) return { wait: state.ledgerFailed ? ledgerWait() : 'Loading listings…' };
   const rows = listingStats(state.listings, ordersWithItems()).rows.filter(r => r.noSales)
     .sort((a, b) => (b.views || 0) - (a.views || 0) || b.favorites - a.favorites);
   const figure = fmtNum(rows.length);
@@ -385,8 +382,8 @@ const DRILLS = {
   buyers:             { title: 'Unique Buyers',        build: () => buyerSpread(false) },
   'orders-per-buyer': { title: 'Orders per Buyer',     build: () => buyerSpread(true) },
   'repeat-buyers':    { title: 'Repeat Buyers',        build: repeatBuyerList },
-  'repeat-revenue':   { title: 'Repeat Buyer Revenue', build: repeatRevenueSplit },
-  'low-reviews':      { title: 'Rated 3 or Less',      build: lowReviewList },
+  'repeat-revenue':   { title: 'Repeat Buyer Share',   build: repeatRevenueSplit },
+  'low-reviews':      { title: 'Low Ratings',          build: lowReviewList },
   payouts:            { title: 'Paid Out',             build: payoutsList },
   offsite:            { title: 'Offsite Ads Sales',    build: offsiteList },
   labels:             { title: 'Labels Bought',        build: labelList },
@@ -397,7 +394,7 @@ const DRILLS = {
   canceled:             { title: 'Canceled Orders',           build: () => refundList('canceled') },
   'fully-refunded':     { title: 'Fully Refunded Orders',     build: () => refundList('fully refunded') },
   'partially-refunded': { title: 'Partially Refunded Orders', build: () => refundList('partially refunded') },
-  refunds:              { title: 'Refunded',                  build: () => refundList(null) },
+  refunds:              { title: 'Amount Refunded',           build: () => refundList(null) },
   unshipped: { title: 'Not Shipped Yet', build: () => shipList(false) },
   late:      { title: 'Shipped On Time', build: lateList },
   overdue:   { title: 'Past Due',        build: () => shipList(true) },
@@ -411,7 +408,7 @@ const DRILLS = {
       if (!a) return { figure, html: empty('No orders in this period.') };
       const rows = [
         { name: 'Items', value: a.parts.items, color: 'var(--orange)',
-          sub: a.discountCents ? `after ${fmtC(a.discountCents)} of discounts per order` : 'what the items sold for' },
+          sub: a.discountCents ? `after an average ${fmtC(a.discountCents)} discount` : 'what the items sold for' },
         { name: 'Shipping', value: a.parts.shipping, color: '#2563eb', sub: 'charged to buyers' },
         { name: 'Gift wrap', value: a.parts.giftWrap, color: '#db2777' },
         { name: 'Other', value: a.parts.other, color: '#6b7280', sub: "orders whose price isn't broken down" },
@@ -421,7 +418,7 @@ const DRILLS = {
         html: tiles(['Median order', fmtC(a.medianCents)], ['Smallest', fmtC(a.minCents)], ['Largest', fmtC(a.maxCents)]) +
           breakdown(rows.map(r => ({ ...r, amount: fmtC(r.value) })),
             { head: ['Per order', 'Share', 'Amount'], total: a.avgCents, totalLabel: 'Avg. Order Value', totalAmount: figure }) +
-          note(`Averaged over ${plural(a.orders, 'order')}, canceled and refunded ones included, before refunds and without sales tax. The Orders tab's Order Values chart shows how they spread.`),
+          note(`Averaged over ${plural(a.orders, 'order')}, canceled and refunded ones included, before refunds and without sales tax. The Orders tab's Order Values chart shows how order totals, tax included, are spread.`),
       };
     },
   },
@@ -438,58 +435,58 @@ const DRILLS = {
       return {
         figure,
         html: breakdown(rows, { head: ['Status', 'Share', 'Orders'], total: orders.length, totalLabel: 'Total Orders', totalAmount: figure }) +
-          note('Sales are before refunds and without sales tax, as in Avg. Order Value. Open the Orders tab for each order.'),
+          note('Sales are before refunds and without sales tax, as in Avg. Order Value. The Orders tab lists every order.'),
       };
     },
   },
   gross: {
-    title: 'Total Gross',
+    title: 'Net Sales',
     build() {
-      if (!ledgerReady()) return { wait: LEDGER_WAIT };
+      if (!ledgerReady()) return { wait: ledgerWait() };
       const g = grossBreakdown(state.ledgerEntries);
       const figure = fmtC(g.grossCents);
-      if (!g.sales && !g.refunds) return { figure, html: empty('No sales or refunds in the ledger for this period.') };
+      if (!g.sales && !g.refunds) return { figure, html: empty('No sales or refunds in the payment ledger for this period.') };
       const rows = [
-        { name: 'Payments for sales', sub: `${plural(g.sales, 'sale')}, including the sales tax buyers paid`, value: g.paidCents, color: 'var(--green)' },
-        { name: 'Sales tax passed on', sub: 'Etsy pays it to the tax authorities', value: g.taxCents, color: '#a89e90' },
-        { name: 'Retail delivery fees passed on', sub: "state fees the buyer paid, such as Colorado's", value: g.deliveryCents, color: '#6b7280' },
-        { name: 'Refunds to buyers', sub: plural(g.refunds, 'refund'), value: g.refundCents, color: 'var(--gold)' },
-        { name: 'Sales tax returned on refunds', sub: 'the refunds included tax Etsy had already passed on', value: g.taxBackCents, color: '#a89e90' },
+        { name: 'Payments for sales', sub: `${plural(g.sales, 'sale')}, incl. sales tax and delivery fees buyers paid`, value: g.paidCents, color: 'var(--green)' },
+        { name: 'Sales tax Etsy remits', sub: 'Etsy pays it to the tax authority', value: g.taxCents, color: '#a89e90' },
+        { name: 'Retail delivery fees Etsy remits', sub: "state fees the buyer paid, such as Colorado's", value: g.deliveryCents, color: '#6b7280' },
+        { name: 'Refunds to buyers', sub: `${plural(g.refunds, 'refund')}, incl. their sales tax`, value: g.refundCents, color: 'var(--gold)' },
+        { name: 'Sales tax returned on refunds', sub: 'the tax part of those refunds, credited back', value: g.taxBackCents, color: '#a89e90' },
       ].filter((r, i) => i === 0 || r.value);
       return {
         figure,
         html: breakdown(rows.map(r => ({ ...r, amount: signed(r.value) })),
-          { head: ['Part', 'Amount'], share: false, totalLabel: 'Total Gross', totalAmount: figure }) +
-          note('Gross is what you sold after refunds, without the sales tax Etsy collects and pays on your behalf. Fees come off it next, to give Net Earnings.'),
+          { head: ['Part', 'Amount'], share: false, totalLabel: 'Net Sales', totalAmount: figure }) +
+          note("Net Sales is what you sold after refunds, without the sales tax and delivery fees Etsy collects and pays to tax authorities. Your 1099-K counts sales before refunds, so it's usually higher. Fees come off next, to give Net after Fees."),
       };
     },
   },
   net: {
-    title: 'Net Earnings',
+    title: 'Net after Fees',
     build() {
-      if (!ledgerReady()) return { wait: LEDGER_WAIT };
+      if (!ledgerReady()) return { wait: ledgerWait() };
       const entries = state.ledgerEntries;
       const { netCents } = computeLedgerTotals(entries);
       const gross = grossBreakdown(entries).grossCents;
       const fees  = feeBreakdown(entries).rows.filter(r => r.cents);
       const figure = fmtC(netCents);
-      if (!gross && !fees.length) return { figure, cls: 'green', html: empty('No sales or fees in the ledger for this period.') };
+      if (!gross && !fees.length) return { figure, cls: 'green', html: empty('No sales or fees in the payment ledger for this period.') };
       const ofGross = c => gross > 0 ? pct(c / gross) : '—';
       const rows = [
-        { name: 'Total Gross', sub: 'sales after refunds, excl. tax', value: gross, amount: signed(gross), color: 'var(--ink2)', share: '' }, // not green: Transaction Fees are
+        { name: 'Net Sales', sub: 'after refunds, excl. sales tax', value: gross, amount: signed(gross), color: 'var(--ink2)', share: '' }, // not green: Transaction Fees are
         ...fees.map(f => ({ name: f.label, value: -f.cents, amount: signed(-f.cents), color: f.color, share: ofGross(f.cents) })),
       ];
       return {
         figure, cls: 'green',
-        html: breakdown(rows, { head: ['Part', 'Of gross', 'Amount'], totalLabel: 'Net Earnings', totalAmount: figure }) +
-          note(`${gross > 0 ? `You kept ${pct(netCents / gross)} of gross after Etsy's fees. ` : ''}Payouts to your bank aren't counted: they move money you've already earned.`),
+        html: breakdown(rows, { head: ['Part', 'Of sales', 'Amount'], totalLabel: 'Net after Fees', totalAmount: figure }) +
+          note(`${gross > 0 ? `You kept ${pct(netCents / gross)} of Net Sales after Etsy's fees, before your own costs such as materials and packaging. ` : ''}Payouts to your bank aren't counted: they move money already in your Etsy balance.`),
       };
     },
   },
   fees: {
     title: 'Total Fees',
     build() {
-      if (!ledgerReady()) return { wait: LEDGER_WAIT };
+      if (!ledgerReady()) return { wait: ledgerWait() };
       const f = feeBreakdown(state.ledgerEntries);
       const rows = f.rows.filter(r => r.chargedCents || r.creditedCents);
       const figure = fmtC(f.totalCents);
@@ -502,8 +499,8 @@ const DRILLS = {
           sub: r.creditedCents ? `${fmtC(r.chargedCents)} charged · ${fmtC(r.creditedCents)} credited back` : '',
         })), { head: ['Fee', 'Share', 'Amount'], total: f.totalCents, totalLabel: 'Total Fees', totalAmount: figure }) +
           note(f.creditedCents
-            ? `Etsy charged ${fmtC(f.chargedCents)} and gave ${fmtC(f.creditedCents)} back, mostly fees on refunded orders and adjusted labels. Each credit comes off the fee it reverses.`
-            : 'Every fee Etsy charged in the ledger for this period.'),
+            ? `Etsy charged ${fmtC(f.chargedCents)} and credited ${fmtC(f.creditedCents)} back, for example fees on refunded orders, label refunds and adjustments, and Share &amp; Save. Each credit comes off the fee it reverses.`
+            : 'Every fee Etsy charged in the payment ledger for this period.'),
       };
     },
   },

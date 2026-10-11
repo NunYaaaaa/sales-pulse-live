@@ -34,10 +34,10 @@ async function withPayments(btn, fn) {
   const label = btn.textContent;
   btn.disabled = true;
   try {
-    await ensurePayments(state.allOrders, (done, total) => { btn.textContent = `${done}/${total}…`; });
+    await ensurePayments(state.allOrders, (done, total) => { btn.textContent = `${done} of ${total}…`; });
     fn();
   } catch (e) {
-    showError(`Export failed: ${e.message}`);
+    showError(`Couldn't finish the export. Check your connection and try again. (${e.message})`);
   } finally {
     btn.disabled = false;
     btn.textContent = label;
@@ -49,7 +49,8 @@ export const exportJSON = btn => withPayments(btn, ordersJSON);
 
 function ordersCSV() {
   const cur = getCurrency();
-  const headers = ['Receipt ID','Date','Buyer','Items','Payment Method','Status',`Order Total (${cur})`,`Sales excl. tax (${cur})`,`Shipping (${cur})`,`Tax (${cur})`,`Discount (${cur})`,`Processing Fee (${cur})`,`Net after proc. fee (${cur})`,`Refunded (${cur})`];
+  // Renamed in place: same columns, same order, so formulas that use column positions keep working
+  const headers = ['Order ID','Date','Buyer','Items','Payment Method','Status',`Order Total (${cur})`,`Sales excl. Tax, before Refunds (${cur})`,`Shipping (${cur})`,`Sales Tax (${cur})`,`Discount (${cur})`,`Processing Fee (${cur})`,`Total less Processing Fee (${cur})`,`Refunded (${cur})`];
   const rows = state.allOrders.map(o => {
     const pay = state.payments[o.receipt_id];
     return [

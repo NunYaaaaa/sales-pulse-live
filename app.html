@@ -30,7 +30,7 @@
   <div class="connect-card">
     <div class="connect-icon">🔐</div>
     <h2>Connect your Etsy shop</h2>
-    <p>Enter the keystring and shared secret from <a href="https://www.etsy.com/developers/your-apps" target="_blank" rel="noopener">your Etsy app</a> and its redirect URI, then sign in on Etsy to grant read-only access. Your keys and access token are kept in this browser tab's session storage only, and are cleared when you disconnect or close the tab.</p>
+    <p>Enter the keystring and shared secret from <a href="https://www.etsy.com/developers/your-apps" target="_blank" rel="noopener">your Etsy app</a>, and check that the redirect URI below matches the one set on that app. Then sign in on Etsy to give read-only access. Your keys and sign-in are kept only in this browser tab, and are cleared when you disconnect or close the tab.</p>
     <div id="error-banner" role="alert"><span class="error-text"></span></div>
     <div class="config-row">
       <label for="api-key-input">Etsy API Keystring</label>
@@ -45,20 +45,20 @@
       <input type="url" id="redirect-uri-input" value="https://nunyaaaaa.github.io/sales-pulse-live/app.html" autocapitalize="off" autocorrect="off" spellcheck="false"/>
     </div>
     <div class="scopes-row">
-      <span class="scope-tag">transactions_r</span>
-      <span class="scope-tag">listings_r</span>
-      <span class="scope-tag">shops_r</span>
-      <span class="scope-tag">read-only</span>
+      <span class="scope-tag" title="transactions_r">Orders &amp; payments</span>
+      <span class="scope-tag" title="listings_r">Listings</span>
+      <span class="scope-tag" title="shops_r">Shop details</span>
+      <span class="scope-tag">Read-only</span>
     </div>
-    <button class="connect-btn" data-action="connect">🛒 Connect with Etsy</button>
-    <p class="connect-note">OAuth 2.0 + PKCE · Read-only scopes · Nothing saved on a server</p>
+    <button class="connect-btn" data-action="connect"><span aria-hidden="true">🛒</span> Connect with Etsy</button>
+    <p class="connect-note">Secure sign-in on Etsy · Read-only access · Nothing saved on a server</p>
   </div>
 </div>
 
 <!-- LOADING -->
 <div id="loading-screen">
   <div class="spinner"></div>
-  <div class="loading-text" id="loading-text" role="status">Fetching your shop data…</div>
+  <div class="loading-text" id="loading-text" role="status">Loading your shop…</div>
 </div>
 
 <!-- DASHBOARD -->
@@ -93,14 +93,14 @@
             <summary>Custom range</summary>
             <div class="date-range-inputs">
               <input type="date" id="filter-from" title="From date" aria-label="From date"/>
-              <span class="date-range-dash">→</span>
+              <span class="date-range-dash" aria-hidden="true">→</span>
               <input type="date" id="filter-to"   title="To date" aria-label="To date"/>
               <button class="apply-btn" data-action="apply-range">Apply</button>
             </div>
           </details>
           <div class="filter-active-badge" id="filter-active-badge">
             <span id="filter-active-label">Filtered</span>
-            <button type="button" class="filter-clear-x" data-action="clear-filter" title="Clear filter" aria-label="Clear the date filter">✕</button>
+            <button type="button" class="filter-clear-x" data-action="clear-filter" title="Show all time" aria-label="Show all time">✕</button>
           </div>
         </div>
       </div>
@@ -109,7 +109,7 @@
         <button class="tab-btn active" data-action="tab" data-tab="overview" aria-current="page">Overview</button>
         <button class="tab-btn" data-action="tab" data-tab="orders">Orders</button>
         <div class="rail-secs">
-          <button class="rail-sec" data-action="jump" data-target="sec-fulfilment">Fulfilment</button>
+          <button class="rail-sec" data-action="jump" data-target="sec-fulfilment">Shipping &amp; refunds</button>
           <button class="rail-sec" data-action="jump" data-target="sec-patterns">Order patterns</button>
           <button class="rail-sec" data-action="jump" data-target="orders-panel">Order history</button>
         </div>
@@ -126,7 +126,7 @@
         <button class="tab-btn" data-action="tab" data-tab="finances">Finances</button>
         <div class="rail-secs">
           <button class="rail-sec" data-action="jump" data-target="sec-fees">Fees</button>
-          <button class="rail-sec" data-action="jump" data-target="sec-income">Income</button>
+          <button class="rail-sec" data-action="jump" data-target="sec-income">Payments &amp; payouts</button>
           <button class="rail-sec" data-action="jump" data-target="ledger-panel">Payment ledger</button>
         </div>
       </div>
@@ -136,7 +136,7 @@
           <div class="fetch-status-dot" id="fetch-status-dot"></div>
           <span id="fetch-status-text">Loading…</span>
         </div>
-        <button id="load-details-btn" data-action="load-details" style="display:none">⚡ Load full details</button>
+        <button id="load-details-btn" data-action="load-details" style="display:none">Retry ledger</button>
       </div>
     </div>
   </aside>
@@ -144,7 +144,7 @@
   <main class="dash-main" id="dash-main" tabindex="-1">
     <div id="dash-error" role="alert">
       <span class="error-text"></span>
-      <button class="error-dismiss" data-action="dismiss-error" title="Dismiss">✕</button>
+      <button class="error-dismiss" data-action="dismiss-error" title="Dismiss" aria-label="Dismiss">✕</button>
     </div>
 
     <!-- PROGRESS BAR -->
@@ -157,15 +157,15 @@
     <section class="tab-panel active" id="tab-overview">
       <header class="tab-head">
         <h1 class="tab-title">Overview</h1>
-        <p class="tab-desc">Sales, fees and earnings for the selected period.</p>
+        <p class="tab-desc">Sales, Etsy fees and what's left, for the selected period.</p>
       </header>
 
       <div class="ins-stack">
         <div class="kpi-row">
           <div class="kpi-card drill-card" role="button" tabindex="0" aria-haspopup="dialog" data-action="drill" data-drill="gross">
-            <div class="kpi-label">Total Gross</div>
+            <div class="kpi-label">Net Sales</div>
             <div class="kpi-val" id="kpi-revenue">—</div>
-            <div class="kpi-sub" id="kpi-revenue-sub">sales excl. tax</div>
+            <div class="kpi-sub" id="kpi-revenue-sub">after refunds · excl. sales tax</div>
             <div class="drill-cue" aria-hidden="true">Details ›</div>
           </div>
           <div class="kpi-card drill-card" role="button" tabindex="0" aria-haspopup="dialog" data-action="drill" data-drill="fees">
@@ -175,7 +175,7 @@
             <div class="drill-cue" aria-hidden="true">Details ›</div>
           </div>
           <div class="kpi-card drill-card" role="button" tabindex="0" aria-haspopup="dialog" data-action="drill" data-drill="net">
-            <div class="kpi-label">Net Earnings</div>
+            <div class="kpi-label">Net after Fees</div>
             <div class="kpi-val green" id="kpi-net">—</div>
             <div class="kpi-sub" id="kpi-net-sub">from the ledger</div>
             <div class="drill-cue" aria-hidden="true">Details ›</div>
@@ -200,12 +200,12 @@
         <div class="ochart-panel">
           <div class="ochart-header">
             <div>
-              <div class="ochart-title">Revenue Over Time</div>
+              <div class="ochart-title">Sales Over Time</div>
               <div class="ochart-subtitle" id="rev-chart-sub">—</div>
             </div>
             <div class="ochart-controls">
               <div class="ochart-toggle">
-                <button class="ochart-toggle-btn active" aria-pressed="true" data-action="chart-mode" data-chart="rev" data-mode="revenue">Revenue</button>
+                <button class="ochart-toggle-btn active" aria-pressed="true" data-action="chart-mode" data-chart="rev" data-mode="revenue">Sales</button>
                 <button class="ochart-toggle-btn" aria-pressed="false" data-action="chart-mode" data-chart="rev" data-mode="orders">Orders</button>
               </div>
               <div class="ochart-toggle" id="rev-bucket" role="group" aria-label="Group by">
@@ -229,20 +229,20 @@
               <div class="ochart-subtitle" id="top-prods-sub">—</div>
             </div>
             <div class="ochart-toggle">
-              <button class="ochart-toggle-btn active" aria-pressed="true" data-action="chart-mode" data-chart="top" data-mode="revenue">Revenue</button>
-              <button class="ochart-toggle-btn" aria-pressed="false" data-action="chart-mode" data-chart="top" data-mode="orders">Orders</button>
+              <button class="ochart-toggle-btn active" aria-pressed="true" data-action="chart-mode" data-chart="top" data-mode="revenue">Sales</button>
+              <button class="ochart-toggle-btn" aria-pressed="false" data-action="chart-mode" data-chart="top" data-mode="orders">Units</button>
             </div>
           </div>
           <div class="top-prod-rows" id="top-prod-rows">
-            <div class="ins-empty">Loading product breakdown…</div>
+            <div class="ins-empty">Loading products…</div>
           </div>
         </div>
       </div>
 
       <div class="ins-section" id="ins-snapshot-section">
         <div class="ins-section-head">
-          <h2 class="ins-section-title">All Time</h2>
-          <div class="ins-note" id="ins-snapshot-note">Etsy's own counts, not limited to the selected period</div>
+          <h2 class="ins-section-title">Shop Snapshot</h2>
+          <div class="ins-note" id="ins-snapshot-note">Etsy's own figures, not limited to the selected period</div>
         </div>
         <div class="ins-kpis" id="ins-snapshot"></div>
       </div>
@@ -257,8 +257,8 @@
 
       <div class="ins-section" id="sec-fulfilment" data-section>
         <div class="ins-section-head">
-          <h2 class="ins-section-title">Fulfilment</h2>
-          <div class="ins-note">orders in the selected period · canceled and refunded orders count in Total Orders; their refunds come off Total Gross</div>
+          <h2 class="ins-section-title">Shipping &amp; Refunds</h2>
+          <div class="ins-note">orders in the selected period</div>
         </div>
         <div class="ins-grid">
           <div class="ochart-panel">
@@ -294,10 +294,10 @@
             <div class="ochart-header">
               <div>
                 <div class="ochart-title">Sales by Day of Week</div>
-                <div class="ochart-subtitle" id="dow-chart-sub">avg. per day</div>
+                <div class="ochart-subtitle" id="dow-chart-sub">average per day, incl. days with no sales</div>
               </div>
               <div class="ochart-toggle">
-                <button class="ochart-toggle-btn active" aria-pressed="true" data-action="chart-mode" data-chart="dow" data-mode="revenue">Revenue</button>
+                <button class="ochart-toggle-btn active" aria-pressed="true" data-action="chart-mode" data-chart="dow" data-mode="revenue">Sales</button>
                 <button class="ochart-toggle-btn" aria-pressed="false" data-action="chart-mode" data-chart="dow" data-mode="orders">Orders</button>
               </div>
             </div>
@@ -328,8 +328,8 @@
         <div class="panel-header">
           <div class="panel-title">Order History</div>
           <div class="panel-actions">
-            <button class="export-btn export-csv"  data-action="export-csv">↓ CSV</button>
-            <button class="export-btn export-json" data-action="export-json">↓ JSON</button>
+            <button class="export-btn export-csv"  data-action="export-csv" aria-label="Download orders as CSV">↓ CSV</button>
+            <button class="export-btn export-json" data-action="export-json" aria-label="Download orders as JSON">↓ JSON</button>
             <div class="panel-count" id="order-count">0 orders</div>
           </div>
         </div>
@@ -338,7 +338,7 @@
             <thead>
               <tr>
                 <th></th>
-                <th>Receipt ID</th>
+                <th>Order</th>
                 <th>Date</th>
                 <th>Buyer</th>
                 <th>Items</th>
@@ -397,12 +397,12 @@
       <div class="ins-section" id="sec-buyers" data-section>
         <div class="ins-section-head">
           <h2 class="ins-section-title">Buyers</h2>
-          <div class="ins-note">orders in the selected period</div>
+          <div class="ins-note">orders in the selected period · spend includes shipping and tax</div>
         </div>
         <div class="ins-kpis" id="ins-customers"></div>
         <div class="ins-grid">
           <div class="ochart-panel">
-            <div class="ochart-header"><div><div class="ochart-title">Top Customers</div><div class="ochart-subtitle">by spend in this period</div></div></div>
+            <div class="ochart-header"><div><div class="ochart-title">Top Buyers</div><div class="ochart-subtitle">by spend in this period</div></div></div>
             <div class="top-prod-rows" id="ins-top-customers"></div>
           </div>
           <div class="ochart-panel">
@@ -443,7 +443,7 @@
               <div class="ins-body" id="ins-review-listings"></div>
             </div>
             <div class="ochart-panel">
-              <div class="ochart-header"><div><div class="ochart-title">Recent Low Ratings</div><div class="ochart-subtitle">3 stars or fewer</div></div></div>
+              <div class="ochart-header"><div><div class="ochart-title">Recent Low Ratings</div><div class="ochart-subtitle">3 stars or fewer · up to 5, newest first</div></div></div>
               <div class="ins-body" id="ins-low-reviews"></div>
             </div>
           </div>
@@ -460,21 +460,21 @@
 
       <div class="ledger-summary">
         <div class="kpi-card drill-card" role="button" tabindex="0" aria-haspopup="dialog" data-action="drill" data-drill="gross">
-          <div class="kpi-label">Total Gross</div>
+          <div class="kpi-label">Net Sales</div>
           <div class="kpi-val" id="fin-gross">—</div>
-          <div class="kpi-sub">sales after refunds, excl. tax</div>
+          <div class="kpi-sub">after refunds · excl. sales tax</div>
           <div class="drill-cue" aria-hidden="true">Details ›</div>
         </div>
         <div class="kpi-card drill-card" role="button" tabindex="0" aria-haspopup="dialog" data-action="drill" data-drill="fees">
           <div class="kpi-label">Total Fees</div>
           <div class="kpi-val red" id="fin-fees">—</div>
-          <div class="kpi-sub">txn + processing + ads + listing + labels</div>
+          <div class="kpi-sub">selling fees, ads and labels, less credits</div>
           <div class="drill-cue" aria-hidden="true">Details ›</div>
         </div>
         <div class="kpi-card drill-card" role="button" tabindex="0" aria-haspopup="dialog" data-action="drill" data-drill="net">
-          <div class="kpi-label">Net Earnings</div>
+          <div class="kpi-label">Net after Fees</div>
           <div class="kpi-val green" id="fin-net">—</div>
-          <div class="kpi-sub">gross minus fees</div>
+          <div class="kpi-sub">sales − fees · before your own costs</div>
           <div class="drill-cue" aria-hidden="true">Details ›</div>
         </div>
       </div>
@@ -509,13 +509,13 @@
         <div class="ochart-panel">
           <div class="ochart-header">
             <div>
-              <div class="ochart-title">Fees &amp; Margin Over Time</div>
+              <div class="ochart-title">Fee Rate Over Time</div>
               <div class="ochart-subtitle" id="ins-fee-sub">—</div>
             </div>
             <div class="ochart-controls">
               <div class="ochart-toggle">
                 <button class="ochart-toggle-btn active" aria-pressed="true" data-action="insight-mode" data-key="insFeeMode" data-mode="all">All fees</button>
-                <button class="ochart-toggle-btn" aria-pressed="false" data-action="insight-mode" data-key="insFeeMode" data-mode="excl-postage">Excl. postage</button>
+                <button class="ochart-toggle-btn" aria-pressed="false" data-action="insight-mode" data-key="insFeeMode" data-mode="excl-postage">Excl. labels</button>
               </div>
               <div class="ochart-toggle" id="fee-bucket" role="group" aria-label="Group by">
                 <button class="ochart-toggle-btn" aria-pressed="false" data-action="insight-mode" data-key="feeBucket" data-mode="day">Day</button>
@@ -536,7 +536,7 @@
             <div class="ins-body" id="ins-ads"></div>
           </div>
           <div class="ochart-panel">
-            <div class="ochart-header"><div><div class="ochart-title">Shipping Charged vs Labels</div><div class="ochart-subtitle">what buyers paid vs Etsy labels bought</div></div></div>
+            <div class="ochart-header"><div><div class="ochart-title">Shipping Charged vs Labels</div><div class="ochart-subtitle">shipping buyers paid vs Etsy labels bought</div></div></div>
             <div class="ins-body" id="ins-shipping"></div>
           </div>
         </div>
@@ -544,16 +544,16 @@
 
       <div class="ins-section" id="sec-income" data-section>
         <div class="ins-section-head">
-          <h2 class="ins-section-title">Income</h2>
+          <h2 class="ins-section-title">Payments &amp; Payouts</h2>
           <div class="ins-note">what buyers paid, and what reached your bank</div>
         </div>
         <div class="ins-grid">
           <div class="ochart-panel">
-            <div class="ochart-header"><div><div class="ochart-title">What Buyers Paid For</div><div class="ochart-subtitle">parts of Total Gross</div></div></div>
+            <div class="ochart-header"><div><div class="ochart-title">What Buyers Paid For</div><div class="ochart-subtitle">parts of what buyers paid, before refunds</div></div></div>
             <div class="ins-body" id="ins-composition"></div>
           </div>
           <div class="ochart-panel">
-            <div class="ochart-header"><div><div class="ochart-title">Payouts</div><div class="ochart-subtitle">transfers to your bank</div></div></div>
+            <div class="ochart-header"><div><div class="ochart-title">Payouts</div><div class="ochart-subtitle">transfers to your bank · Etsy calls these deposits</div></div></div>
             <div class="ins-body" id="ins-payouts"></div>
           </div>
         </div>
@@ -563,8 +563,8 @@
         <div class="panel-header">
           <div class="panel-title">Payment Ledger</div>
           <div class="panel-actions">
-            <button class="export-btn export-csv"  id="fin-export-csv"  data-action="export-fin-csv" disabled title="Available once the ledger loads">↓ CSV</button>
-            <button class="export-btn export-json" id="fin-export-json" data-action="export-fin-json" disabled title="Available once the ledger loads">↓ JSON</button>
+            <button class="export-btn export-csv"  id="fin-export-csv"  data-action="export-fin-csv" disabled title="Available once the payment ledger loads" aria-label="Download the payment ledger as CSV">↓ CSV</button>
+            <button class="export-btn export-json" id="fin-export-json" data-action="export-fin-json" disabled title="Available once the payment ledger loads" aria-label="Download the payment ledger as JSON">↓ JSON</button>
             <div class="panel-count" id="fin-count">…</div>
           </div>
         </div>
@@ -572,11 +572,13 @@
           <div class="fee-note">
             <span class="fee-note-icon">ℹ️</span>
             <span>
-              <strong>How the totals work:</strong> Gross is your sales after refunds, without the sales tax and
-              retail delivery fees Etsy collects for tax authorities. Fees are everything Etsy charged (transaction,
-              processing, listing, ads, shipping labels) minus the fee credits it gave back. Payouts, bounced payouts
-              and card top-ups only move money between your bank and your Etsy balance, so they're left out of both.
-              Net = Gross − Fees: the change in your balance apart from those transfers.
+              <strong>How the totals work:</strong> Net Sales is what you sold after refunds, without the sales tax and
+              retail delivery fees Etsy collects and pays to tax authorities. Total Fees is everything Etsy charged
+              (transaction, processing and listing fees, ads and shipping labels), less the fee credits it gave back.
+              Payouts, returned payouts and card charges that cover a negative balance only move money between your
+              bank and your Etsy balance, so neither total includes them. Net after Fees = Net Sales − Total Fees: the
+              change in your Etsy balance apart from those transfers, before your own costs. Each entry counts on the
+              day Etsy recorded it, so a refund falls in the period it was made.
             </span>
           </div>
         </div>
@@ -593,7 +595,7 @@
               </tr>
             </thead>
             <tbody id="finances-tbody">
-              <tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">Loading the ledger…</td></tr>
+              <tr><td colspan="6" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">Loading the payment ledger…</td></tr>
             </tbody>
           </table>
         </div>

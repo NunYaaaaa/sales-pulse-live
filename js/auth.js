@@ -19,9 +19,9 @@ export async function startOAuth() {
   const apiKey       = document.getElementById('api-key-input').value.trim();
   const sharedSecret = document.getElementById('shared-secret-input').value.trim();
   const redirectUri  = document.getElementById('redirect-uri-input').value.trim();
-  if (!apiKey)       { showError('Please enter your Etsy API keystring.'); return; }
-  if (!sharedSecret) { showError('Please enter your Etsy shared secret.'); return; }
-  if (!redirectUri)  { showError('Please enter a redirect URI.'); return; }
+  if (!apiKey)       { showError('Enter your Etsy keystring.'); return; }
+  if (!sharedSecret) { showError('Enter your Etsy shared secret.'); return; }
+  if (!redirectUri)  { showError('Enter the redirect URI set on your Etsy app.'); return; }
 
   session.set('api_key',       apiKey);
   session.set('shared_secret', sharedSecret);
@@ -47,19 +47,19 @@ export async function handleCallback(code, returnedState, onConnected) {
   const apiKey      = session.get('api_key');
   const redirectUri = session.get('redirect_uri');
   history.replaceState({}, '', window.location.pathname); // drop ?code= from the URL right away
-  if (!storedState || returnedState !== storedState) { showConnect(); showError('OAuth state mismatch — please try connecting again.'); return; }
+  if (!storedState || returnedState !== storedState) { showConnect(); showError('This sign-in started in another tab or has expired. Connect again from this tab.'); return; }
 
-  showLoading('Exchanging auth code…');
+  showLoading('Finishing sign-in with Etsy…');
   try {
     const resp = await fetch(ETSY_TOKEN_URL, {
       method:'POST',
       headers:{'Content-Type':'application/x-www-form-urlencoded'},
       body: new URLSearchParams({ grant_type:'authorization_code', client_id:apiKey, redirect_uri:redirectUri, code, code_verifier:verifier }).toString(),
     });
-    if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error_description||`Token exchange failed (${resp.status})`); }
+    if (!resp.ok) { const e = await resp.json().catch(()=>({})); const detail = e.error_description || e.error; throw new Error(`Etsy error ${resp.status}${detail ? `: ${detail}` : ''}`); }
     const data = await resp.json();
     const userId = data.access_token ? data.access_token.split('.')[0] : null;
-    if (!userId || !/^\d+$/.test(userId)) throw new Error('Could not parse user ID from access token. Token format may have changed.');
+    if (!userId || !/^\d+$/.test(userId)) throw new Error("Etsy's reply wasn't in the expected format");
     session.set('token',   data.access_token);
     session.set('user_id', userId);
     if (data.refresh_token) session.set('refresh_token', data.refresh_token);
@@ -68,5 +68,5 @@ export async function handleCallback(code, returnedState, onConnected) {
     // Brief pause after OAuth — Worker rate-limit window resets every second
     await sleep(1200);
     await onConnected();
-  } catch(e) { showConnect(); showError(`Token exchange error: ${e.message}`); }
+  } catch(e) { showConnect(); showError(`Etsy sign-in didn't finish. Connect again. (${e.message})`); }
 }

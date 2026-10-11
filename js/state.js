@@ -6,6 +6,7 @@ export const state = {
   currentPage:   1,
   ledgerPage:    1,
   detailsLoaded: false, // ledger + every order's line items are in
+  ledgerFailed:  false, // the ledger load failed; panels say so instead of "loading"
   expandedRow:   null,
   activeTab:     'overview', // a key of TABS in tabs.js
   shop:          null,     // the Etsy shop object (counts, reviews, currency)
@@ -81,6 +82,7 @@ export function clearRangeData() {
   state.ledgerEntries = null;
   state.ledgerSpan    = null;
   state.detailsLoaded = false;
+  state.ledgerFailed  = false;
   state.currentPage   = 1;
   state.ledgerPage    = 1;
   state.expandedRow   = null;

@@ -25,15 +25,21 @@ export function orderSales(o) {
 let currency = 'USD';
 export function setCurrency(code) { currency = code || 'USD'; }
 export function getCurrency() { return currency; }
+// Negative money reads "−$3.10": a true minus sign, not the formatter's hyphen
+const minus = s => s.replace(/^-/, '−');
 export function fmtMoney(n) {
-  try { return new Intl.NumberFormat('en-US', { style:'currency', currency }).format(n); }
-  catch { return `${n.toFixed(2)} ${currency}`; } // unknown currency code
+  try { return minus(new Intl.NumberFormat('en-US', { style:'currency', currency }).format(n)); }
+  catch { return minus(`${n.toFixed(2)} ${currency}`); } // unknown currency code
 }
 /** Rounded to whole units ("$384"), for labels with little room. */
 export function fmtMoneyWhole(n) {
-  try { return new Intl.NumberFormat('en-US', { style:'currency', currency, maximumFractionDigits:0, minimumFractionDigits:0 }).format(n); }
-  catch { return `${Math.round(n)} ${currency}`; }
+  try { return minus(new Intl.NumberFormat('en-US', { style:'currency', currency, maximumFractionDigits:0, minimumFractionDigits:0 }).format(n)); }
+  catch { return minus(`${Math.round(n)} ${currency}`); }
 }
+/** A count with thousands separators ("1,234"), or "—" when there isn't one. */
+export const fmtNum = n => n == null ? '—' : Number(n).toLocaleString('en-US');
+/** "1 order", "1,234 orders"; `many` for irregular plurals ("entries"). */
+export const plural = (n, word, many = `${word}s`) => `${fmtNum(n)} ${n === 1 ? word : many}`;
 const HTML_ESCAPES = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
 /** Escape for both element content and quoted attribute values. */
 export function escHtml(s) {
@@ -203,8 +209,9 @@ export function markPartialBuckets(buckets, fromTs, toTs, size) {
     const s = Math.max(b.ts, fromTs), e = Math.min(end, toTs);
     if (!(s <= e && (s > b.ts || e < end))) continue;
     const sameMonth = new Date(s * 1000).getMonth() === new Date(e * 1000).getMonth();
-    const last = sameMonth ? new Date(e * 1000).getDate() : short(e); // Oct 1–9, Sep 28–Oct 4
-    const days = short(s) === short(e) ? short(s) : `${short(s)}–${last}`;
+    // Oct 1–9, but Sep 28 – Oct 4: dates with spaces in them get a spaced dash
+    const days = short(s) === short(e) ? short(s)
+      : sameMonth ? `${short(s)}–${new Date(e * 1000).getDate()}` : `${short(s)} – ${short(e)}`;
     b.tip = `${b.tip ?? b.label} (${days} only)`;
   }
   return buckets;
@@ -221,6 +228,22 @@ export function pickBucket(minTs, maxTs) {
   if (spanDays <= 35)  return 'day';
   if (spanDays <= 180) return 'week';
   return 'month';
+}
+
+/**
+ * A period as dates: "Sep 10 – Oct 9, 2026", "Nov 3, 2025 – Jan 9, 2026",
+ * "Up to Oct 9, 2026", "Sep 10, 2026 – now" (unix seconds, either may be
+ * null). `compact` leaves out the current year ("Sep 10 – Oct 9").
+ */
+export function fmtPeriod(from, to, { compact = false } = {}) {
+  if (from == null && to == null) return 'All time';
+  const year = ts => new Date(ts * 1000).getFullYear();
+  const day  = (ts, withYear) => new Date(ts * 1000).toLocaleDateString('en-US', { month:'short', day:'numeric', ...(withYear && { year:'numeric' }) });
+  const needsYear = ts => !compact || year(ts) !== new Date().getFullYear();
+  if (from == null) return `Up to ${day(to, needsYear(to))}`;
+  if (to == null)   return `${day(from, needsYear(from))} – now`;
+  const sameYear = year(from) === year(to);
+  return `${day(from, !sameYear)} – ${day(to, !sameYear || needsYear(to))}`;
 }
 
 /**

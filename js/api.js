@@ -15,10 +15,14 @@ export class AuthError extends Error {
 
 export const isAbort = e => e?.name === 'AbortError';
 
-async function apiError(resp, what) {
-  const body = await resp.json().catch(() => ({}));
-  return new ApiError(resp.status, `${what} failed (${resp.status}): ${body.error_description || body.error || resp.statusText}`);
+/** "Etsy error 500: detail". Callers say in plain words what couldn't be done. */
+export async function apiError(resp) {
+  const body   = await resp.json().catch(() => ({}));
+  const detail = body.error_description || body.error || resp.statusText;
+  return new ApiError(resp.status, `Etsy error ${resp.status}${detail ? `: ${detail}` : ''}`);
 }
+
+const EXPIRED = 'Your Etsy sign-in has expired. Connect again to continue.';
 
 // ── Pacing ───────────────────────────────────────────────────────────────────
 // Every request waits for its slot, so no caller has to add delays.
@@ -40,14 +44,14 @@ let refreshing = null;
 function refreshAccessToken() {
   refreshing ??= (async () => {
     const refreshToken = session.get('refresh_token');
-    if (!refreshToken) throw new AuthError('Your Etsy session expired — please reconnect.');
+    if (!refreshToken) throw new AuthError(EXPIRED);
     const resp = await fetch(ETSY_TOKEN_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ grant_type: 'refresh_token', client_id: session.get('api_key'), refresh_token: refreshToken }).toString(),
     });
     const data = resp.ok ? await resp.json().catch(() => ({})) : {};
-    if (!data.access_token) throw new AuthError('Your Etsy session expired — please reconnect.');
+    if (!data.access_token) throw new AuthError(EXPIRED);
     session.set('token', data.access_token);
     if (data.refresh_token) session.set('refresh_token', data.refresh_token);
   })().finally(() => { refreshing = null; });
@@ -80,7 +84,7 @@ export async function etsyFetch(path, { signal, maxRetries = 8 } = {}) {
       await refreshAccessToken();
       continue;
     }
-    if (resp.status === 401) throw new AuthError('Etsy rejected the access token — please reconnect.');
+    if (resp.status === 401) throw new AuthError(EXPIRED);
     if (resp.status !== 429) return resp;
 
     attempt++;
@@ -101,7 +105,7 @@ export async function etsyFetch(path, { signal, maxRetries = 8 } = {}) {
     waitMs = Math.max(1000, Math.round(waitMs + jitter));
 
     console.warn(`[etsyFetch] 429 on ${path} — waiting ${(waitMs/1000).toFixed(1)}s (attempt ${attempt}/${maxRetries})`);
-    setFetchStatus(`Rate limited — retrying in ${Math.ceil(waitMs/1000)}s…`);
+    setFetchStatus(`Slowing down for Etsy · retrying in ${Math.ceil(waitMs/1000)}s…`);
     await sleep(waitMs, signal);
 
     // Exponential backoff for next attempt, capped at 60 s
@@ -114,11 +118,11 @@ export async function etsyFetch(path, { signal, maxRetries = 8 } = {}) {
  * (with limit=PAGE). onPage(fetchedSoFar, total) reports progress.
  */
 const PAGE = 100;
-async function fetchAllPages(path, what, { signal, onPage } = {}) {
+async function fetchAllPages(path, { signal, onPage } = {}) {
   let results = [], offset = 0;
   while (true) {
     const resp = await etsyFetch(path(offset), { signal });
-    if (!resp.ok) throw await apiError(resp, what);
+    if (!resp.ok) throw await apiError(resp);
     const data  = await resp.json();
     const batch = data.results || [];
     results = results.concat(batch);
@@ -134,27 +138,27 @@ export function fetchOrders({ from = null, to = null, signal } = {}) {
   const dateQS = (from ? `&min_created=${from}` : '') + (to ? `&max_created=${to}` : '');
   return fetchAllPages(
     offset => `/application/shops/${shopId}/receipts?limit=${PAGE}&offset=${offset}&was_paid=true${dateQS}`,
-    'Order fetch', { signal });
+    { signal });
 }
 
 /** Shop reviews left since `from` (unix seconds) up to now. */
 export function fetchReviews(from, { signal, onPage } = {}) {
   return fetchAllPages(
     offset => `/application/shops/${session.get('shop_id')}/reviews?min_created=${from}&limit=${PAGE}&offset=${offset}`,
-    'Reviews fetch', { signal, onPage });
+    { signal, onPage });
 }
 
 /** Every listing in one state ('active', 'sold_out', …), with Etsy's lifetime views and favorites. */
 export function fetchListings(listingState, { signal, onPage } = {}) {
   return fetchAllPages(
     offset => `/application/shops/${session.get('shop_id')}/listings?state=${listingState}&limit=${PAGE}&offset=${offset}`,
-    'Listings fetch', { signal, onPage });
+    { signal, onPage });
 }
 
 /** Line items for one receipt (fallback when the receipt came without them). */
 export async function fetchTransactions(rid, { signal } = {}) {
   const resp = await etsyFetch(`/application/shops/${session.get('shop_id')}/receipts/${rid}/transactions`, { signal });
-  if (!resp.ok) throw await apiError(resp, `Line items for #${rid}`);
+  if (!resp.ok) throw await apiError(resp);
   const data = await resp.json();
   return data.results || data.transaction || [];
 }
@@ -166,7 +170,7 @@ export async function fetchTransactions(rid, { signal } = {}) {
 export async function fetchPayment(rid, { signal } = {}) {
   const resp = await etsyFetch(`/application/shops/${session.get('shop_id')}/receipts/${rid}/payments`, { signal });
   if (resp.status === 404) return null;
-  if (!resp.ok) throw await apiError(resp, `Payment for #${rid}`);
+  if (!resp.ok) throw await apiError(resp);
   const data = await resp.json();
   const pays = data.results || data.payments || (Array.isArray(data) ? data : null);
   return pays?.[0] || null;
@@ -186,7 +190,7 @@ export async function fetchLedger(floor, ceiling, { signal } = {}) {
     const windowStart = Math.max(windowEnd - windowSize, floor);
     entries = entries.concat(await fetchAllPages(
       offset => `/application/shops/${shopId}/payment-account/ledger-entries?min_created=${windowStart}&max_created=${windowEnd}&limit=${PAGE}&offset=${offset}`,
-      'Ledger fetch', { signal }));
+      { signal }));
     windowEnd = windowStart;
   }
 

@@ -64,6 +64,7 @@ export const tests = [
     eq(markPartialBuckets(whole, at(2026, 3, 1, 0), new Date(2026, 4, 1).getTime() / 1000 - 1, 'month').map(b => b.tip), ['March 2026', 'April 2026'], 'whole months stay as they are');
     eq(markPartialBuckets(bucketRange(from, to, 'day'), from, to, 'day')[0].tip.includes('only'), false, 'days are left alone');
     eq(markPartialBuckets(bucketRange(at(2026, 7, 12, 0), at(2026, 7, 14), 'week'), at(2026, 7, 12, 0), at(2026, 7, 14), 'week')[0].tip, 'Week of Jul 6, 2026 (Jul 12 only)', 'one day');
+    eq(markPartialBuckets(bucketRange(at(2026, 9, 30, 0), at(2026, 10, 20), 'week'), at(2026, 9, 30, 0), at(2026, 10, 20), 'week')[0].tip, 'Week of Sep 28, 2026 (Sep 30 – Oct 4 only)', 'across two months');
   }],
   ['pickBucket: day up to 35 days, week up to 180, then month', () => {
     eq(pickBucket(0, 35 * 86400), 'day');

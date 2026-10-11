@@ -3,7 +3,7 @@ import { FEE_GROUPS, FEE_OTHER_COLOR, FEE_REFUND_OF } from './config.js';
 import { categoriseEntry, ledgerType } from './finance.js';
 import { topProducts } from './insights.js';
 import { lineItems, state } from './state.js';
-import { bucketOptions, bucketRange, bucketStart, chooseBucket, escHtml, fmtMoney, fmtMoneyWhole, markPartialBuckets, orderSales, pickBucket, weekdayCounts } from './util.js';
+import { bucketOptions, bucketRange, bucketStart, chooseBucket, escHtml, fmtMoney, fmtMoneyWhole, fmtNum, markPartialBuckets, orderSales, pickBucket, plural, weekdayCounts } from './util.js';
 
 const $ = id => document.getElementById(id);
 
@@ -64,7 +64,7 @@ export function axisLabelShown(i, labels, spacing) {
  */
 /**
  * Give a chart an accessible name from its panel's title and subtitle (set
- * before drawing), so screen readers announce "Revenue Over Time: $3,453.70 in
+ * before drawing), so screen readers announce "Sales Over Time: $3,453.70 in
  * sales … · by day" instead of skipping an unnamed graphic.
  */
 export function labelChart(svgEl) {
@@ -285,7 +285,7 @@ export function drawHeatmap(svgEl, tooltipEl, counts, revenue, color, fmtFn) {
     const cell = ev.target.closest('rect[data-w]');
     if (!cell) return;
     const w = +cell.dataset.w, h = +cell.dataset.h, c = counts[w][h];
-    tooltipEl.innerHTML = `<strong>${DAY_NAMES[w]} ${hourLabel(h)}–${hourLabel((h + 1) % 24)}</strong><br>${c} order${c === 1 ? '' : 's'}${c ? `<br>${fmtFn(revenue[w][h])}` : ''}`;
+    tooltipEl.innerHTML = `<strong>${DAY_NAMES[w]} ${hourLabel(h)}–${hourLabel((h + 1) % 24)}</strong><br>${plural(c, 'order')}${c ? `<br>${fmtFn(revenue[w][h])} paid` : ''}`;
     tooltipEl.classList.add('visible');
     positionTooltip(tooltipEl, svgEl, parseFloat(cell.getAttribute('x')) + cellW / 2, parseFloat(cell.getAttribute('y')));
   };
@@ -335,10 +335,10 @@ export function renderRevChart() {
   const total  = orders.reduce((s, o) => s + (isRev ? orderSales(o) : 1), 0);
   subEl.textContent = isRev
     ? `${fmtMoney(total)} in sales before refunds, excl. tax · by ${bucket}`
-    : `${total} orders · by ${bucket}`;
+    : `${plural(total, 'order')} · by ${bucket}`;
 
   const color = isRev ? '#d4622a' : '#3a7d4c';
-  const fmtFn = isRev ? fmtMoney : v => `${v} orders`;
+  const fmtFn = isRev ? fmtMoney : v => plural(v, 'order');
   const key   = isRev ? 'revenue' : 'count';
 
   // Use line for many points, bar for few
@@ -377,15 +377,15 @@ export function renderDowChart() {
     };
   });
 
-  subEl.textContent = 'avg. per day';
+  subEl.textContent = 'average per day, incl. days with no sales';
   const fmtFn = isRev ? fmtMoney : v => `${v.toFixed(1)} orders`;
   const key   = isRev ? 'revenue' : 'count';
   const color = isRev ? '#5a3d9e' : '#b8860b';
 
   // Richer tooltip showing both avg and total
   drawBarChart(svgEl, tipEl, data, key, fmtFn, color, d => isRev
-    ? `<strong>${d.label}</strong><br>Avg: ${fmtMoney(d.revenue)}<br>Total: ${fmtMoney(d.rawRev)}`
-    : `<strong>${d.label}</strong><br>Avg: ${d.count.toFixed(1)} orders<br>Total: ${d.rawCnt}`,
+    ? `<strong>${d.label}</strong><br>Average ${fmtMoney(d.revenue)}<br>Total ${fmtMoney(d.rawRev)}`
+    : `<strong>${d.label}</strong><br>Average ${d.count.toFixed(1)} orders<br>Total ${plural(d.rawCnt, 'order')}`,
     { values: isRev ? fmtMoneyWhole : v => v.toFixed(1) });
 }
 
@@ -397,7 +397,7 @@ export function renderTopProducts() {
 
   // Need line items for every order, not just the rows the user has expanded
   if (!state.allOrders.every(lineItems)) {
-    wrap.innerHTML = `<div class="ins-empty">${state.detailsLoaded ? 'Some line items could not be loaded.' : 'Loading product breakdown…'}</div>`;
+    wrap.innerHTML = `<div class="ins-empty">${state.detailsLoaded ? "Couldn't load the items in some orders, so products can't be ranked." : 'Loading products…'}</div>`;
     return;
   }
 
@@ -407,18 +407,20 @@ export function renderTopProducts() {
   const { rows: sorted, total } = topProducts(orders, { by: isRev ? 'revenue' : 'units', listings: state.listings });
 
   if (!sorted.length) {
-    wrap.innerHTML = `<div class="ins-empty">No product data found.</div>`;
+    wrap.innerHTML = `<div class="ins-empty">No products in these orders.</div>`;
     return;
   }
 
   const maxVal = sorted[0][isRev ? 'revenue' : 'units'] || 1;
-  sub.textContent = sorted.length < total ? `top ${sorted.length} of ${total} products` : `all ${total} product${total === 1 ? '' : 's'}`;
+  // Item sales are price × quantity, before order discounts and without shipping: not the Sales Over Time figure
+  const which = sorted.length < total ? `top ${sorted.length} of ${fmtNum(total)} products` : total === 1 ? '1 product' : `all ${fmtNum(total)} products`;
+  sub.textContent = `${which} · ${isRev ? 'item sales before discounts' : 'by units sold'}`;
 
   wrap.innerHTML = sorted.map(p => {
     const val    = isRev ? p.revenue : p.units;
     const barPct = (val / maxVal * 100).toFixed(1);
-    const valStr = isRev ? fmtMoney(p.revenue) : `${p.units} sold`;
-    const subStr = isRev ? `${p.units} units` : fmtMoney(p.revenue);
+    const valStr = isRev ? fmtMoney(p.revenue) : `${fmtNum(p.units)} sold`;
+    const subStr = isRev ? plural(p.units, 'unit') : fmtMoney(p.revenue);
     const name   = escHtml(p.name);
     const hover  = escHtml(p.otherNames.length ? `${p.name}\nAlso sold as: ${p.otherNames.join('; ')}` : p.name);
     return `<div class="top-prod-row">

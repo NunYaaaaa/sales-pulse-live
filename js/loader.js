@@ -1,11 +1,11 @@
 // ─── DATA LOADING PIPELINE + DATE FILTER ───────────────────────────────────
-import { ApiError, AuthError, etsyFetch, fetchLedger, fetchListings, fetchOrders, fetchPayment, fetchReviews, fetchTransactions, isAbort } from './api.js';
+import { ApiError, apiError, AuthError, etsyFetch, fetchLedger, fetchListings, fetchOrders, fetchPayment, fetchReviews, fetchTransactions, isAbort } from './api.js';
 import { renderFinances, renderKPIs, renderTable } from './render.js';
 import { session } from './session.js';
 import { cacheCurrentRange, cachedRange, cachedReviews, cacheReviews, clearRangeData, lineItems, state } from './state.js';
 import { renderActiveTab, TABS, togglePeriod } from './tabs.js';
 import { clearError, setFetchStatus, showConnect, showDashboard, showError, showLoading, showSkeletons } from './ui.js';
-import { dateStrToTs, daysAgoStr, setCurrency, todayStr, ytdStr } from './util.js';
+import { dateStrToTs, daysAgoStr, fmtPeriod, plural, setCurrency, todayStr, ytdStr } from './util.js';
 
 const $ = id => document.getElementById(id);
 
@@ -30,8 +30,12 @@ export function cancelLoad() {
   currentLoad = null;
 }
 
-/** Common failure handling for background loads. Returns true if handled silently. */
-function handleLoadError(e, what) {
+/**
+ * Common failure handling for background loads. `what` names the data in
+ * plain words ("your orders"); `retry` says how to try again. Returns true
+ * if handled silently.
+ */
+function handleLoadError(e, what, retry) {
   if (isAbort(e)) return true; // superseded by a newer load
   if (e instanceof AuthError) {
     cancelLoad();
@@ -40,8 +44,10 @@ function handleLoadError(e, what) {
     showError(e.message);
     return true;
   }
-  setFetchStatus(`${what} failed`, true);
-  showError(e instanceof ApiError ? e.message : `${what} failed: ${e.message}`); // ApiError already says what failed
+  setFetchStatus(`Couldn't load ${what}`, true);
+  // fetch throws a TypeError when it can't reach Etsy at all; Etsy's own errors are ApiErrors
+  const why = e instanceof TypeError ? "Couldn't reach Etsy. Check your connection." : `Couldn't load ${what}.`;
+  showError(`${why} ${retry} (${e.message})`);
   return false;
 }
 
@@ -54,30 +60,33 @@ export async function loadDashboard() {
   let shopId, shopName;
   try {
     const userId = session.get('user_id');
-    if (!userId) throw new Error('User ID not found — please reconnect.');
+    if (!userId) throw new Error("Etsy sign-in didn't finish. Connect again.");
     const shopResp = await etsyFetch(`/application/users/${userId}/shops`);
-    if (!shopResp.ok) {
-      const errBody = await shopResp.json().catch(() => ({}));
-      throw new ApiError(shopResp.status, `Shop fetch failed (${shopResp.status}): ${errBody.error_description || errBody.error || shopResp.statusText}`);
-    }
+    if (!shopResp.ok) throw await apiError(shopResp);
     const shopData = await shopResp.json();
     const shop     = (shopData.results && shopData.results[0]) || shopData;
     shopId   = shop.shop_id;
     shopName = shop.shop_name || 'Your Shop';
-    if (!shopId) throw new Error(`Shop ID missing. Raw: ${JSON.stringify(shopData).slice(0, 200)}`);
+    if (!shopId) {
+      console.warn('[loadDashboard] no shop in the reply:', shopData);
+      throw new Error("Etsy didn't return a shop for this account. Sign in with the Etsy account that owns the shop, then connect again.");
+    }
     session.set('shop_id',   shopId);
     session.set('shop_name', shopName);
     setCurrency(shop.currency_code);
     state.shop = shop;
   } catch(e) {
     showConnect();
-    showError(`Could not connect: ${e.message}`);
+    showError(e instanceof ApiError
+      ? `Couldn't load your Etsy shop. Check that you signed in with the account that owns the shop, then connect again. (${e.message})`
+      : e instanceof TypeError ? `Couldn't reach Etsy. Check your connection, then connect again. (${e.message})`
+      : e.message);
     return;
   }
 
   // ── Step 2: show dashboard shell immediately ─────────────────────────────
   $('shop-name').textContent = shopName;
-  $('shop-sub').textContent  = `Shop ID: ${shopId} · @${shopName.toLowerCase()}`;
+  $('shop-sub').textContent  = `Shop ID ${shopId}`;
 
   // Default date filter
   if (state.filterFrom === null && state.filterTo === null) {
@@ -94,9 +103,8 @@ export async function loadDashboard() {
 /** Enable the finance exports and mark details as loaded. */
 function markDetailsLoaded() {
   state.detailsLoaded = true;
-  const btn = $('load-details-btn');
-  btn.textContent = '✓ Full details loaded';
-  btn.disabled = true;
+  state.ledgerFailed  = false;
+  $('load-details-btn').style.display = 'none'; // it's only there to retry a failed ledger
   for (const id of ['fin-export-csv', 'fin-export-json']) {
     $(id).disabled = false;
     $(id).title    = '';
@@ -116,12 +124,10 @@ async function reload() {
   clearRangeData();
   clearError();
 
-  const btn = $('load-details-btn');
-  btn.disabled = false;
-  btn.textContent = '⚡ Load full details';
+  $('load-details-btn').style.display = 'none';
   $('fin-export-csv').disabled  = true;
   $('fin-export-json').disabled = true;
-  $('finances-tbody').innerHTML = ledgerPlaceholder('Loading the ledger…');
+  $('finances-tbody').innerHTML = ledgerPlaceholder('Loading the payment ledger…');
   $('ledger-pagination').innerHTML = '';
   $('fee-chart-panel').style.display = 'none';
 
@@ -132,7 +138,7 @@ async function reload() {
     state.ledgerSpan    = hit.ledgerSpan;
     markDetailsLoaded();
     renderAll();
-    setFetchStatus(`${hit.orders.length} orders (cached)`, true);
+    setFetchStatus(`${plural(hit.orders.length, 'order')} · loaded earlier`, true);
     ensureTabData();
     return;
   }
@@ -147,17 +153,17 @@ async function reload() {
     renderKPIs();
     renderTable();
     renderActiveTab();
-    setFetchStatus(`${orders.length} orders loaded`, false);
+    setFetchStatus(`${plural(orders.length, 'order')} loaded`, false);
   } catch(e) {
-    if (!handleLoadError(e, 'Order fetch')) {
-      $('orders-tbody').innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">Couldn't load orders — pick a period to retry.</td></tr>`;
+    if (!handleLoadError(e, 'your orders', 'Pick a period to try again.')) {
+      $('orders-tbody').innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem;padding:2rem">Couldn't load your orders. Pick a period to try again.</td></tr>`;
       $('order-count').textContent = '—';
     }
     return;
   }
 
   // Phase B: full details (ledger, plus any missing line items) in background
-  setFetchStatus('Loading financial details…');
+  setFetchStatus('Loading the payment ledger…');
   await loadAllDetails(true /* background */, signal);
 }
 
@@ -175,10 +181,13 @@ export async function loadAllDetails(background = false, signal = currentLoad?.s
   const ptext = $('progress-text');
 
   try {
+    state.ledgerFailed = false;
     if (!background) {
       btn.disabled = true;
       btn.textContent = 'Loading…';
       prog.style.display = 'flex';
+      $('finances-tbody').innerHTML = ledgerPlaceholder('Loading the payment ledger…');
+      renderActiveTab(); // panels go back from "didn't load" to "loading"
     }
 
     const orders  = state.allOrders;
@@ -193,17 +202,17 @@ export async function loadAllDetails(background = false, signal = currentLoad?.s
         state.lineItems[o.receipt_id] = txs;
       } catch (e) {
         if (!(e instanceof ApiError)) throw e;
-        console.warn(`[loadAllDetails] ${e.message}`); // skip; row can retry on expand
+        console.warn(`[loadAllDetails] line items for #${o.receipt_id}: ${e.message}`); // skip; row can retry on expand
       }
       done++;
       const pct = Math.round((done / missing.length) * 80);
       fill.style.width  = `${pct}%`;
-      ptext.textContent = `${pct}% (${done}/${missing.length} orders)`;
+      ptext.textContent = `${pct}% (${done} of ${plural(missing.length, 'order')})`;
     }
 
     // ── Phase 2: ledger in 30-day windows (80–100%) ──
-    if (!background) { ptext.textContent = 'Fetching financial ledger…'; fill.style.width = '85%'; }
-    else setFetchStatus('Fetching ledger…');
+    if (!background) { ptext.textContent = 'Loading the payment ledger…'; fill.style.width = '85%'; }
+    else setFetchStatus('Loading the payment ledger…');
 
     // Same period as the orders, so gross, fees and net cover the same days.
     // Without a lower bound, go back to the oldest order (Etsy keeps the
@@ -229,7 +238,7 @@ export async function loadAllDetails(background = false, signal = currentLoad?.s
     renderFinances();
     renderKPIs();
     renderActiveTab(); // refreshes top products too, now every order has line items
-    setFetchStatus('All data loaded ✓', true);
+    setFetchStatus('Orders and ledger loaded ✓', true);
     ensureTabData();
 
   } catch (err) {
@@ -237,13 +246,16 @@ export async function loadAllDetails(background = false, signal = currentLoad?.s
     prog.style.display = 'none';
     btn.style.display  = '';   // surface the manual button so user can retry
     btn.disabled = false;
-    btn.textContent = '⚡ Load full details';
-    if (handleLoadError(err, 'Detail load')) return;
-    // The ledger-based numbers stop loading, not keep shimmering
+    btn.textContent = 'Retry ledger';
+    if (handleLoadError(err, 'the payment ledger', 'Use “Retry ledger” to try again.')) return;
+    // The ledger-based numbers stop loading, not keep shimmering, and the panels say why
+    state.ledgerFailed = true;
+    renderKPIs();
     for (const id of ['kpi-fees', 'kpi-net', 'fin-gross', 'fin-fees', 'fin-net']) $(id).textContent = '—';
     $('kpi-fees-sub').textContent = $('kpi-net-sub').textContent = "ledger didn't load";
     $('fin-count').textContent = '—';
-    $('finances-tbody').innerHTML = ledgerPlaceholder("The ledger didn't load. Use “⚡ Load full details” to try again.");
+    $('finances-tbody').innerHTML = ledgerPlaceholder("Couldn't load the payment ledger, so fees and Net after Fees aren't shown. Use “Retry ledger” to try again.");
+    renderActiveTab();
   }
 }
 
@@ -271,7 +283,7 @@ async function tabDataStep(statusKey, signal, run) {
     state[statusKey] = null;
   } catch (e) {
     if (isAbort(e)) return true;
-    if (e instanceof AuthError) { handleLoadError(e, 'Listing and review data'); return true; }
+    if (e instanceof AuthError) { handleLoadError(e, 'your listings and reviews', ''); return true; }
     state[statusKey] = { error: e.message };
     return false;
   } finally {
@@ -334,7 +346,7 @@ export async function ensurePayments(orders, onProgress = () => {}) {
       state.payments[o.receipt_id] = await fetchPayment(o.receipt_id);
     } catch (e) {
       if (!(e instanceof ApiError)) throw e;
-      console.warn(`[ensurePayments] ${e.message}`);
+      console.warn(`[ensurePayments] payment for #${o.receipt_id}: ${e.message}`);
     }
     onProgress(++done, missing.length);
   }
@@ -361,9 +373,6 @@ export function applyPreset(preset, el) {
   setDateFilter(from, to);
 }
 
-/** "Sep 10" for a YYYY-MM-DD string. */
-const shortDate = s => new Date(dateStrToTs(s, false) * 1000).toLocaleDateString('en-US', { month:'short', day:'numeric' });
-
 /** Name the period on the phone's period button and close the picker. */
 function setPeriodLabel(text) {
   $('period-label').textContent = text;
@@ -375,11 +384,11 @@ export function applyCustomRange() {
   const to   = $('filter-to').value;
 
   if (from && to && from > to) {
-    showError('Date range error: "From" must be before "To".'); return;
+    showError('The start date must be on or before the end date.'); return;
   }
 
   document.querySelectorAll('.preset-chip').forEach(c => { c.classList.remove('active'); c.setAttribute('aria-pressed', 'false'); });
-  setPeriodLabel(from || to ? `${from ? shortDate(from) : 'Start'} – ${to ? shortDate(to) : 'now'}` : 'All time');
+  setPeriodLabel(fmtPeriod(dateStrToTs(from), dateStrToTs(to), { compact: true }));
   setDateFilter(from || null, to || null);
 }
 
@@ -390,7 +399,7 @@ function setDateFilter(fromStr, toStr) {
   // Update active badge
   const badge = $('filter-active-badge');
   if (state.filterFrom || state.filterTo) {
-    $('filter-active-label').textContent = `${fromStr || ''} → ${toStr || 'now'}`.trim();
+    $('filter-active-label').textContent = fmtPeriod(dateStrToTs(fromStr), dateStrToTs(toStr));
     badge.classList.add('visible');
   } else {
     badge.classList.remove('visible');

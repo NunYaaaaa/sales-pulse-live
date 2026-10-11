@@ -45,7 +45,7 @@ export function feeRateSeries(entries, { bucket = 'week', exclude = null, from =
 }
 
 /**
- * How Total Gross comes out of the ledger, in cents: payments for sales
+ * How Net Sales comes out of the ledger, in cents: payments for sales
  * (which include the buyer's sales tax), less the sales tax and retail
  * delivery fees passed on to tax authorities, less refunds to buyers, plus
  * tax returned on those refunds. The parts sum to grossCents.

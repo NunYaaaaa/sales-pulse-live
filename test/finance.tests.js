@@ -2,7 +2,7 @@
 import { bucketOrders, feeTally, groupFees } from '../js/charts.js';
 import { csvCell } from '../js/export.js';
 import { categoriseEntry, computeLedgerTotals, newestFirst } from '../js/finance.js';
-import { dateStrToTs, escHtml, fmtMoneyWhole, localDateKey, orderSales, paymentMethodLabel, setCurrency, weekdayCounts } from '../js/util.js';
+import { dateStrToTs, escHtml, fmtMoney, fmtMoneyWhole, fmtNum, fmtPeriod, localDateKey, orderSales, paymentMethodLabel, plural, setCurrency, weekdayCounts } from '../js/util.js';
 
 function eq(actual, expected, msg = '') {
   const a = JSON.stringify(actual), e = JSON.stringify(expected);
@@ -185,6 +185,23 @@ export const tests = [
     eq([fmtMoneyWhole(384.2), fmtMoneyWhole(1069.5), fmtMoneyWhole(0)], ['$384', '$1,070', '$0']);
     setCurrency('EUR');
     try { eq(fmtMoneyWhole(12.4), '€12'); } finally { setCurrency('USD'); }
+  }],
+  ['negative money reads with a minus sign, not a hyphen', () => {
+    eq([fmtMoney(-3.1), fmtMoneyWhole(-384.2), fmtMoney(5)], ['−$3.10', '−$384', '$5.00']);
+  }],
+  ['plural counts with thousands separators and irregular plurals', () => {
+    eq([plural(1, 'order'), plural(0, 'order'), plural(1234, 'order')], ['1 order', '0 orders', '1,234 orders']);
+    eq([plural(1, 'entry', 'entries'), plural(2, 'entry', 'entries')], ['1 entry', '2 entries']);
+    eq([fmtNum(null), fmtNum(12345)], ['—', '12,345']);
+  }],
+  ['fmtPeriod names a period by its dates', () => {
+    const d = (y, m, day) => new Date(y, m - 1, day).getTime() / 1000;
+    const now = new Date().getFullYear();
+    eq(fmtPeriod(d(2020, 9, 10), d(2020, 10, 9)), 'Sep 10 – Oct 9, 2020', 'same year');
+    eq(fmtPeriod(d(2020, 11, 3), d(2021, 1, 9)), 'Nov 3, 2020 – Jan 9, 2021', 'across a new year');
+    eq([fmtPeriod(null, d(2020, 10, 9)), fmtPeriod(d(2020, 9, 10), null), fmtPeriod(null, null)], ['Up to Oct 9, 2020', 'Sep 10, 2020 – now', 'All time']);
+    eq(fmtPeriod(d(now, 9, 10), d(now, 10, 9), { compact: true }), 'Sep 10 – Oct 9', 'compact: no year when it is this one');
+    eq(fmtPeriod(d(2020, 9, 10), d(2020, 10, 9), { compact: true }), 'Sep 10 – Oct 9, 2020', 'compact: other years keep theirs');
   }],
   ['paymentMethodLabel names the Etsy payment codes', () => {
     eq(['cc', 'paypal', 'apple_pay', 'ideal', 'k_pay_in_4'].map(paymentMethodLabel), ['Card', 'PayPal', 'Apple Pay', 'iDEAL', 'Klarna Pay in 4']);

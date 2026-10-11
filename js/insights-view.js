@@ -9,19 +9,21 @@ import {
   shippingPnL, variationStats,
 } from './insights.js';
 import { ordersWithItems, state } from './state.js';
-import { bucketOptions, chooseBucket, escHtml, fmtMoney, getCurrency, markPartialBuckets, pickBucket } from './util.js';
+import { bucketOptions, chooseBucket, escHtml, fmtMoney, fmtNum, fmtPeriod, getCurrency, markPartialBuckets, pickBucket, plural } from './util.js';
 
 const $ = id => document.getElementById(id);
 
 const POSTAGE = new Set([...LABEL_FEES, ...LABEL_REFUNDS]);
 const NO_ORDERS     = 'No orders in this period.'; // as the charts say it; "yet" read oddly for a past period
-const LEDGER_WAIT   = 'Financial details are still loading.';
+const NO_ORDERS_SUB = 'No orders in this period';  // the same, as a chart subtitle
+/** What a ledger-based panel says until the ledger is in, or once it has failed to load. */
+export const ledgerWait = () => state.ledgerFailed
+  ? "The payment ledger didn't load. Use “Retry ledger” to try again."
+  : 'Loading the payment ledger…';
 
 const pct     = (x, digits = 1) => x == null || !isFinite(x) ? '—' : `${(x * 100).toFixed(digits)}%`;
 const fmtC    = c => fmtMoney(c / 100);
-const fmtNum  = n => n == null ? '—' : Number(n).toLocaleString('en-US');
 const fmtDate = ts => new Date(ts * 1000).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
-const plural  = (n, word) => `${fmtNum(n)} ${word}${n === 1 ? '' : 's'}`;
 const feeColor = type => FEE_GROUPS.find(g => g.key === type)?.color;
 
 // Small HTML builders. Labels and subs are our own text; values must already be safe.
@@ -116,12 +118,13 @@ function renderAttention(orders, now) {
   const el = $('ov-attention');
   if (!orders.length) { el.style.display = 'none'; return; }
   const b = backlog(orders, now);
+  const days = Math.floor(b.oldestDays || 0);
   el.style.display = '';
   el.className = `attention ${b.overdue ? 'is-late' : b.count ? 'is-open' : 'is-clear'}`;
   el.innerHTML = b.count
     ? `<span class="attention-dot"></span>
-       <span class="attention-text"><strong>${plural(b.count, 'order')}</strong> not shipped yet${b.overdue ? ` · <strong>${fmtNum(b.overdue)}</strong> past Etsy's expected ship date` : ''} · oldest paid ${plural(Math.floor(b.oldestDays), 'day')} ago</span>
-       <button class="attention-link" data-action="tab" data-tab="orders" data-jump="sec-fulfilment">See fulfilment →</button>`
+       <span class="attention-text"><strong>${plural(b.count, 'order')}</strong> from this period not shipped yet${b.overdue ? ` · <strong>${fmtNum(b.overdue)}</strong> past Etsy's ship-by date` : ''} · ${days < 1 ? 'oldest paid today' : `oldest waiting ${plural(days, 'day')}`}</span>
+       <button class="attention-link" data-action="tab" data-tab="orders" data-jump="sec-fulfilment">See shipping <span aria-hidden="true">→</span></button>`
     : `<span class="attention-dot"></span>
        <span class="attention-text">Every physical order in this period has been marked shipped.</span>`;
 }
@@ -134,12 +137,12 @@ function renderSnapshot() {
   const avg = s.review_average != null ? `${Number(s.review_average).toFixed(2)} ★` : '—';
   $('ins-snapshot').innerHTML = [
     kpi('Shop Favorites', fmtNum(s.num_favorers), 'people who favorited your shop'),
-    kpi('Active Listings', fmtNum(s.listing_active_count), s.digital_listing_count ? `${fmtNum(s.digital_listing_count)} digital` : 'live on Etsy now'),
-    kpi('Lifetime Sales', fmtNum(s.transaction_sold_count), 'since the shop opened'),
-    kpi('Review Average', avg, `${plural(s.review_count ?? 0, 'review')} · past 12 months`),
+    kpi('Active Listings', fmtNum(s.listing_active_count), s.digital_listing_count ? `incl. ${fmtNum(s.digital_listing_count)} digital` : 'live on Etsy now'),
+    kpi('Lifetime Sales', fmtNum(s.transaction_sold_count), 'items sold since the shop opened'),
+    kpi('Shop Rating', avg, `${plural(s.review_count ?? 0, 'review')} · past 12 months`),
   ].join('');
   const note = $('ins-snapshot-note');
-  note.textContent = (s.is_vacation ? 'Shop is in vacation mode · ' : '') + "Etsy's own counts, not limited to the selected period";
+  note.textContent = (s.is_vacation ? 'Shop is in vacation mode · ' : '') + "Etsy's own figures, not limited to the selected period";
   note.classList.toggle('warn', !!s.is_vacation);
 }
 
@@ -150,9 +153,9 @@ function renderProfitability(orders) {
   const entries = state.ledgerEntries;
   if (!state.detailsLoaded || !entries) {
     $('ins-ledger-note').textContent = '';
-    $('ins-fee-sub').textContent = LEDGER_WAIT;
+    $('ins-fee-sub').textContent = state.ledgerFailed ? "The payment ledger didn't load" : 'Loading the payment ledger…';
     $('ins-fee-svg').innerHTML = '';
-    for (const id of ['ins-ads', 'ins-shipping', 'ins-payouts']) $(id).innerHTML = empty(LEDGER_WAIT);
+    for (const id of ['ins-ads', 'ins-shipping', 'ins-payouts']) $(id).innerHTML = empty(ledgerWait());
     return;
   }
   renderLedgerNote();
@@ -165,7 +168,7 @@ function renderProfitability(orders) {
 /** Say which dates the ledger covers. */
 function renderLedgerNote() {
   const span = state.ledgerSpan, el = $('ins-ledger-note');
-  el.textContent = span ? `ledger ${fmtDate(span.from)} – ${fmtDate(span.to)}` : '';
+  el.textContent = span ? `from the payment ledger, ${fmtPeriod(span.from, span.to)}` : '';
 }
 
 function renderFeeChart(entries) {
@@ -186,14 +189,16 @@ function renderFeeChart(entries) {
   const fees    = all.reduce((s, r) => s + r.feesCents, 0);
   const data    = markPartialBuckets(all.map(r => ({ ...r, feePct: r.feeRate === null ? null : r.feeRate * 100 })), span?.from, span?.to, bucket);
 
-  if (!data.some(r => r.feePct !== null)) { svg.innerHTML = ''; sub.textContent = 'No sales in the ledger for this period'; return; }
-  sub.textContent = `${pct(gross > 0 ? fees / gross : null)} of sales (excl. tax) went to fees · by ${bucket}`;
+  if (!data.some(r => r.feePct !== null)) { svg.innerHTML = ''; sub.textContent = 'No sales in the payment ledger for this period'; return; }
+  sub.textContent = `${pct(gross > 0 ? fees / gross : null)} of Net Sales went to fees${exclude ? ' other than labels' : ''} · by ${bucket}`;
 
-  // No rate when gross isn't positive: either nothing sold, or refunds outweighed the week's sales
+  // With labels left out, the fees and what's left aren't Total Fees and Net after Fees, so they say so
+  const amounts = d => `Net Sales ${fmtC(d.grossCents)} · ${exclude ? 'fees excl. labels' : 'fees'} ${fmtC(d.feesCents)}<br>${exclude ? 'Net before labels' : 'Net after Fees'} ${fmtC(d.netCents)}`;
+  // No rate when Net Sales isn't positive: either nothing sold, or refunds outweighed the week's sales
   const tipHtml = d => d.feeRate !== null
-    ? `<strong>${escHtml(d.tip)}</strong><br>Fees ${pct(d.feeRate)} · Margin ${pct(d.margin)}<br>Gross ${fmtC(d.grossCents)} · Fees ${fmtC(d.feesCents)}<br>Net ${fmtC(d.netCents)}`
+    ? `<strong>${escHtml(d.tip)}</strong><br>Fees ${pct(d.feeRate)} · kept ${pct(d.margin)}<br>${amounts(d)}`
     : d.grossCents < 0
-      ? `<strong>${escHtml(d.tip)}</strong><br>Refunds exceeded sales<br>Gross ${fmtC(d.grossCents)} · Fees ${fmtC(d.feesCents)}<br>Net ${fmtC(d.netCents)}`
+      ? `<strong>${escHtml(d.tip)}</strong><br>Refunds exceeded sales<br>${amounts(d)}`
       : `<strong>${escHtml(d.tip)}</strong><br>No sales${d.feesCents ? `<br>Fees ${fmtC(d.feesCents)}` : ''}`;
   const fmt = v => `${v.toFixed(1)}%`;
   if (data.length > 14) drawLineChart(svg, tip, data, 'feePct', fmt, '#b91c1c', tipHtml);
@@ -203,14 +208,14 @@ function renderFeeChart(entries) {
 function renderAds(entries) {
   const a  = adSpend(entries);
   const el = $('ins-ads');
-  const note = caveat("Spend only. Etsy's API doesn't report ad views, clicks or the sales ads brought in.");
+  const note = caveat("Etsy's API reports what ads cost, not their views or clicks, and not which sales Etsy Ads brought in. Offsite Ads sales are the sales Etsy charged an Offsite Ads fee on.");
   if (!a.totalCents && !a.offsiteSales) { el.innerHTML = empty('No Etsy Ads or Offsite Ads fees in this period.') + note; return; }
   const rows = a.rows.map(r => ({ ...r, color: feeColor(r.type) }));
   setHtml(el,
     tiles(
       tile('Ad spend', fmtC(a.totalCents), '', 'red'),
-      tile('Share of sales', pct(a.share), 'ad fees ÷ ledger gross'),
-      tile('Offsite Ads sales', fmtNum(a.offsiteSales), 'sales charged the fee', '', a.offsiteSales ? 'offsite' : null),
+      tile('Ad spend rate', pct(a.share), 'ad spend ÷ Net Sales'),
+      tile('Offsite Ads sales', fmtNum(a.offsiteSales), 'sales Etsy charged its fee on', '', a.offsiteSales ? 'offsite' : null),
     ) +
     `<div class="top-prod-rows">${barRows(rows, {
       name: r => r.label, value: r => r.cents, fmt: r => fmtC(r.cents),
@@ -222,22 +227,23 @@ function renderShipping(orders, entries) {
   const s  = shippingPnL(orders, entries, state.ledgerSpan);
   const el = $('ins-shipping');
   if (!s.labelCount) {
-    el.innerHTML = tiles(tile('Charged to buyers', fmtC(s.chargedCents))) +
-      empty("No Etsy shipping labels were bought in this period, so there's nothing to compare. Labels bought elsewhere don't appear in Etsy's ledger.");
+    el.innerHTML = tiles(tile('Charged to buyers', fmtC(s.chargedCents), 'on orders, before refunds')) +
+      empty("No Etsy shipping labels were bought in this period, so there's nothing to compare. Labels bought elsewhere don't appear in Etsy's payment ledger.");
     return;
   }
-  const profit = s.diffCents >= 0;
+  // Not "profit": Etsy's transaction and processing fees on shipping haven't come off
+  const surplus = s.diffCents >= 0;
   setHtml(el,
     tiles(
-      tile('Charged to buyers', fmtC(s.chargedCents)),
-      tile('Labels bought', fmtC(s.labelsCents), plural(s.labelCount, 'label'), '', 'labels'),
-      tile(profit ? 'Shipping profit' : 'Shipping loss', fmtC(Math.abs(s.diffCents)), '', profit ? 'green' : 'red'),
+      tile('Charged to buyers', fmtC(s.chargedCents), 'on orders, before refunds'),
+      tile('Labels bought', fmtC(s.labelsCents), `${plural(s.labelCount, 'label')} · after refunds`, '', 'labels'),
+      tile(surplus ? 'Shipping surplus' : 'Shipping shortfall', fmtC(Math.abs(s.diffCents)), "before Etsy's fees on shipping", surplus ? 'green' : 'red'),
     ) +
     `<div class="top-prod-rows">${barRows([
       { label: 'Charged to buyers', cents: s.chargedCents, color: '#3a7d4c' },
       { label: 'Etsy labels bought', cents: s.labelsCents, color: '#d4622a' },
     ], { name: r => r.label, value: r => r.cents, fmt: r => fmtC(r.cents) })}</div>` +
-    caveat('Counts only labels bought through Etsy. Labels are charged when bought, so orders near the edges of the period may not line up.'));
+    caveat('Counts only labels bought through Etsy, and shipping on every order placed in the period, before refunds. Labels are charged when bought, so orders near the edges of the period may not line up.'));
 }
 
 function renderComposition(orders) {
@@ -258,20 +264,20 @@ function renderComposition(orders) {
       fmt: r => (r.amt < 0 ? '−' : '') + fmtMoney(Math.abs(r.amt)),
       sub: r => c.grand ? `${pct(r.amt / c.grand)} of what buyers paid` : '',
     })}</div>` +
-    caveat(`These add up to what buyers paid (${fmtMoney(c.grand)}). Total Gross leaves out sales tax, which is collected for the tax authority, and refunds. "Other" is anything the parts don't explain, such as a state retail delivery fee or VAT.`));
+    caveat(`These add up to what buyers paid (${fmtMoney(c.grand)}), before refunds. Net Sales is lower: it leaves out the sales tax Etsy remits and takes refunds off. “Other” is anything the parts don't explain, such as a state retail delivery fee or VAT.`));
 }
 
 function renderPayouts(entries) {
   const p  = payoutStats(entries);
   const el = $('ins-payouts');
-  const balance = p.balanceCents != null ? tile('Balance', fmtC(p.balanceCents), 'after the latest entry') : '';
+  const balance = p.balanceCents != null ? tile('Etsy balance', fmtC(p.balanceCents), 'at the end of this period') : '';
   if (!p.count) { el.innerHTML = (balance ? tiles(balance) : '') + empty('No payouts in this period.'); return; }
   el.innerHTML = tiles(
     tile('Paid out', fmtC(p.totalCents), plural(p.count, 'payout'), '', 'payouts'),
     tile('Average payout', fmtC(p.avgCents)),
     tile('Last payout', fmtDate(p.lastPayoutTs)),
     balance,
-  ) + caveat('Payouts move money you already earned from your Etsy balance to your bank. They aren\'t extra income, so gross, fees and net leave them out.');
+  ) + caveat("Payouts move money you've already earned from your Etsy balance to your bank. They aren't extra income, so Net Sales, Total Fees and Net after Fees leave them out.");
 }
 
 // ─── CUSTOMERS ──────────────────────────────────────────────────────────────
@@ -284,8 +290,8 @@ function renderCustomers(orders) {
   const some = key => c.buyers ? key : null; // nothing to show without buyer IDs
   kpis.innerHTML = [
     kpi('Unique Buyers', fmtNum(c.buyers), c.noId ? `${plural(c.noId, 'order')} without a buyer ID` : 'distinct Etsy accounts', '', some('buyers')),
-    kpi('Repeat Buyers', fmtNum(c.repeatBuyers), `${pct(c.repeatRate)} ordered 2+ times this period`, '', c.repeatBuyers ? 'repeat-buyers' : null),
-    kpi('Repeat Buyer Revenue', pct(c.repeatRevenueShare), 'share of buyer spend from repeat buyers', '', c.revenue > 0 ? 'repeat-revenue' : null),
+    kpi('Repeat Buyers', fmtNum(c.repeatBuyers), `${pct(c.repeatRate)} of buyers ordered 2+ times`, '', c.repeatBuyers ? 'repeat-buyers' : null),
+    kpi('Repeat Buyer Share', pct(c.repeatRevenueShare), 'of all buyer spend this period', '', c.revenue > 0 ? 'repeat-revenue' : null),
     kpi('Orders per Buyer', c.ordersPerBuyer == null ? '—' : c.ordersPerBuyer.toFixed(2), 'average this period', '', some('orders-per-buyer')),
   ].join('');
 
@@ -312,9 +318,10 @@ function renderGeo(orders) {
   const rows = g.rows.slice(0, 8);
   const n = g.rows.length;
   const places = byState ? (n === 1 ? 'state' : 'states') : (n === 1 ? 'country' : 'countries');
-  sub.textContent = g.known ? `${fmtNum(n)} ${places} · by revenue` : '—';
+  sub.textContent = g.known ? `${fmtNum(n)} ${places} · by spend` : '—';
+  const are = g.unknown === 1 ? 'is' : 'are';
   const note = g.unknown
-    ? caveat(`${plural(g.unknown, byState ? 'US order' : 'order')} without a shared address ${g.unknown === 1 ? 'is' : 'are'} left out; shares are of known addresses.`)
+    ? caveat(byState ? `${plural(g.unknown, 'US order')} without a state ${are} left out.` : `${plural(g.unknown, 'order')} without a shipping country ${are} left out.`)
     : '';
   if (!rows.length) {
     el.innerHTML = empty(byState ? 'No US orders with a state in this period.' : 'No orders with a shipping country in this period.') + note;
@@ -356,27 +363,27 @@ function renderVariations(orders) {
       <div class="ins-seg">${segs.map(c => `<span style="width:${c.pct.toFixed(2)}%;background:${c.color}" title="${escHtml(c.label)}: ${c.units}"></span>`).join('')}</div>
       <div class="ins-legend">${segs.map(c => `<span><i style="background:${c.color}"></i>${escHtml(c.label)}<b>×${c.units}</b></span>`).join('')}</div>
     </div>`;
-  }).join('') + caveat('Units by variation combination. Personalization text is left out.');
+  }).join('') + caveat("Each bar splits a product's units by variation combination. Personalization text is left out.");
 }
 
 function renderBasket(orders) {
   const uSvg = $('ins-units-svg'), vSvg = $('ins-values-svg');
   if (!orders.length) {
     uSvg.innerHTML = vSvg.innerHTML = '';
-    $('ins-units-sub').textContent = $('ins-values-sub').textContent = NO_ORDERS;
+    $('ins-units-sub').textContent = $('ins-values-sub').textContent = NO_ORDERS_SUB;
     return;
   }
   const b = basketStats(orders);
   const orderCount = d => plural(d.count, 'order');
 
-  $('ins-units-sub').textContent = b.avgUnits == null ? 'line items not loaded yet'
-    : `avg. ${b.avgUnits.toFixed(2)} units · ${pct(b.multiShare)} of orders have 2+`;
+  $('ins-units-sub').textContent = b.avgUnits == null ? 'item details not loaded yet'
+    : `avg. ${b.avgUnits.toFixed(2)} items · ${pct(b.multiShare)} of orders have 2+`;
   drawBarChart(uSvg, $('ins-units-tooltip'), b.unitBins, 'count', v => plural(v, 'order'), '#5a3d9e',
-    d => `<strong>${d.label} unit${d.label === '1' ? '' : 's'}</strong><br>${orderCount(d)}`, { values: fmtNum });
+    d => `<strong>${d.label} item${d.label === '1' ? '' : 's'}</strong><br>${orderCount(d)}`, { values: fmtNum });
 
-  const range = d => d.max == null ? `${fmtShort(d.min)} or more` : `${fmtShort(d.min)} – ${fmtShort(d.max)}`;
+  const range = d => d.max == null ? `${fmtShort(d.min)} or more` : `${fmtShort(d.min)}–${fmtShort(d.max)}`;
   const data  = b.valueBins.map(d => ({ ...d, label: d.max == null ? `${fmtShort(d.min)}+` : fmtShort(d.min) }));
-  $('ins-values-sub').textContent = `order totals incl. shipping + tax · ${fmtShort(b.step)} bands`;
+  $('ins-values-sub').textContent = 'order totals incl. shipping + tax';
   drawBarChart(vSvg, $('ins-values-tooltip'), data, 'count', v => plural(v, 'order'), '#2563eb',
     d => `<strong>${range(d)}</strong><br>${orderCount(d)}`, { values: fmtNum });
 }
@@ -388,9 +395,10 @@ function renderDiscounts(orders) {
   const avg = v => v == null ? '—' : fmtMoney(v);
   el.innerHTML = [
     kpi('Discounted Orders', fmtNum(d.discounted), `${pct(d.share)} of orders`, '', d.discounted ? 'discounted' : null),
-    kpi('Discounts Given', fmtMoney(d.totalDiscount), 'percent and fixed-amount coupons', d.totalDiscount ? 'red' : '', d.discounted ? 'discounts' : null),
-    kpi('Avg. Order, Discounted', avg(d.aovWith), 'orders with a discount'),
-    kpi('Avg. Order, Full Price', avg(d.aovWithout), 'orders without one'),
+    kpi('Discounts Given', fmtMoney(d.totalDiscount), 'already taken off your sales', d.totalDiscount ? 'red' : '', d.discounted ? 'discounts' : null),
+    // Order totals, unlike Avg. Order Value (excl. tax), so the subs say what's in them
+    kpi('Avg. Order, Discounted', avg(d.aovWith), 'with a discount · incl. shipping + tax'),
+    kpi('Avg. Order, No Discount', avg(d.aovWithout), 'no discount · incl. shipping + tax'),
   ].join('');
 }
 
@@ -415,9 +423,9 @@ function renderShipTime(orders) {
   }
   body.innerHTML = tiles(
     tile('Median', `${f.medianDays.toFixed(1)} days`),
-    tile('On time', pct(f.onTimeRate), f.withExpected ? "by Etsy's expected ship date" : 'no expected dates', '', f.late ? 'late' : null),
+    tile('On time', pct(f.onTimeRate), f.withExpected ? "by Etsy's ship-by date" : 'no ship-by dates', '', f.late ? 'late' : null),
     tile('Shipped', fmtNum(f.shipped), 'physical orders'),
-  ) + caveat("Until the order was marked shipped. Etsy's API has no delivery dates.");
+  ) + caveat("Measured to when the order was marked shipped, not delivered: Etsy's API has no delivery dates.");
   drawBarChart(svg, $('ins-ship-tooltip'), f.bins, 'count', v => plural(v, 'order'), '#3a7d4c',
     d => `<strong>${dayCount(d.label)}</strong><br>${plural(d.count, 'order')}`, { values: fmtNum });
 }
@@ -430,13 +438,13 @@ function renderBacklog(orders, now) {
   setHtml(el,
     tiles(
       tile('Not shipped', fmtNum(b.count), '', '', 'unshipped'),
-      tile('Past due', fmtNum(b.overdue), "past Etsy's expected date", b.overdue ? 'red' : '', b.overdue ? 'overdue' : null),
-      tile('Oldest', `${Math.floor(b.oldestDays)} days`),
+      tile('Past due', fmtNum(b.overdue), "after Etsy's ship-by date", b.overdue ? 'red' : '', b.overdue ? 'overdue' : null),
+      tile('Oldest', dayCount(String(Math.floor(b.oldestDays)))),
     ) +
     `<div class="top-prod-rows">${barRows(b.bins, {
-      name: r => r.label, value: r => r.count, fmt: r => fmtNum(r.count), sub: () => 'since payment',
+      name: r => r.label, value: r => r.count, fmt: r => fmtNum(r.count),
     })}</div>` +
-    caveat('Only orders from the selected period are counted.'));
+    caveat("Orders placed before the selected period aren't counted here, even if they haven't shipped."));
 }
 
 function renderRefunds(orders) {
@@ -448,13 +456,13 @@ function renderRefunds(orders) {
     kpi('Canceled', fmtNum(r.canceled), 'orders', '', drill(r.canceled, 'canceled')),
     kpi('Fully Refunded', fmtNum(r.fullyRefunded), 'orders', '', drill(r.fullyRefunded, 'fully-refunded')),
     kpi('Partially Refunded', fmtNum(r.partiallyRefunded), 'orders', '', drill(r.partiallyRefunded, 'partially-refunded')),
-    kpi('Refunded', fmtMoney(r.refundedAmount), `${pct(r.rate)} of orders affected`, r.refundedAmount ? 'red' : '', drill(r.affected, 'refunds')),
+    kpi('Amount Refunded', fmtMoney(r.refundedAmount), `${pct(r.rate)} of orders canceled or refunded`, r.refundedAmount ? 'red' : '', drill(r.affected, 'refunds')),
   ].join('');
 }
 
 function renderHeatmap(orders) {
   const svg = $('ins-heat-svg'), sub = $('ins-heat-sub');
-  if (!orders.length) { svg.innerHTML = ''; sub.textContent = NO_ORDERS; return; }
+  if (!orders.length) { svg.innerHTML = ''; sub.textContent = NO_ORDERS_SUB; return; }
   const m = heatmapMatrix(orders);
   const p = m.peak;
   sub.textContent = `your local time · busiest: ${DAY_NAMES[p.day]} ${hourLabel(p.hour)}–${hourLabel((p.hour + 1) % 24)} (${plural(p.count, 'order')})`;
@@ -473,17 +481,19 @@ function renderListings(orders) {
     kpis.innerHTML = '';
     count.textContent = '—';
     el.innerHTML = st?.error
-      ? empty(`Couldn't load listings: ${escHtml(st.error)}`) + '<button class="apply-btn" data-action="tab-data-retry">Retry</button>'
+      ? empty(`Couldn't load your listings. (${escHtml(st.error)})`) + '<button class="apply-btn" data-action="tab-data-retry">Retry</button>'
       : st?.loading
         ? empty(`Loading listings…${st.total ? ` ${fmtNum(st.done)} of ${fmtNum(st.total)}` : ''}`)
-        : empty('Listings load once the orders and ledger for this period are in.');
+        : empty(state.ledgerFailed
+          ? "Listings load after the payment ledger, which didn't load. Use “Retry ledger” to try again."
+          : "Listings load once this period's orders and payment ledger are in.");
     return;
   }
 
   const L = listingStats(state.listings, orders);
   const allTime = state.filterFrom == null && state.filterTo == null;
   kpis.innerHTML = [
-    kpi('Active Listings', fmtNum(L.active), `${fmtNum(L.soldOut)} sold out`),
+    kpi('Active Listings', fmtNum(L.active), L.soldOut ? `plus ${fmtNum(L.soldOut)} sold out` : 'none sold out'),
     kpi('No Sales This Period', fmtNum(L.noSales), `${pct(L.active ? L.noSales / L.active : null, 0)} of active listings`, '', L.noSales ? 'no-sales' : null),
     kpi('Low Stock', fmtNum(L.lowStock), 'active, 2 or fewer left', L.lowStock ? 'red' : '', L.lowStock ? 'low-stock' : null),
     kpi('Favorites per 100 Views', rate(L.favPer100Views, 1), 'lifetime, all listings'),
@@ -492,9 +502,9 @@ function renderListings(orders) {
 
   const right = 'style="text-align:right"';
   // Sold and revenue sit next to the name (the sort order), so a phone shows them without scrolling sideways
-  const head = ['<th>Listing</th>', `<th ${right}>Sold</th>`, `<th ${right}>Item revenue</th>`, `<th ${right}>Price</th>`,
-    `<th ${right}>Stock</th>`, `<th ${right}>Views</th>`, `<th ${right}>Favorites</th>`, `<th ${right}>Favs / 100 views</th>`,
-    ...(allTime ? [`<th ${right}>Sales / 100 views</th>`] : []), '<th></th>'].join('');
+  const head = ['<th>Listing</th>', `<th ${right}>Sold</th>`, `<th ${right}>Item sales</th>`, `<th ${right}>Price</th>`,
+    `<th ${right}>Stock</th>`, `<th ${right}>Views</th>`, `<th ${right}>Favorites</th>`, `<th ${right}>Favorites / 100 views</th>`,
+    ...(allTime ? [`<th ${right}>Sold / 100 views</th>`] : []), '<th></th>'].join('');
   const rows = L.rows.map(r => {
     const title = escHtml(r.title);
     // No "no sales" flag: the Sold column beside the name already shows 0, and the pill on most rows drowned out these
@@ -518,10 +528,11 @@ function renderListings(orders) {
 
   const notes = [
     "Views and favorites are Etsy's lifetime totals for each listing, updated about once a day. Etsy's API has no visit, conversion or search data.",
-    allTime ? 'Sales per 100 views compares lifetime sales with lifetime views.' : 'Pick "All time" to compare sales with views.',
+    allTime ? 'Sold per 100 views compares lifetime units sold with lifetime views.' : 'Pick “All time” to compare units sold with views.',
   ];
   if (L.gone.listings) {
-    notes.push(`${plural(L.gone.listings, 'listing')} sold in this period ${L.gone.listings === 1 ? 'is' : 'are'} no longer active or sold out (${plural(L.gone.units, 'unit')}, ${fmtMoney(L.gone.revenue)}), so ${L.gone.listings === 1 ? "it isn't" : "they aren't"} in the table.`);
+    const one = L.gone.listings === 1;
+    notes.push(`${plural(L.gone.listings, 'listing')} that sold in this period ${one ? 'has' : 'have'} since expired, been deactivated or been deleted, so ${one ? "it isn't" : "they aren't"} in the table (${plural(L.gone.units, 'unit')}, ${fmtMoney(L.gone.revenue)}).`);
   }
   el.innerHTML = `<div class="table-wrap ins-scroll"><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>` +
     caveat(notes.join(' '));
@@ -548,10 +559,12 @@ function renderReviews(orders) {
     const st = state.reviewsStatus;
     body.style.display = 'none';
     status.innerHTML = st?.error
-      ? empty(`Couldn't load reviews: ${escHtml(st.error)}`) + '<button class="apply-btn" data-action="tab-data-retry">Retry</button>'
+      ? empty(`Couldn't load your reviews. (${escHtml(st.error)})`) + '<button class="apply-btn" data-action="tab-data-retry">Retry</button>'
       : st?.loading
         ? empty(`Loading reviews…${st.total ? ` ${fmtNum(st.done)} of ${fmtNum(st.total)}` : ''}`)
-        : empty('Reviews load once the orders and ledger for this period are in.');
+        : empty(state.ledgerFailed
+          ? "Reviews load after the payment ledger, which didn't load. Use “Retry ledger” to try again."
+          : "Reviews load once this period's orders and payment ledger are in.");
     return;
   }
   status.innerHTML = '';
@@ -564,8 +577,8 @@ function renderReviews(orders) {
   $('ins-review-kpis').innerHTML = [
     kpi('Average Rating', r.avg == null ? '—' : `${r.avg.toFixed(2)} ★`, `${plural(r.count, 'review')} this period`),
     kpi('5-Star Reviews', pct(fiveStar, 0), 'of reviews this period', 'green'),
-    kpi('Rated 3 or Less', fmtNum(lowCount), 'reviews this period', lowCount ? 'red' : '', lowCount ? 'low-reviews' : null),
-    kpi('Items Reviewed', pct(r.coverage, 0), r.items ? `${fmtNum(r.itemsReviewed)} of ${fmtNum(r.items)} items sold this period, so far` : 'no items to match'),
+    kpi('Low Ratings', fmtNum(lowCount), '3 stars or fewer this period', lowCount ? 'red' : '', lowCount ? 'low-reviews' : null),
+    kpi('Items Reviewed', pct(r.coverage, 0), r.items ? `${fmtNum(r.itemsReviewed)} of ${fmtNum(r.items)} items sold this period have a review` : 'no items to match'),
   ].join('');
 
   const title = listingTitles(orders);

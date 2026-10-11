@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sales Pulse Live — Etsy Sales, Fees &amp; Net Earnings</title>
-  <meta name="description" content="Connect your Etsy shop with read-only access and see gross sales, every Etsy fee and your net earnings for any date range, plus customer, listing and review insights, with CSV and JSON export."/>
+  <title>Sales Pulse Live — Your Etsy Sales After Every Fee</title>
+  <meta name="description" content="Connect your Etsy shop with read-only access and see net sales, every Etsy fee and what's left after them for any period, plus customer, listing and review insights, with CSV and JSON export."/>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,800;1,9..144,300;1,9..144,700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/tokens.css"/>
   <!-- The dashboard's own stylesheet: shared nav, plus the components the previews below are built from -->
@@ -286,7 +286,7 @@
     <div class="hero-chips">
       <div class="chip chip-o">Straight from the Etsy API</div>
       <div class="chip chip-g">Read-only access</div>
-      <div class="chip chip-p">OAuth 2.0 + PKCE</div>
+      <div class="chip chip-p">Secure Etsy sign-in</div>
       <div class="chip chip-gold">Nothing saved on a server</div>
     </div>
     <h1>Your Etsy sales,<br><span class="ul">after</span> <span class="gr">every fee.</span></h1>
@@ -294,7 +294,7 @@
       Connect your shop through the Etsy API and see what buyers paid, what Etsy took and what you kept. Charts, order details, your full payment ledger and deeper insights, with CSV and JSON export.
     </p>
     <div class="hero-stats">
-      <div class="h-stat"><div class="h-stat-val">Any range</div><div class="h-stat-lbl">7 days to all time</div></div>
+      <div class="h-stat"><div class="h-stat-val">Any period</div><div class="h-stat-lbl">7 days to all time</div></div>
       <div class="h-stat"><div class="h-stat-val">CSV · JSON</div><div class="h-stat-lbl">Orders + ledger</div></div>
       <div class="h-stat"><div class="h-stat-val">Read-only</div><div class="h-stat-lbl">Etsy permissions</div></div>
       <div class="h-stat"><div class="h-stat-val">API v3</div><div class="h-stat-lbl">Official Etsy API</div></div>
@@ -312,13 +312,13 @@
     <div class="section-inner">
       <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Shop Overview</div>
       <h2 class="section-title reveal">What you sold, <em>and what you kept.</em></h2>
-      <p class="section-body reveal">Pick 7 days, 30 days, 90 days, year to date, 12 months, all time or your own dates. Sales Pulse Live loads every paid order in that range and shows gross sales, Etsy fees, net earnings, order count and average order value.</p>
-      <div class="preview reveal" role="img" aria-label="Dashboard preview with sample data: 30 days selected, gross $4,533.22, fees $812.36, net $3,720.86, 64 orders, average order value $70.83.">
+      <p class="section-body reveal">Pick 7 days, 30 days, 90 days, year to date, 12 months, all time or your own dates. Sales Pulse Live loads every paid order in that period and shows net sales, Etsy fees, what's left after them, order count and average order value.</p>
+      <div class="preview reveal" role="img" aria-label="Dashboard preview with sample data: 30 days selected, net sales $4,533.22, fees $812.36, net after fees $3,720.86, 64 orders, average order value $73.64.">
         <div class="preview-tag">Preview · sample data</div>
         <div class="dash-header">
           <div>
             <div class="dash-shop-name">YourShopName</div>
-            <div class="dash-shop-sub">Shop ID: 12345678 · @yourshopname</div>
+            <div class="dash-shop-sub">Shop ID 12345678</div>
           </div>
         </div>
         <div class="date-filter-bar">
@@ -334,26 +334,26 @@
           <div class="date-range-inputs">
             <span class="fake-date">09/07/2026</span>
             <span class="date-range-dash">→</span>
-            <span class="fake-date">10/07/2026</span>
+            <span class="fake-date">10/06/2026</span>
           </div>
         </div>
         <div class="kpi-row">
           <div class="kpi-card">
-            <div class="kpi-label">Total Gross</div>
+            <div class="kpi-label">Net Sales</div>
             <div class="kpi-val">$4,533.22</div>
-            <div class="kpi-sub">sales after refunds, excl. tax</div>
+            <div class="kpi-sub">after refunds · excl. sales tax</div>
             <div class="drill-cue" aria-hidden="true">Details ›</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-label">Total Fees</div>
             <div class="kpi-val red">$812.36</div>
-            <div class="kpi-sub">txn + processing + ads + listing + labels</div>
+            <div class="kpi-sub">selling fees, ads and labels, less credits</div>
             <div class="drill-cue" aria-hidden="true">Details ›</div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-label">Net Earnings</div>
+            <div class="kpi-label">Net after Fees</div>
             <div class="kpi-val green">$3,720.86</div>
-            <div class="kpi-sub">gross minus fees</div>
+            <div class="kpi-sub">sales − fees · before your own costs</div>
             <div class="drill-cue" aria-hidden="true">Details ›</div>
           </div>
           <div class="kpi-card">
@@ -364,7 +364,7 @@
           </div>
           <div class="kpi-card">
             <div class="kpi-label">Avg. Order Value</div>
-            <div class="kpi-val">$70.83</div>
+            <div class="kpi-val">$73.64</div>
             <div class="kpi-sub">per order, before refunds, excl. tax</div>
             <div class="drill-cue" aria-hidden="true">Details ›</div>
           </div>
@@ -378,19 +378,19 @@
     <div class="section-inner">
       <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Sales Trends</div>
       <h2 class="section-title reveal">Spot patterns <em>before they pass.</em></h2>
-      <p class="section-body reveal">Chart revenue or order count over time, grouped by day, week, month or year: picked to suit the range, or switch it yourself. See which days of the week sell best, and rank your products by revenue or units sold.</p>
-      <div class="preview reveal" role="img" aria-label="Chart preview with sample data: daily revenue over 30 days, average sales by day of week, and the top eight products by revenue.">
+      <p class="section-body reveal">Chart sales or order count over time by day, week, month or year, picked to suit the period or chosen by you. See which days of the week sell best, and rank your products by sales or units sold.</p>
+      <div class="preview reveal" role="img" aria-label="Chart preview with sample data: daily sales over 30 days, average sales by day of week, and the top eight products by item sales.">
         <div class="preview-tag">Preview · sample data</div>
         <div class="order-charts-grid">
           <div class="ochart-panel">
             <div class="ochart-header">
               <div>
-                <div class="ochart-title">Revenue Over Time</div>
-                <div class="ochart-subtitle">$4,533.22 in sales before refunds, excl. tax · by day</div>
+                <div class="ochart-title">Sales Over Time</div>
+                <div class="ochart-subtitle">$4,712.80 in sales before refunds, excl. tax · by day</div>
               </div>
               <div class="ochart-controls">
                 <div class="ochart-toggle">
-                  <span class="ochart-toggle-btn active">Revenue</span>
+                  <span class="ochart-toggle-btn active">Sales</span>
                   <span class="ochart-toggle-btn">Orders</span>
                 </div>
                 <div class="ochart-toggle">
@@ -409,10 +409,10 @@
             <div class="ochart-header">
               <div>
                 <div class="ochart-title">Sales by Day of Week</div>
-                <div class="ochart-subtitle">avg. per day</div>
+                <div class="ochart-subtitle">average per day, incl. days with no sales</div>
               </div>
               <div class="ochart-toggle">
-                <span class="ochart-toggle-btn active">Revenue</span>
+                <span class="ochart-toggle-btn active">Sales</span>
                 <span class="ochart-toggle-btn">Orders</span>
               </div>
             </div>
@@ -425,11 +425,11 @@
           <div class="ochart-header">
             <div>
               <div class="ochart-title">Top Products</div>
-              <div class="ochart-subtitle">top 8 of 14 products</div>
+              <div class="ochart-subtitle">top 8 of 14 products · item sales before discounts</div>
             </div>
             <div class="ochart-toggle">
-              <span class="ochart-toggle-btn active">Revenue</span>
-              <span class="ochart-toggle-btn">Orders</span>
+              <span class="ochart-toggle-btn active">Sales</span>
+              <span class="ochart-toggle-btn">Units</span>
             </div>
           </div>
           <div class="top-prod-rows">
@@ -484,7 +484,7 @@
     <div class="section-inner">
       <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Order History</div>
       <h2 class="section-title reveal">Every order, <em>down to the line item.</em></h2>
-      <p class="section-body reveal">Open any order to see the subtotal, shipping, tax and discounts, the card processing fee, where it shipped, any buyer note, and each item with its SKU and price.</p>
+      <p class="section-body reveal">Open any order to see its items, shipping, tax and discount, the payment processing fee, where it shipped, any buyer note, and each item with its SKU and price.</p>
       <div class="preview reveal" role="img" aria-label="Order history preview with sample data: a list of orders with one expanded to show its totals, processing fee, shipping location, buyer note and line items.">
         <div class="preview-tag">Preview · sample data</div>
         <div class="tabs">
@@ -502,7 +502,7 @@
           <div class="table-wrap">
             <table class="stack-rows">
               <thead>
-                <tr><th></th><th>Receipt ID</th><th>Date</th><th>Buyer</th><th>Items</th><th>Status</th><th>Order Total</th></tr>
+                <tr><th></th><th>Order</th><th>Date</th><th>Buyer</th><th>Items</th><th>Status</th><th>Order Total</th></tr>
               </thead>
               <tbody>
                 <tr class="order-row expanded">
@@ -518,21 +518,21 @@
                   <td colspan="7">
                     <div class="detail-inner">
                       <div class="detail-summary">
-                        <div class="detail-stat"><span class="detail-stat-label">Grand Total</span><span class="detail-stat-val">$95.04</span></div>
-                        <div class="detail-stat"><span class="detail-stat-label">Subtotal</span><span class="detail-stat-val">$84.00</span></div>
+                        <div class="detail-stat"><span class="detail-stat-label">Order Total</span><span class="detail-stat-val">$95.04</span></div>
+                        <div class="detail-stat"><span class="detail-stat-label">Items</span><span class="detail-stat-val">$84.00</span></div>
                         <div class="detail-stat"><span class="detail-stat-label">Shipping</span><span class="detail-stat-val">$4.50</span></div>
-                        <div class="detail-stat"><span class="detail-stat-label">Tax</span><span class="detail-stat-val">$6.54</span></div>
+                        <div class="detail-stat"><span class="detail-stat-label">Sales Tax</span><span class="detail-stat-val">$6.54</span></div>
                         <div class="detail-stat-sep"></div>
                         <div class="detail-stat"><span class="detail-stat-label">Processing Fee</span><span class="detail-stat-val red">−$3.10</span></div>
-                        <div class="detail-stat"><span class="detail-stat-label">Net (after proc. fee)</span><span class="detail-stat-val green">$91.94</span></div>
+                        <div class="detail-stat"><span class="detail-stat-label">After Processing Fee</span><span class="detail-stat-val">$91.94</span></div>
                       </div>
                       <div class="detail-body">
                         <div class="detail-col-info">
                           <div class="detail-section-title">Order info</div>
-                          <div class="detail-kv"><span class="detail-kv-label">Payment</span><span class="detail-kv-val" style="text-transform:capitalize">apple pay</span></div>
+                          <div class="detail-kv"><span class="detail-kv-label">Payment</span><span class="detail-kv-val">Apple Pay</span></div>
                           <div class="detail-kv"><span class="detail-kv-label">Ship to</span><span class="detail-kv-val muted">Portland, OR, US</span></div>
                           <div class="detail-kv"><span class="detail-kv-label">Gift order</span><span class="detail-kv-val">No</span></div>
-                          <div class="detail-note" style="font-size:0.68rem;color:var(--muted2)">⚠ Processing fee only. Full transaction + ad fees appear in the Finances tab.</div>
+                          <div class="detail-note" style="font-size:0.68rem;color:var(--muted2)">⚠ Only the processing fee is taken off here, and the total still includes sales tax. This order's other fees are in the payment ledger on the Finances tab.</div>
                           <div class="detail-note"><strong style="font-size:0.7rem;font-weight:500;color:var(--ink)">Buyer note</strong><br>Could you engrave “Ava” on the ring? Thank you!</div>
                         </div>
                         <div class="detail-col-items">
@@ -589,7 +589,7 @@
     <div class="section-inner">
       <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Fees &amp; Ledger</div>
       <h2 class="section-title reveal">See where <em>Etsy's cut goes.</em></h2>
-      <p class="section-body reveal">Sales Pulse Live reads your Etsy payment ledger and sorts every entry into sales, fees, refunds and pass-throughs, so transaction fees, processing fees, shipping labels and ads each get their own line. Sales tax, state delivery fees and payouts to your bank stay out of the totals, and gross minus fees always equals net.</p>
+      <p class="section-body reveal">Sales Pulse Live reads your Etsy payment ledger and sorts every entry into sales, fees, refunds, sales tax and transfers, so transaction fees, processing fees, shipping labels and ads each get their own line. Sales tax, state delivery fees and payouts to your bank stay out of the totals, and net sales minus fees always equals net after fees.</p>
       <div class="preview reveal" role="img" aria-label="Finances preview with sample data: $812.36 of Etsy fees split into transaction fees, shipping labels, processing fees, Etsy Ads, listing renewals and Offsite Ads, above a payment ledger table.">
         <div class="preview-tag">Preview · sample data</div>
         <div class="tabs">
@@ -664,33 +664,41 @@
                 <tr>
                   <td class="td-mono td-muted sr-sub">Oct 6, 2026</td>
                   <td class="sr-sub"><span class="ledger-type-badge lt-fee">fee</span></td>
-                  <td class="sr-main">Card processing fee</td>
+                  <td class="sr-main">Payment processing fee</td>
                   <td class="sr-sub"><span class="td-mono td-muted">#1000004821</span></td>
-                  <td class="sr-end"><span style="color:var(--red);font-family:'DM Mono',monospace;font-size:0.72rem">-$3.10</span></td>
+                  <td class="sr-end"><span style="color:var(--red);font-family:'DM Mono',monospace;font-size:0.72rem">−$3.10</span></td>
                   <td class="td-mono td-muted sr-off">$1,248.62</td>
                 </tr>
                 <tr>
                   <td class="td-mono td-muted sr-sub">Oct 6, 2026</td>
                   <td class="sr-sub"><span class="ledger-type-badge lt-fee">fee</span></td>
-                  <td class="sr-main">Transaction fee / sale</td>
+                  <td class="sr-main">Transaction fee</td>
                   <td class="sr-sub"><span class="td-mono td-muted">#1000004821</span></td>
-                  <td class="sr-end"><span style="color:var(--red);font-family:'DM Mono',monospace;font-size:0.72rem">-$5.75</span></td>
+                  <td class="sr-end"><span style="color:var(--red);font-family:'DM Mono',monospace;font-size:0.72rem">−$5.75</span></td>
                   <td class="td-mono td-muted sr-off">$1,251.72</td>
                 </tr>
                 <tr>
                   <td class="td-mono td-muted sr-sub">Oct 6, 2026</td>
-                  <td class="sr-sub"><span class="ledger-type-badge lt-revenue">sale</span></td>
-                  <td class="sr-main">Payment received</td>
+                  <td class="sr-sub"><span class="ledger-type-badge lt-tax">sales tax</span></td>
+                  <td class="sr-main">Sales tax (Etsy remits)</td>
                   <td class="sr-sub"><span class="td-mono td-muted">#1000004821</span></td>
-                  <td class="sr-end"><span style="color:var(--green);font-family:'Fraunces',serif;font-weight:700;font-size:0.9rem">+$88.50</span></td>
+                  <td class="sr-end"><span style="color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem">−$6.54</span></td>
                   <td class="td-mono td-muted sr-off">$1,257.47</td>
+                </tr>
+                <tr>
+                  <td class="td-mono td-muted sr-sub">Oct 6, 2026</td>
+                  <td class="sr-sub"><span class="ledger-type-badge lt-revenue">sale</span></td>
+                  <td class="sr-main">Payment for order, incl. tax</td>
+                  <td class="sr-sub"><span class="td-mono td-muted">#1000004821</span></td>
+                  <td class="sr-end"><span style="color:var(--green);font-family:'Fraunces',serif;font-weight:700;font-size:0.9rem">+$95.04</span></td>
+                  <td class="td-mono td-muted sr-off">$1,264.01</td>
                 </tr>
                 <tr>
                   <td class="td-mono td-muted sr-sub">Oct 6, 2026</td>
                   <td class="sr-sub"><span class="ledger-type-badge lt-fee">fee</span></td>
                   <td class="sr-main">Shipping label cost</td>
                   <td class="sr-sub"><span style="color:var(--muted2);font-size:0.65rem;font-family:'DM Mono',monospace">shipping label</span></td>
-                  <td class="sr-end"><span style="color:var(--red);font-family:'DM Mono',monospace;font-size:0.72rem">-$4.80</span></td>
+                  <td class="sr-end"><span style="color:var(--red);font-family:'DM Mono',monospace;font-size:0.72rem">−$4.80</span></td>
                   <td class="td-mono td-muted sr-off">$1,168.97</td>
                 </tr>
                 <tr>
@@ -698,7 +706,7 @@
                   <td class="sr-sub"><span class="ledger-type-badge lt-payout">payout</span></td>
                   <td class="sr-main">Payout to bank</td>
                   <td class="sr-sub"><span style="color:var(--muted2);font-size:0.65rem;font-family:'DM Mono',monospace">—</span></td>
-                  <td class="sr-end"><span style="color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem">-$950.00</span></td>
+                  <td class="sr-end"><span style="color:var(--muted2);font-family:'DM Mono',monospace;font-size:0.72rem">−$950.00</span></td>
                   <td class="td-mono td-muted sr-off">$1,173.77</td>
                 </tr>
               </tbody>
@@ -714,8 +722,8 @@
     <div class="section-inner">
       <div class="section-eyebrow reveal"><div class="eyebrow-rule"></div> Beyond the Totals</div>
       <h2 class="section-title reveal">Know your buyers, <em>listings and reviews.</em></h2>
-      <p class="section-body reveal">Each tab digs into its own part of the shop. Orders shows time to ship and late orders, Products shows best-selling variations and listing views and favorites, Customers shows repeat buyers, where orders ship and review ratings, and Finances shows what ads and shipping labels cost.</p>
-      <div class="preview reveal" role="img" aria-label="Customers preview with sample data: 57 buyers, 7 of them repeat buyers bringing in 18.6% of gross, a 4.86 average rating, orders by country and reviews by stars.">
+      <p class="section-body reveal">Each tab digs into its own part of the shop. Orders: time to ship and late orders. Products: best-selling variations, and each listing's views and favorites. Customers: repeat buyers, where orders ship and review ratings. Finances: what ads and shipping labels cost.</p>
+      <div class="preview reveal" role="img" aria-label="Customers preview with sample data: 57 buyers, 7 of them repeat buyers who made up 18.6% of buyer spend, a 4.86 average rating, orders by country and reviews by stars.">
         <div class="preview-tag">Preview · sample data</div>
         <div class="tabs">
           <span class="tab-btn">Overview</span>
@@ -726,14 +734,14 @@
         </div>
         <div class="ins-kpis" style="margin:1.25rem 0 14px">
           <div class="kpi-card"><div class="kpi-label">Unique Buyers</div><div class="kpi-val">57</div><div class="kpi-sub">distinct Etsy accounts</div></div>
-          <div class="kpi-card"><div class="kpi-label">Repeat Buyers</div><div class="kpi-val">7</div><div class="kpi-sub">12.3% ordered 2+ times this period</div></div>
-          <div class="kpi-card"><div class="kpi-label">Repeat Buyer Revenue</div><div class="kpi-val">18.6%</div><div class="kpi-sub">share of buyer spend from repeat buyers</div></div>
+          <div class="kpi-card"><div class="kpi-label">Repeat Buyers</div><div class="kpi-val">7</div><div class="kpi-sub">12.3% of buyers ordered 2+ times</div></div>
+          <div class="kpi-card"><div class="kpi-label">Repeat Buyer Share</div><div class="kpi-val">18.6%</div><div class="kpi-sub">of all buyer spend this period</div></div>
           <div class="kpi-card"><div class="kpi-label">Average Rating</div><div class="kpi-val">4.86 ★</div><div class="kpi-sub">21 reviews this period</div></div>
         </div>
         <div class="ins-grid">
           <div class="ochart-panel">
             <div class="ochart-header">
-              <div><div class="ochart-title">Where Orders Ship</div><div class="ochart-subtitle">5 countries · by revenue</div></div>
+              <div><div class="ochart-title">Where Orders Ship</div><div class="ochart-subtitle">5 countries · by spend</div></div>
               <div class="ochart-toggle"><span class="ochart-toggle-btn active">Countries</span><span class="ochart-toggle-btn">US states</span></div>
             </div>
             <div class="top-prod-rows">
@@ -826,7 +834,7 @@
           <div class="step-num">03</div>
           <div class="step-icon p">📊</div>
           <h3>Explore &amp; Export</h3>
-          <p>Pick a date range, explore your overview, orders, products, customers and finances, then download your orders or ledger as CSV or JSON.</p>
+          <p>Pick a period, explore your overview, orders, products, customers and finances, then download your orders or ledger as CSV or JSON.</p>
         </div>
       </div>
     </div>
@@ -847,7 +855,7 @@
         <div class="for-card g">
           <div class="for-card-icon">📈</div>
           <h3>Dashboard Builders</h3>
-          <p>Download clean JSON, with line items and categorised ledger entries, to import into Notion, Airtable or your own tools.</p>
+          <p>Download clean JSON, with line items and categorized ledger entries, to import into Notion, Airtable or your own tools.</p>
         </div>
         <div class="for-card p">
           <div class="for-card-icon">🔍</div>
@@ -857,7 +865,7 @@
         <div class="for-card gold">
           <div class="for-card-icon">💸</div>
           <h3>Margin Watchers</h3>
-          <p>See what transaction fees, processing, shipping labels and ads really cost you, and what's left after them.</p>
+          <p>See what transaction and processing fees, shipping labels and ads really cost you, and what's left after them.</p>
         </div>
       </div>
     </div>
@@ -893,7 +901,7 @@
           </div>
           <div class="priv-item reveal">
             <div class="priv-check gold">✓</div>
-            <div class="priv-text"><strong>Gentle on Etsy's API</strong><p>Requests are paced and back off automatically when Etsy rate-limits them, and recent results are reused instead of fetched again. Listings and reviews are only requested when you open Products or Customers.</p></div>
+            <div class="priv-text"><strong>Gentle on Etsy's API</strong><p>Requests are paced and back off automatically when Etsy rate-limits them, and recent results are reused instead of being fetched again. Listings and reviews are only requested when you open Products or Customers.</p></div>
           </div>
         </div>
       </div>
